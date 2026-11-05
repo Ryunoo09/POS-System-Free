@@ -17,6 +17,11 @@ export interface ApiEnvelope<T> {
   meta?: PaginationMeta
 }
 
+export interface ListResult<T> {
+  items: T[]
+  meta: PaginationMeta
+}
+
 export interface ApiErrorPayload {
   success?: false
   code?: string

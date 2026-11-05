@@ -1,5 +1,5 @@
 import axios, { type AxiosRequestConfig } from 'axios'
-import type { ApiEnvelope, ApiErrorPayload } from '@/types/api'
+import type { ApiEnvelope, ApiErrorPayload, ListResult, PaginationMeta } from '@/types/api'
 import { ApiError } from '@/utils/api-error'
 import { TOKEN_STORAGE_KEY } from '@/utils/constants'
 
@@ -52,9 +52,23 @@ api.interceptors.response.use(
   },
 )
 
+const fallbackMeta = (total: number): PaginationMeta => ({
+  page: 1,
+  limit: total,
+  total_items: total,
+  total_pages: total > 0 ? 1 : 0,
+})
+
 export const http = {
   get: <T>(url: string, config?: AxiosRequestConfig) =>
     api.get<ApiEnvelope<T>>(url, config).then((response) => response.data),
+
+  getList: async <T>(url: string, config?: AxiosRequestConfig): Promise<ListResult<T>> => {
+    const response = await api.get<ApiEnvelope<T[]>>(url, config)
+    const { data, meta } = response.data
+
+    return { items: data, meta: meta ?? fallbackMeta(data.length) }
+  },
 
   post: <T>(url: string, body?: unknown, config?: AxiosRequestConfig) =>
     api.post<ApiEnvelope<T>>(url, body, config).then((response) => response.data),
