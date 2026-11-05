@@ -6,7 +6,7 @@ export default tseslint.config(
   },
   ...tseslint.configs.recommended,
   {
-    files: ['src/**/*.ts', 'tests/**/*.ts', 'vitest.config.ts'],
+    files: ['src/**/*.ts', 'tests/**/*.ts', 'prisma/**/*.ts', 'vitest.config.ts'],
     languageOptions: {
       parserOptions: {
         projectService: true,

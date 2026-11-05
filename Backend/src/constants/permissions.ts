@@ -1,0 +1,54 @@
+import type { Role } from './roles.js'
+
+export const PERMISSIONS = {
+  DASHBOARD_READ: 'dashboard:read',
+  PRODUCT_READ: 'product:read',
+  PRODUCT_WRITE: 'product:write',
+  CATEGORY_READ: 'category:read',
+  CATEGORY_WRITE: 'category:write',
+  INVENTORY_READ: 'inventory:read',
+  INVENTORY_ADJUST: 'inventory:adjust',
+  TRANSACTION_CREATE: 'transaction:create',
+  TRANSACTION_READ_OWN: 'transaction:read:own',
+  TRANSACTION_READ_ALL: 'transaction:read:all',
+  REPORT_READ: 'report:read',
+  USER_MANAGE: 'user:manage',
+  COST_PRICE_READ: 'cost-price:read',
+} as const
+
+export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
+
+/**
+ * Satu-satunya pemetaan role → permission (PRD §6.3).
+ * Menambah role atau mengubah hak akses cukup mengubah objek ini.
+ */
+export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
+  ADMIN: [
+    PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.PRODUCT_READ,
+    PERMISSIONS.PRODUCT_WRITE,
+    PERMISSIONS.CATEGORY_READ,
+    PERMISSIONS.CATEGORY_WRITE,
+    PERMISSIONS.INVENTORY_READ,
+    PERMISSIONS.INVENTORY_ADJUST,
+    PERMISSIONS.TRANSACTION_READ_ALL,
+    PERMISSIONS.REPORT_READ,
+    PERMISSIONS.USER_MANAGE,
+    PERMISSIONS.COST_PRICE_READ,
+  ],
+  OWNER: [
+    PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.PRODUCT_READ,
+    PERMISSIONS.CATEGORY_READ,
+    PERMISSIONS.INVENTORY_READ,
+    PERMISSIONS.TRANSACTION_READ_ALL,
+    PERMISSIONS.REPORT_READ,
+    PERMISSIONS.COST_PRICE_READ,
+  ],
+  CASHIER: [
+    PERMISSIONS.PRODUCT_READ,
+    PERMISSIONS.CATEGORY_READ,
+    PERMISSIONS.TRANSACTION_CREATE,
+    PERMISSIONS.TRANSACTION_READ_OWN,
+  ],
+}

@@ -27,6 +27,7 @@
     "test:e2e": "pnpm --filter @pos/frontend test:e2e",
     "db:migrate": "pnpm --filter @pos/backend prisma:migrate",
     "db:deploy": "pnpm --filter @pos/backend prisma:deploy",
-    "db:reset": "pnpm --filter @pos/backend prisma:reset"
+    "db:reset": "pnpm --filter @pos/backend prisma:reset",
+    "db:seed": "pnpm --filter @pos/backend prisma:seed"
   }
 }

@@ -4,15 +4,6 @@ import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import PosLayout from '@/layouts/PosLayout.vue'
 import { PERMISSIONS } from '@/utils/permissions'
 
-declare module 'vue-router' {
-  interface RouteMeta {
-    public?: boolean
-    requiresAuth?: boolean
-    permissions?: string[]
-    title?: string
-  }
-}
-
 export const routes: RouteRecordRaw[] = [
   {
     path: '/login',
