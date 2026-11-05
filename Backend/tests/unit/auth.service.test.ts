@@ -21,6 +21,15 @@ const buildUser = async (overrides: Partial<User> = {}): Promise<User> => ({
 const buildRepository = (user: User | null): UserRepository => ({
   findByEmail: async () => user,
   findActiveById: async () => user,
+  findById: async () => user,
+  list: async () => ({ items: user ? [user] : [], total: user ? 1 : 0 }),
+  countActiveAdmins: async () => 0,
+  create: async () => {
+    throw new Error('tidak dipakai pada test ini')
+  },
+  update: async () => {
+    throw new Error('tidak dipakai pada test ini')
+  },
 })
 
 describe('AuthService.login', () => {

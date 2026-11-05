@@ -1,0 +1,209 @@
+import { runInTransaction } from '../config/database.js'
+import { BusinessRuleError, ConflictError, NotFoundError } from '../errors/app-errors.js'
+import { toProductDto, type ProductDto } from '../mappers/product.mapper.js'
+import type { CategoryRepository } from '../repositories/category.repository.js'
+import type { ProductRepository, UpdateProductData } from '../repositories/product.repository.js'
+import type { StockMovementRepository } from '../repositories/stock-movement.repository.js'
+import type { PaginationMeta } from '../types/http.js'
+import { buildPaginationMeta, toSkip } from '../utils/pagination.js'
+import type {
+  CreateProductInput,
+  ListProductsQuery,
+  UpdateProductInput,
+} from '../validators/product.validator.js'
+
+export interface ProductActor {
+  id: string
+  canViewCostPrice: boolean
+  /** Cashier selalu dipaksa melihat produk aktif saja. */
+  isCashier: boolean
+}
+
+export interface ProductService {
+  list: (
+    query: ListProductsQuery,
+    actor: ProductActor,
+  ) => Promise<{ items: ProductDto[]; meta: PaginationMeta }>
+  getById: (id: string, actor: ProductActor) => Promise<ProductDto>
+  create: (input: CreateProductInput, actor: ProductActor) => Promise<ProductDto>
+  update: (id: string, input: UpdateProductInput, actor: ProductActor) => Promise<ProductDto>
+  deactivate: (id: string, actor: ProductActor) => Promise<ProductDto>
+}
+
+export const createProductService = ({
+  productRepository,
+  categoryRepository,
+  stockMovementRepository,
+}: {
+  productRepository: ProductRepository
+  categoryRepository: CategoryRepository
+  stockMovementRepository: StockMovementRepository
+}): ProductService => {
+  const assertCategoryActive = async (categoryId: string): Promise<void> => {
+    const category = await categoryRepository.findById(categoryId)
+
+    if (!category) {
+      throw new NotFoundError('Kategori tidak ditemukan', 'NOT_FOUND')
+    }
+
+    if (!category.isActive) {
+      throw new BusinessRuleError(
+        'Kategori nonaktif tidak dapat dipilih',
+        'CATEGORY_INACTIVE',
+        [{ field: 'category_id', message: 'Kategori nonaktif' }],
+      )
+    }
+  }
+
+  const assertSkuAvailable = async (sku: string, excludeId?: string): Promise<void> => {
+    const existing = await productRepository.findBySku(sku)
+
+    if (existing && existing.id !== excludeId) {
+      throw new ConflictError('SKU sudah digunakan', 'DUPLICATE_SKU', [
+        { field: 'sku', message: 'SKU sudah digunakan' },
+      ])
+    }
+  }
+
+  const assertBarcodeAvailable = async (
+    barcode: string,
+    excludeId?: string,
+  ): Promise<void> => {
+    const existing = await productRepository.findByBarcode(barcode)
+
+    if (existing && existing.id !== excludeId) {
+      throw new ConflictError('Barcode sudah digunakan', 'DUPLICATE_BARCODE', [
+        { field: 'barcode', message: 'Barcode sudah digunakan' },
+      ])
+    }
+  }
+
+  return {
+    list: async (query, actor) => {
+      const canViewCostPrice = actor.canViewCostPrice
+      const isActive = actor.isCashier ? true : query.is_active
+
+      const { items, total } = await productRepository.list({
+        skip: toSkip(query.page, query.limit),
+        take: query.limit,
+        search: query.search,
+        barcode: query.barcode,
+        categoryId: query.category_id,
+        isActive,
+      })
+
+      return {
+        items: items.map((product) => toProductDto(product, { canViewCostPrice })),
+        meta: buildPaginationMeta(query.page, query.limit, total),
+      }
+    },
+
+    getById: async (id, actor) => {
+      const product = await productRepository.findById(id)
+
+      if (!product) {
+        throw new NotFoundError('Produk tidak ditemukan', 'NOT_FOUND')
+      }
+
+      return toProductDto(product, { canViewCostPrice: actor.canViewCostPrice })
+    },
+
+    create: async (input, actor) => {
+      await assertSkuAvailable(input.sku)
+
+      if (input.barcode) {
+        await assertBarcodeAvailable(input.barcode)
+      }
+
+      await assertCategoryActive(input.category_id)
+
+      const created = await runInTransaction(async (tx) => {
+        const product = await productRepository.create(
+          {
+            sku: input.sku,
+            barcode: input.barcode ?? null,
+            name: input.name,
+            description: input.description ?? null,
+            categoryId: input.category_id,
+            unit: input.unit,
+            costPrice: input.cost_price.toFixed(2),
+            sellingPrice: input.selling_price.toFixed(2),
+            stock: input.stock,
+            minStock: input.min_stock,
+          },
+          tx,
+        )
+
+        if (input.stock > 0) {
+          await stockMovementRepository.create(
+            {
+              productId: product.id,
+              movementType: 'INITIAL_STOCK',
+              quantity: input.stock,
+              stockBefore: 0,
+              stockAfter: input.stock,
+              referenceType: 'MANUAL',
+              referenceId: null,
+              notes: 'Stok awal produk',
+              createdById: actor.id,
+            },
+            tx,
+          )
+        }
+
+        return product
+      })
+
+      return toProductDto(created, { canViewCostPrice: actor.canViewCostPrice })
+    },
+
+    update: async (id, input, actor) => {
+      const existing = await productRepository.findById(id)
+
+      if (!existing) {
+        throw new NotFoundError('Produk tidak ditemukan', 'NOT_FOUND')
+      }
+
+      if (input.sku !== undefined) {
+        await assertSkuAvailable(input.sku, id)
+      }
+
+      if (input.barcode !== undefined) {
+        await assertBarcodeAvailable(input.barcode, id)
+      }
+
+      if (input.category_id !== undefined) {
+        await assertCategoryActive(input.category_id)
+      }
+
+      const data: UpdateProductData = {}
+
+      if (input.sku !== undefined) data.sku = input.sku
+      if (input.barcode !== undefined) data.barcode = input.barcode
+      if (input.name !== undefined) data.name = input.name
+      if (input.description !== undefined) data.description = input.description
+      if (input.category_id !== undefined) data.categoryId = input.category_id
+      if (input.unit !== undefined) data.unit = input.unit
+      if (input.cost_price !== undefined) data.costPrice = input.cost_price.toFixed(2)
+      if (input.selling_price !== undefined) data.sellingPrice = input.selling_price.toFixed(2)
+      if (input.min_stock !== undefined) data.minStock = input.min_stock
+      if (input.is_active !== undefined) data.isActive = input.is_active
+
+      const updated = await productRepository.update(id, data)
+
+      return toProductDto(updated, { canViewCostPrice: actor.canViewCostPrice })
+    },
+
+    deactivate: async (id, actor) => {
+      const existing = await productRepository.findById(id)
+
+      if (!existing) {
+        throw new NotFoundError('Produk tidak ditemukan', 'NOT_FOUND')
+      }
+
+      const updated = await productRepository.update(id, { isActive: false })
+
+      return toProductDto(updated, { canViewCostPrice: actor.canViewCostPrice })
+    },
+  }
+}

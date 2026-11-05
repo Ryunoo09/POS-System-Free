@@ -1,0 +1,19 @@
+export const STOCK_MOVEMENT_TYPES = {
+  INITIAL_STOCK: 'INITIAL_STOCK',
+  PURCHASE: 'PURCHASE',
+  SALE: 'SALE',
+  ADJUSTMENT: 'ADJUSTMENT',
+  RETURN: 'RETURN',
+} as const
+
+export type StockMovementType =
+  (typeof STOCK_MOVEMENT_TYPES)[keyof typeof STOCK_MOVEMENT_TYPES]
+
+export const STOCK_REFERENCE_TYPES = {
+  PRODUCT: 'PRODUCT',
+  TRANSACTION: 'TRANSACTION',
+  MANUAL: 'MANUAL',
+} as const
+
+export type StockReferenceType =
+  (typeof STOCK_REFERENCE_TYPES)[keyof typeof STOCK_REFERENCE_TYPES]
