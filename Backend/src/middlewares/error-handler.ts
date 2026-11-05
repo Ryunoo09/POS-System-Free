@@ -1,20 +1,27 @@
 import { Prisma } from '@prisma/client'
+import type { ErrorRequestHandler } from 'express'
 import { ZodError } from 'zod'
 import { AppError } from '../errors/app-errors.js'
+import type { FieldError } from '../types/http.js'
 import { logger } from '../utils/logger.js'
-import { sendError } from '../utils/response.js'
+import { sendError, type ErrorOptions } from '../utils/response.js'
 import { formatZodPath } from '../utils/zod-path.js'
 
-const zodErrors = (error) =>
+const zodErrors = (error: ZodError): FieldError[] =>
   error.issues.map((issue) => ({
     field: formatZodPath(issue.path) || 'body',
     message: issue.message,
   }))
 
-const prismaError = (error) => {
+const prismaError = (error: Prisma.PrismaClientKnownRequestError): ErrorOptions | null => {
   if (error.code === 'P2002') {
-    const target = Array.isArray(error.meta?.target) ? error.meta.target : [error.meta?.target]
-    const field = target.filter(Boolean).join(', ')
+    const target = error.meta?.target
+    const fields = Array.isArray(target)
+      ? target.filter((item): item is string => typeof item === 'string')
+      : typeof target === 'string'
+        ? [target]
+        : []
+    const field = fields.join(', ')
 
     return {
       statusCode: 409,
@@ -43,7 +50,19 @@ const prismaError = (error) => {
   return null
 }
 
-export const errorHandler = (error, _req, res, _next) => {
+const isBodyParseError = (
+  value: unknown,
+): value is SyntaxError & { status: number; body: unknown } => {
+  if (!(value instanceof SyntaxError)) {
+    return false
+  }
+
+  const candidate = value as { status?: unknown; body?: unknown }
+
+  return candidate.status === 400 && 'body' in candidate
+}
+
+export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (error instanceof ZodError) {
     return sendError(res, {
       statusCode: 400,
@@ -70,7 +89,7 @@ export const errorHandler = (error, _req, res, _next) => {
     })
   }
 
-  if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+  if (isBodyParseError(error)) {
     return sendError(res, {
       statusCode: 400,
       code: 'INVALID_JSON',

@@ -1,30 +1,35 @@
-export default [
+import tseslint from 'typescript-eslint'
+
+export default tseslint.config(
   {
-    ignores: ['node_modules/**', 'coverage/**', 'prisma/migrations/**'],
+    ignores: ['node_modules/**', 'coverage/**', 'dist/**', 'prisma/migrations/**'],
   },
+  ...tseslint.configs.recommended,
   {
-    files: ['**/*.js'],
+    files: ['src/**/*.ts', 'tests/**/*.ts', 'vitest.config.ts'],
     languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module',
-      globals: {
-        Buffer: 'readonly',
-        clearTimeout: 'readonly',
-        console: 'readonly',
-        process: 'readonly',
-        setTimeout: 'readonly',
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
+      ],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
       'no-console': 'off',
-      'no-undef': 'error',
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       eqeqeq: ['error', 'always'],
       'prefer-const': 'error',
     },
   },
   {
-    files: ['src/services/**/*.js'],
+    files: ['src/services/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -41,7 +46,7 @@ export default [
     },
   },
   {
-    files: ['src/controllers/**/*.js'],
+    files: ['src/controllers/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -53,7 +58,7 @@ export default [
     },
   },
   {
-    files: ['src/repositories/**/*.js'],
+    files: ['src/repositories/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -66,4 +71,4 @@ export default [
       ],
     },
   },
-]
+)

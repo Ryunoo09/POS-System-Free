@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { loadEnv } from '../../src/config/env.js'
 
-const validEnv = {
+const validEnv: NodeJS.ProcessEnv = {
   NODE_ENV: 'test',
   DATABASE_URL: 'postgresql://postgres@localhost:5433/pos_test?schema=public',
   JWT_SECRET: 'a'.repeat(32),

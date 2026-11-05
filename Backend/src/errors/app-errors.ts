@@ -1,17 +1,30 @@
+import type { FieldError } from '../types/http.js'
+
+export interface AppErrorOptions {
+  statusCode?: number
+  code?: string
+  errors?: FieldError[]
+  cause?: unknown
+}
+
 export class AppError extends Error {
-  constructor(message, { statusCode = 500, code, errors = [], cause } = {}) {
-    super(message, { cause })
+  readonly statusCode: number
+  readonly code: string | undefined
+  readonly errors: FieldError[]
+  readonly isOperational = true
+
+  constructor(message: string, options: AppErrorOptions = {}) {
+    super(message, options.cause === undefined ? undefined : { cause: options.cause })
     this.name = new.target.name
-    this.statusCode = statusCode
-    this.code = code
-    this.errors = errors
-    this.isOperational = true
+    this.statusCode = options.statusCode ?? 500
+    this.code = options.code
+    this.errors = options.errors ?? []
     Error.captureStackTrace?.(this, new.target)
   }
 }
 
 export class ValidationError extends AppError {
-  constructor(message = 'Validation error', errors = []) {
+  constructor(message = 'Validation error', errors: FieldError[] = []) {
     super(message, { statusCode: 400, code: 'VALIDATION_ERROR', errors })
   }
 }
@@ -35,13 +48,13 @@ export class NotFoundError extends AppError {
 }
 
 export class ConflictError extends AppError {
-  constructor(message = 'Terjadi konflik data', code = 'CONFLICT', errors = []) {
+  constructor(message = 'Terjadi konflik data', code = 'CONFLICT', errors: FieldError[] = []) {
     super(message, { statusCode: 409, code, errors })
   }
 }
 
 export class BusinessRuleError extends AppError {
-  constructor(message, code = 'BUSINESS_RULE_VIOLATION', errors = []) {
+  constructor(message: string, code = 'BUSINESS_RULE_VIOLATION', errors: FieldError[] = []) {
     super(message, { statusCode: 422, code, errors })
   }
 }

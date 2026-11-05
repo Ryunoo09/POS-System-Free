@@ -1,13 +1,14 @@
 import cors from 'cors'
-import express from 'express'
+import express, { type Express } from 'express'
 import { env } from './config/env.js'
 import { container as defaultContainer } from './container.js'
 import { errorHandler } from './middlewares/error-handler.js'
 import { notFound } from './middlewares/not-found.js'
 import { securityHeaders } from './middlewares/security-headers.js'
 import { createRoutes } from './routes/index.js'
+import type { AppContainer } from './types/container.js'
 
-export const createApp = ({ container = defaultContainer } = {}) => {
+export const createApp = ({ container = defaultContainer }: { container?: AppContainer } = {}): Express => {
   const app = express()
 
   app.disable('x-powered-by')

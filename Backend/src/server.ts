@@ -1,7 +1,7 @@
 import { createServer } from 'node:http'
 import { app } from './app.js'
-import { env } from './config/env.js'
 import { prisma } from './config/database.js'
+import { env } from './config/env.js'
 import { logger } from './utils/logger.js'
 
 const server = createServer(app)
@@ -10,14 +10,14 @@ server.listen(env.PORT, () => {
   logger.info(`POS API berjalan di http://localhost:${env.PORT}`)
 })
 
-server.on('error', (error) => {
+server.on('error', (error: Error) => {
   logger.error('Server gagal berjalan', error)
   process.exit(1)
 })
 
 let isShuttingDown = false
 
-const shutdown = (signal) => {
+const shutdown = (signal: NodeJS.Signals): void => {
   if (isShuttingDown) return
   isShuttingDown = true
 

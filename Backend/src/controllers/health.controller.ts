@@ -1,7 +1,17 @@
+import type { RequestHandler } from 'express'
+import type { HealthService } from '../services/health.service.js'
 import { logger } from '../utils/logger.js'
 import { sendError, sendSuccess } from '../utils/response.js'
 
-export const createHealthController = ({ healthService }) => ({
+export interface HealthController {
+  getHealth: RequestHandler
+}
+
+export const createHealthController = ({
+  healthService,
+}: {
+  healthService: HealthService
+}): HealthController => ({
   getHealth: async (_req, res) => {
     try {
       const data = await healthService.check()

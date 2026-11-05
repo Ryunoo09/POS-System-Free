@@ -14,12 +14,14 @@ const envSchema = z.object({
   TAX_RATE: z.coerce.number().min(0).max(1).default(0),
 })
 
-export const loadEnv = (source = process.env) => {
+export type Env = z.infer<typeof envSchema>
+
+export const loadEnv = (source: NodeJS.ProcessEnv = process.env): Env => {
   const result = envSchema.safeParse(source)
 
   if (!result.success) {
     const details = result.error.issues
-      .map((issue) => `- ${issue.path.join('.') || 'env'}: ${issue.message}`)
+      .map((issue) => `- ${issue.path.map(String).join('.') || 'env'}: ${issue.message}`)
       .join('\n')
 
     throw new Error(`Environment tidak valid:\n${details}`)

@@ -1,14 +1,18 @@
 import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../../src/config/database.js', () => ({
-  prisma: {
-    $queryRaw: vi.fn(),
-  },
-  runInTransaction: vi.fn(),
+const mocks = vi.hoisted(() => ({
+  queryRaw: vi.fn<() => Promise<unknown>>(),
+  runInTransaction: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
 }))
 
-const { prisma } = await import('../../src/config/database.js')
+vi.mock('../../src/config/database.js', () => ({
+  prisma: {
+    $queryRaw: mocks.queryRaw,
+  },
+  runInTransaction: mocks.runInTransaction,
+}))
+
 const { createApp } = await import('../../src/app.js')
 
 const app = createApp()
@@ -19,7 +23,7 @@ describe('GET /api/health', () => {
   })
 
   it('mengembalikan 200 saat database tersedia', async () => {
-    prisma.$queryRaw.mockResolvedValue([{ '?column?': 1 }])
+    mocks.queryRaw.mockResolvedValue([{ '?column?': 1 }])
 
     const response = await request(app).get('/api/health')
 
@@ -35,7 +39,7 @@ describe('GET /api/health', () => {
   })
 
   it('mengembalikan 503 saat database tidak tersedia', async () => {
-    prisma.$queryRaw.mockRejectedValue(new Error('connection refused'))
+    mocks.queryRaw.mockRejectedValue(new Error('connection refused'))
 
     const response = await request(app).get('/api/health')
 
