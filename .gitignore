@@ -51,3 +51,6 @@ graphify-out/
 
 # Planning docs (disimpan lokal, tidak dipush)
 docs/
+
+# OpenCode local agent config (jangan dipush)
+.opencode/
