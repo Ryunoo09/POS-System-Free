@@ -1,14 +1,12 @@
 {
-  "name": "POS",
+  "name": "pos-system",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=22.18.0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
@@ -16,16 +14,19 @@
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@12.16.1",
-  "private": true,
-  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev:backend": "pnpm --dir Backend dev",
-    "dev:frontend": "pnpm --dir Frontend dev"
+    "dev": "pnpm -r --parallel dev",
+    "dev:backend": "pnpm --filter @pos/backend dev",
+    "dev:frontend": "pnpm --filter @pos/frontend dev",
+    "build": "pnpm --filter @pos/frontend build",
+    "type-check": "pnpm --filter @pos/frontend type-check",
+    "lint": "pnpm -r --if-present lint",
+    "format": "pnpm --filter @pos/frontend format",
+    "test": "pnpm -r --if-present test",
+    "test:unit": "pnpm --filter @pos/frontend test:unit",
+    "test:e2e": "pnpm --filter @pos/frontend test:e2e",
+    "db:migrate": "pnpm --filter @pos/backend prisma:migrate",
+    "db:deploy": "pnpm --filter @pos/backend prisma:deploy",
+    "db:reset": "pnpm --filter @pos/backend prisma:reset"
   }
 }
-
-
-
-

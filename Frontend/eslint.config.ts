@@ -32,6 +32,88 @@ export default defineConfigWithVueTs(
     files: ['src/**/__tests__/*'],
   },
 
+  {
+    files: ['src/components/**/*.vue'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/services/*', 'axios'],
+              message: 'Komponen presentasional tidak memanggil API.',
+            },
+            { group: ['@/stores/*'], message: 'Gunakan props/emits.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/pages/**/*.vue'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/services/*', 'axios'],
+              message: 'Gunakan store/composable, bukan service langsung.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/services/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/stores/*', '@/components/*', '@/pages/*'],
+              message: 'Service tidak boleh bergantung pada UI/state.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/stores/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/components/*', '@/pages/*'],
+              message: 'Store tidak boleh mengenal komponen.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/utils/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['vue', '@/stores/*', '@/services/*', '@/components/*', '@/pages/*'],
+              message: 'Utils harus berupa fungsi murni.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
   skipFormatting,

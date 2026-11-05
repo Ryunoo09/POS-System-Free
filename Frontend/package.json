@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "@pos/frontend",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
-    "test:unit": "vitest",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
