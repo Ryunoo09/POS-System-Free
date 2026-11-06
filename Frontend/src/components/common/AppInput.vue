@@ -12,6 +12,8 @@ const props = withDefaults(
     hint?: string
     autocomplete?: string
     inputmode?: 'text' | 'none' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search'
+    min?: string
+    max?: string
     required?: boolean
     disabled?: boolean
   }>(),
@@ -22,6 +24,8 @@ const props = withDefaults(
     hint: '',
     autocomplete: 'off',
     inputmode: 'text',
+    min: '',
+    max: '',
     required: false,
     disabled: false,
   },
@@ -54,6 +58,8 @@ const describedBy = () =>
         :placeholder="placeholder"
         :autocomplete="autocomplete"
         :inputmode="inputmode"
+        :min="min || undefined"
+        :max="max || undefined"
         :required="required"
         :disabled="disabled"
         :aria-invalid="Boolean(error)"
