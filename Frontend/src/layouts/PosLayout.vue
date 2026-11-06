@@ -2,12 +2,15 @@
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import AppButton from '@/components/common/AppButton.vue'
 import { useAuthStore } from '@/stores/auth.store'
+import { useCartStore } from '@/stores/cart.store'
 import { PERMISSIONS } from '@/utils/permissions'
 
 const auth = useAuthStore()
+const cart = useCartStore()
 const router = useRouter()
 
 const logout = async () => {
+  cart.clear()
   auth.logout()
   await router.push('/login')
 }

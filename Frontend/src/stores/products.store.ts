@@ -44,6 +44,17 @@ export const useProductsStore = defineStore('products', () => {
     }
   }
 
+  const findByBarcode = async (barcode: string): Promise<Product | null> => {
+    const result = await productsService.list({
+      page: 1,
+      limit: 1,
+      barcode,
+      is_active: 'true',
+    })
+
+    return result.items[0] ?? null
+  }
+
   const createProduct = async (payload: ProductCreatePayload): Promise<Product> => {
     isSaving.value = true
 
@@ -83,6 +94,7 @@ export const useProductsStore = defineStore('products', () => {
     error,
     fetchProducts,
     fetchProductOptions,
+    findByBarcode,
     createProduct,
     updateProduct,
     deactivateProduct,
