@@ -8,11 +8,13 @@ import type {
   ProductListParams,
   ProductUpdatePayload,
 } from '@/types/product'
+import { MAX_PAGE_SIZE } from '@/utils/constants'
 import { errorMessage } from '@/utils/errors'
 import { emptyPaginationMeta } from '@/utils/pagination'
 
 export const useProductsStore = defineStore('products', () => {
   const items = ref<Product[]>([])
+  const options = ref<Product[]>([])
   const meta = ref<PaginationMeta>(emptyPaginationMeta())
   const isLoading = ref(false)
   const isSaving = ref(false)
@@ -30,6 +32,15 @@ export const useProductsStore = defineStore('products', () => {
       error.value = errorMessage(err, 'Gagal memuat produk.')
     } finally {
       isLoading.value = false
+    }
+  }
+
+  const fetchProductOptions = async (): Promise<void> => {
+    try {
+      const result = await productsService.list({ page: 1, limit: MAX_PAGE_SIZE })
+      options.value = result.items
+    } catch {
+      options.value = []
     }
   }
 
@@ -65,11 +76,13 @@ export const useProductsStore = defineStore('products', () => {
 
   return {
     items,
+    options,
     meta,
     isLoading,
     isSaving,
     error,
     fetchProducts,
+    fetchProductOptions,
     createProduct,
     updateProduct,
     deactivateProduct,

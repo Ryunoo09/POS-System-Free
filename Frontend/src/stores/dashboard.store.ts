@@ -73,7 +73,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
     lowStockError.value = ''
 
     try {
-      lowStock.value = await inventoryService.listLowStock(10)
+      const result = await inventoryService.listLowStock({ page: 1, limit: 10 })
+      lowStock.value = result.items
     } catch (error) {
       lowStockError.value = errorMessage(error, 'Gagal memuat stok rendah.')
     } finally {

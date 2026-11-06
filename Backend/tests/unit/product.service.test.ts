@@ -47,12 +47,16 @@ const buildProductRepository = (
 ): ProductRepository => ({
   list: async () => ({ items: [], total: 0 }),
   findById: async () => null,
+  findByIdForUpdate: async () => null,
   findBySku: async () => null,
   findByBarcode: async () => null,
   create: async () => {
     throw new Error('tidak dipakai pada test ini')
   },
   update: async () => {
+    throw new Error('tidak dipakai pada test ini')
+  },
+  updateStock: async () => {
     throw new Error('tidak dipakai pada test ini')
   },
   ...overrides,
@@ -81,6 +85,7 @@ const buildStockMovementRepository = (): StockMovementRepository => ({
   create: async () => {
     throw new Error('tidak dipakai pada test ini')
   },
+  list: async () => ({ items: [], total: 0 }),
 })
 
 const validInput = (overrides: Partial<CreateProductInput> = {}): CreateProductInput => ({

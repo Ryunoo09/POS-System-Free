@@ -48,7 +48,11 @@ const reportRepository = createReportRepository(prisma)
 const dashboardService = createDashboardService({ reportRepository })
 
 const inventoryRepository = createInventoryRepository(prisma)
-const inventoryService = createInventoryService({ inventoryRepository })
+const inventoryService = createInventoryService({
+  inventoryRepository,
+  productRepository,
+  stockMovementRepository,
+})
 
 const transactionRepository = createTransactionRepository(prisma)
 const transactionService = createTransactionService({ transactionRepository })

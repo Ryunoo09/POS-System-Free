@@ -1,4 +1,5 @@
-import type { Category, Prisma, PrismaClient, Product } from '@prisma/client'
+import { Prisma } from '@prisma/client'
+import type { Category, PrismaClient, Product } from '@prisma/client'
 
 export type ProductView = Product & { category: Pick<Category, 'id' | 'name'> }
 
@@ -43,10 +44,19 @@ export interface UpdateProductData {
 export interface ProductRepository {
   list: (input: ListProductsInput) => Promise<{ items: ProductView[]; total: number }>
   findById: (id: string) => Promise<ProductView | null>
+  findByIdForUpdate: (
+    id: string,
+    tx: Prisma.TransactionClient,
+  ) => Promise<ProductView | null>
   findBySku: (sku: string) => Promise<Product | null>
   findByBarcode: (barcode: string) => Promise<Product | null>
   create: (data: CreateProductData, tx?: Prisma.TransactionClient) => Promise<ProductView>
   update: (id: string, data: UpdateProductData) => Promise<ProductView>
+  updateStock: (
+    id: string,
+    stock: number,
+    tx?: Prisma.TransactionClient,
+  ) => Promise<ProductView>
 }
 
 const categorySelect = { category: { select: { id: true, name: true } } } as const
@@ -97,6 +107,16 @@ export const createProductRepository = (prisma: PrismaClient): ProductRepository
   findById: (id) =>
     prisma.product.findUnique({ where: { id }, include: categorySelect }),
 
+  findByIdForUpdate: async (id, tx) => {
+    const locked = await tx.$queryRaw<Array<{ id: string }>>(
+      Prisma.sql`SELECT id FROM products WHERE id = ${id}::uuid FOR UPDATE`,
+    )
+
+    if (locked.length === 0) return null
+
+    return tx.product.findUnique({ where: { id }, include: categorySelect })
+  },
+
   findBySku: (sku) => prisma.product.findUnique({ where: { sku } }),
 
   findByBarcode: (barcode) => prisma.product.findUnique({ where: { barcode } }),
@@ -134,4 +154,11 @@ export const createProductRepository = (prisma: PrismaClient): ProductRepository
 
     return prisma.product.update({ where: { id }, data: update, include: categorySelect })
   },
+
+  updateStock: (id, stock, tx) =>
+    (tx ?? prisma).product.update({
+      where: { id },
+      data: { stock },
+      include: categorySelect,
+    }),
 })
