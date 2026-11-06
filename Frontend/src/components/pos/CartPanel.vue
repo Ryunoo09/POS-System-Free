@@ -45,7 +45,7 @@ const setDiscount = (value: string | number): void => {
       <button
         v-if="items.length > 0"
         type="button"
-        class="text-xs font-medium text-ink-3 hover:text-negative disabled:opacity-50"
+        class="-mr-2 rounded-md px-2 py-1.5 text-xs font-medium text-ink-3 hover:bg-surface-2 hover:text-negative disabled:opacity-50"
         :disabled="disabled"
         @click="emit('clear')"
       >

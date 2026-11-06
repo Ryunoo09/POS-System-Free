@@ -41,7 +41,7 @@ const onQuantityChange = (event: Event): void => {
       <div class="inline-flex items-center rounded-lg border border-border">
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center text-ink-2 hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
+          class="flex h-10 w-10 items-center justify-center text-lg text-ink-2 hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
           :aria-label="`Kurangi jumlah ${item.product.name}`"
           :disabled="item.quantity <= 1"
           @click="emit('decrement', item.product.id)"
@@ -54,12 +54,12 @@ const onQuantityChange = (event: Event): void => {
           min="1"
           :max="item.product.stock"
           :aria-label="`Jumlah ${item.product.name}`"
-          class="h-8 w-12 border-x border-border text-center text-sm text-ink focus:outline-none"
+          class="h-10 w-14 border-x border-border text-center text-sm text-ink focus:outline-none"
           @change="onQuantityChange"
         />
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center text-ink-2 hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
+          class="flex h-10 w-10 items-center justify-center text-lg text-ink-2 hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
           :aria-label="`Tambah jumlah ${item.product.name}`"
           :disabled="item.quantity >= item.product.stock"
           @click="emit('increment', item.product.id)"
@@ -72,7 +72,7 @@ const onQuantityChange = (event: Event): void => {
         <span class="text-xs text-ink-3">Maks {{ formatNumber(item.product.stock) }}</span>
         <button
           type="button"
-          class="text-xs font-medium text-negative hover:text-negative-hover"
+          class="-mr-2 rounded-md px-2 py-2 text-xs font-medium text-negative hover:bg-negative-soft"
           :aria-label="`Hapus ${item.product.name}`"
           @click="emit('remove', item.product.id)"
         >

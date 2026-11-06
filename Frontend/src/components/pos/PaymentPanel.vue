@@ -82,7 +82,7 @@ const setMethod = (value: string): void => {
         v-for="amount in quickAmounts"
         :key="amount"
         type="button"
-        class="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-ink-2 hover:bg-surface-2"
+        class="min-h-9 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-ink-2 hover:bg-surface-2"
         :disabled="isCheckingOut"
         @click="emit('update:amount-paid', amount)"
       >

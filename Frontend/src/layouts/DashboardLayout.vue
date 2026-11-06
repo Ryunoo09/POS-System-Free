@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
 import AppButton from '@/components/common/AppButton.vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { useUiStore } from '@/stores/ui.store'
@@ -60,14 +60,9 @@ const menu: MenuItem[] = [
 
 const auth = useAuthStore()
 const ui = useUiStore()
-const route = useRoute()
 const router = useRouter()
 
 const visibleMenu = computed(() => menu.filter((item) => auth.hasAnyPermission(item.permissions)))
-
-const pageTitle = computed(() =>
-  typeof route.meta.title === 'string' ? route.meta.title : 'POS System',
-)
 
 const logout = async () => {
   auth.logout()
@@ -78,6 +73,13 @@ const logout = async () => {
 
 <template>
   <div class="min-h-screen bg-ground lg:flex">
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-ink focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+    >
+      Lewati ke konten utama
+    </a>
+
     <div
       v-if="ui.sidebarOpen"
       class="fixed inset-0 z-30 bg-ink/40 lg:hidden"
@@ -158,7 +160,6 @@ const logout = async () => {
               <path d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <h1 class="text-base font-semibold text-ink">{{ pageTitle }}</h1>
         </div>
 
         <div class="flex items-center gap-2 sm:gap-3">
@@ -167,7 +168,7 @@ const logout = async () => {
         </div>
       </header>
 
-      <main class="mx-auto w-full max-w-[1440px] flex-1 p-4 lg:p-6">
+      <main id="main-content" class="mx-auto w-full max-w-[1440px] flex-1 p-4 lg:p-6">
         <RouterView />
       </main>
     </div>

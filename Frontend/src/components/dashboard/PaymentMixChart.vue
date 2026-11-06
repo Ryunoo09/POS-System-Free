@@ -92,10 +92,14 @@ const percentOf = (fraction: number): string =>
           :style="{ backgroundColor: segment.tone }"
           aria-hidden="true"
         />
-        <span class="min-w-0 flex-1 truncate text-ink-2">{{ segment.label }}</span>
-        <span class="shrink-0 text-xs text-ink-3 tabular-nums">
-          {{ percentOf(segment.fraction) }}
-        </span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm leading-tight text-ink-2" :title="segment.label">
+            {{ segment.label }}
+          </p>
+          <p class="mt-0.5 text-xs text-ink-3 tabular-nums">
+            {{ percentOf(segment.fraction) }}
+          </p>
+        </div>
         <span class="shrink-0 text-xs font-medium text-ink tabular-nums">
           {{ formatRupiah(segment.revenue) }}
         </span>

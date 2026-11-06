@@ -21,7 +21,7 @@ const toastClass = (type: ToastType) =>
       <div
         v-for="toast in toasts"
         :key="toast.id"
-        role="status"
+        :role="toast.type === 'error' ? 'alert' : 'status'"
         :class="[
           'pointer-events-auto flex items-start gap-3 rounded-lg border p-3 shadow-lg',
           toastClass(toast.type),

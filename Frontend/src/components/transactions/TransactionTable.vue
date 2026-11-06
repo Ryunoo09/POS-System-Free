@@ -33,9 +33,10 @@ const emit = defineEmits<{ open: [id: string] }>()
           v-for="item in items"
           :key="item.id"
           tabindex="0"
-          class="cursor-pointer transition hover:bg-surface-2 focus:bg-accent-soft focus:outline-none"
+          class="cursor-pointer transition hover:bg-surface-2 focus-visible:bg-accent-soft focus-visible:outline-none"
           @click="emit('open', item.id)"
           @keydown.enter="emit('open', item.id)"
+          @keydown.space.prevent="emit('open', item.id)"
         >
           <td class="px-4 py-3">
             <p class="font-medium text-ink">{{ item.invoice_number }}</p>

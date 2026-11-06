@@ -8,30 +8,29 @@
     background: #fff;
   }
 
-  .no-print {
-    display: none !important;
+  /* Sembunyikan seluruh aplikasi, tampilkan hanya struk saat mencetak. */
+  body * {
+    visibility: hidden;
   }
 
-  .receipt-print {
+  .receipt,
+  .receipt * {
+    visibility: visible;
+  }
+
+  .receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
     width: 80mm;
-    margin: 0 auto;
+    max-width: none;
+    padding: 0;
     color: #000;
     font-size: 12px;
     line-height: 1.4;
   }
 
-  .receipt-print table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .receipt-print th,
-  .receipt-print td {
-    padding: 2px 0;
-    text-align: left;
-  }
-
-  .receipt-print .amount {
-    text-align: right;
+  .no-print {
+    display: none !important;
   }
 }

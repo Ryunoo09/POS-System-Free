@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 
 type MaxWidth = 'sm' | 'md' | 'lg'
 
@@ -17,6 +17,11 @@ const props = withDefaults(
 const emit = defineEmits<{ close: [] }>()
 const panel = ref<HTMLElement | null>(null)
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+let previouslyFocused: HTMLElement | null = null
+
 const maxWidthClass = computed(
   () =>
     ({
@@ -26,15 +31,50 @@ const maxWidthClass = computed(
     })[props.maxWidth],
 )
 
+const restoreBodyScroll = (): void => {
+  document.body.style.overflow = ''
+}
+
 watch(
   () => props.open,
   async (open) => {
-    if (!open) return
+    if (open) {
+      previouslyFocused = document.activeElement as HTMLElement | null
+      document.body.style.overflow = 'hidden'
+      await nextTick()
+      panel.value?.focus()
+      return
+    }
 
-    await nextTick()
-    panel.value?.focus()
+    restoreBodyScroll()
+    previouslyFocused?.focus()
+    previouslyFocused = null
   },
 )
+
+const onKeydown = (event: KeyboardEvent): void => {
+  if (event.key === 'Escape') {
+    emit('close')
+    return
+  }
+
+  if (event.key !== 'Tab' || !panel.value) return
+
+  const focusable = [...panel.value.querySelectorAll<HTMLElement>(FOCUSABLE)]
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  if (!first || !last) return
+
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
+onUnmounted(restoreBodyScroll)
 </script>
 
 <template>
@@ -44,7 +84,7 @@ watch(
         v-if="open"
         class="fixed inset-0 z-40 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4"
         @click.self="emit('close')"
-        @keydown.esc="emit('close')"
+        @keydown="onKeydown"
       >
         <section
           ref="panel"
@@ -94,5 +134,12 @@ watch(
 .modal-enter-from,
 .modal-leave-to {
   opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-enter-active,
+  .modal-leave-active {
+    transition: none;
+  }
 }
 </style>

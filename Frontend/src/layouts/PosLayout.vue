@@ -18,6 +18,13 @@ const logout = async () => {
 
 <template>
   <div class="flex min-h-screen flex-col bg-ground">
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-ink focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+    >
+      Lewati ke konten utama
+    </a>
+
     <header class="flex h-14 items-center justify-between border-b border-border bg-surface px-4">
       <div class="flex items-center gap-3">
         <div
@@ -43,7 +50,7 @@ const logout = async () => {
       </div>
     </header>
 
-    <main class="flex-1 p-4">
+    <main id="main-content" class="flex-1 p-4">
       <RouterView />
     </main>
   </div>

@@ -38,6 +38,7 @@ const emit = defineEmits<{ retry: [] }>()
 
     <div class="min-w-0 flex-1 px-4 pb-4">
       <div v-if="loading" class="space-y-3">
+        <p class="sr-only" role="status">Memuat data…</p>
         <SkeletonBlock v-for="index in skeletonRows" :key="index" height="2rem" />
       </div>
       <ErrorState v-else-if="error" :message="error" @retry="emit('retry')" />
