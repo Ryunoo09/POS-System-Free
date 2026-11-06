@@ -1,73 +1,67 @@
-# Frontend
+# Frontend — POS System
 
-This template should help get you started developing with Vue 3 in Vite.
+SPA Vue 3 + Vite + TypeScript + Tailwind CSS, dengan Pinia dan Vue Router.
 
-## Recommended IDE Setup
+## Prasyarat
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- Node.js >= 22.18
+- pnpm 12
+- Backend POS berjalan (lihat `Backend/README.md`)
 
-## Recommended Browser Setup
+## Setup
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+Dari root repositori:
 
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+```bash
 pnpm install
 ```
 
-### Compile and Hot-Reload for Development
+Salin environment lalu sesuaikan bila perlu:
 
-```sh
-pnpm dev
+```bash
+cp Frontend/.env.example Frontend/.env
 ```
 
-### Type-Check, Compile and Minify for Production
+| Variabel | Keterangan |
+|---|---|
+| `VITE_API_URL` | Base URL API (default `http://localhost:3000/api`) |
+| `VITE_TAX_RATE` | Pajak untuk estimasi tampilan (samakan dengan `TAX_RATE` backend) |
 
-```sh
-pnpm build
+## Menjalankan
+
+```bash
+pnpm dev:frontend        # dari root, http://localhost:5173
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+## Script
 
-```sh
-pnpm test:unit
+```bash
+pnpm --dir Frontend build        # type-check + vite build
+pnpm --dir Frontend type-check   # vue-tsc --build
+pnpm --dir Frontend lint         # oxlint + eslint
+pnpm --dir Frontend format       # prettier
+pnpm --dir Frontend test:unit    # vitest
+pnpm --dir Frontend test:e2e     # playwright
 ```
 
-### Run End-to-End Tests with [Playwright](https://playwright.dev)
+## Akun Development
 
-```sh
-# Install browsers for the first run
-npx playwright install
+Sama dengan backend (jalankan `pnpm db:seed` lebih dulu). Hanya untuk lokal.
 
-# When testing on CI, must build the project first
-pnpm build
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@pos.local` | `Admin@12345` |
+| Owner | `owner@pos.local` | `Owner@12345` |
+| Cashier | `kasir1@pos.local` | `Kasir@12345` |
+| Cashier | `kasir2@pos.local` | `Kasir@12345` |
 
-# Runs the end-to-end tests
-pnpm test:e2e
-# Runs the tests only on Chromium
-pnpm test:e2e --project=chromium
-# Runs the tests of a specific file
-pnpm test:e2e tests/example.spec.ts
-# Runs the tests in debug mode
-pnpm test:e2e --debug
+## E2E
+
+Test Playwright memerlukan backend berjalan dan database development yang sudah di-seed.
+
+```bash
+pnpm dev:backend     # terminal 1
+pnpm test:e2e        # terminal 2
 ```
 
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-pnpm lint
-```
+Konfigurasi Playwright menjalankan Vite dev server secara otomatis.
