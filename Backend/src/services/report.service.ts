@@ -1,0 +1,194 @@
+import type { ReportRepository, SalesGroupBy } from '../repositories/report.repository.js'
+import type { PaginationMeta } from '../types/http.js'
+import { resolveDateRange, type DateRangeInput } from '../utils/date-range.js'
+import { buildPaginationMeta, toSkip } from '../utils/pagination.js'
+import type {
+  CashierReportQuery,
+  ProductReportQuery,
+  SalesReportQuery,
+} from '../validators/report.validator.js'
+
+export interface ReportSummaryDto {
+  revenue: string
+  cogs: string
+  gross_profit: string
+  transaction_count: number
+}
+
+export interface SalesReportRowDto {
+  period: string
+  period_label: string
+  transaction_count: number
+  revenue: string
+  cogs: string
+  gross_profit: string
+}
+
+export interface ProductReportRowDto {
+  product_id: string
+  sku: string
+  name: string
+  category: string | null
+  quantity_sold: number
+  revenue: string
+  cogs: string
+  gross_profit: string
+}
+
+export interface CashierReportRowDto {
+  cashier_id: string
+  cashier_name: string
+  transaction_count: number
+  revenue: string
+  gross_profit: string
+  average_transaction: string
+}
+
+export interface ReportService {
+  getSales: (
+    query: SalesReportQuery,
+  ) => Promise<{ summary: ReportSummaryDto; rows: SalesReportRowDto[] }>
+  getProducts: (
+    query: ProductReportQuery,
+  ) => Promise<{ summary: ReportSummaryDto; rows: ProductReportRowDto[]; meta: PaginationMeta }>
+  getCashiers: (
+    query: CashierReportQuery,
+  ) => Promise<{ summary: ReportSummaryDto; rows: CashierReportRowDto[] }>
+}
+
+const SHORT_MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'Mei',
+  'Jun',
+  'Jul',
+  'Agu',
+  'Sep',
+  'Okt',
+  'Nov',
+  'Des',
+]
+
+const LONG_MONTHS = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+]
+
+const addDays = (value: string, days: number): string => {
+  const date = new Date(`${value}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
+const formatShort = (value: string): string => {
+  const [year, month, day] = value.split('-')
+  return `${Number(day)} ${SHORT_MONTHS[Number(month) - 1]} ${year}`
+}
+
+const formatLong = (value: string): string => {
+  const [year, month] = value.split('-')
+  return `${LONG_MONTHS[Number(month) - 1]} ${year}`
+}
+
+const periodLabel = (period: string, groupBy: SalesGroupBy): string => {
+  if (groupBy === 'monthly') return formatLong(period)
+  if (groupBy === 'weekly') return `${formatShort(period)} – ${formatShort(addDays(period, 6))}`
+  return formatShort(period)
+}
+
+export const createReportService = ({
+  reportRepository,
+}: {
+  reportRepository: ReportRepository
+}): ReportService => {
+  const resolve = (query: DateRangeInput) => resolveDateRange(query)
+
+  const toSummary = (totals: Awaited<ReturnType<ReportRepository['getSummary']>>): ReportSummaryDto => ({
+    revenue: totals.revenue,
+    cogs: totals.cogs,
+    gross_profit: totals.grossProfit,
+    transaction_count: totals.transactionCount,
+  })
+
+  return {
+    getSales: async (query) => {
+      const range = resolve(query)
+      const [totals, rows] = await Promise.all([
+        reportRepository.getSummary(range),
+        reportRepository.getPeriodSales(range, query.group_by),
+      ])
+
+      return {
+        summary: toSummary(totals),
+        rows: rows.map((row) => ({
+          period: row.period,
+          period_label: periodLabel(row.period, query.group_by),
+          transaction_count: row.transactionCount,
+          revenue: row.revenue,
+          cogs: row.cogs,
+          gross_profit: row.grossProfit,
+        })),
+      }
+    },
+
+    getProducts: async (query) => {
+      const range = resolve(query)
+      const [totals, result] = await Promise.all([
+        reportRepository.getSummary(range),
+        reportRepository.listProductSales(range, {
+          skip: toSkip(query.page, query.limit),
+          take: query.limit,
+          categoryId: query.category_id,
+          sort: query.sort,
+        }),
+      ])
+
+      return {
+        summary: toSummary(totals),
+        rows: result.items.map((row) => ({
+          product_id: row.productId,
+          sku: row.sku,
+          name: row.name,
+          category: row.category,
+          quantity_sold: row.quantitySold,
+          revenue: row.revenue,
+          cogs: row.cogs,
+          gross_profit: row.grossProfit,
+        })),
+        meta: buildPaginationMeta(query.page, query.limit, result.total),
+      }
+    },
+
+    getCashiers: async (query) => {
+      const range = resolve(query)
+      const [totals, rows] = await Promise.all([
+        reportRepository.getSummary(range),
+        reportRepository.listCashierSales(range),
+      ])
+
+      return {
+        summary: toSummary(totals),
+        rows: rows.map((row) => ({
+          cashier_id: row.cashierId,
+          cashier_name: row.cashierName,
+          transaction_count: row.transactionCount,
+          revenue: row.revenue,
+          gross_profit: row.grossProfit,
+          average_transaction: row.averageTransaction,
+        })),
+      }
+    },
+  }
+}

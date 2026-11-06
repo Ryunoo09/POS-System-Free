@@ -6,6 +6,7 @@ import { createDashboardController } from './controllers/dashboard.controller.js
 import { createHealthController } from './controllers/health.controller.js'
 import { createInventoryController } from './controllers/inventory.controller.js'
 import { createProductController } from './controllers/product.controller.js'
+import { createReportController } from './controllers/report.controller.js'
 import { createTransactionController } from './controllers/transaction.controller.js'
 import { createUserController } from './controllers/user.controller.js'
 import { authenticate } from './middlewares/authenticate.js'
@@ -23,6 +24,7 @@ import { createDashboardService } from './services/dashboard.service.js'
 import { createHealthService } from './services/health.service.js'
 import { createInventoryService } from './services/inventory.service.js'
 import { createProductService } from './services/product.service.js'
+import { createReportService } from './services/report.service.js'
 import { createTransactionService } from './services/transaction.service.js'
 import { createUserService } from './services/user.service.js'
 import type { AppContainer } from './types/container.js'
@@ -47,6 +49,7 @@ const productService = createProductService({
 
 const reportRepository = createReportRepository(prisma)
 const dashboardService = createDashboardService({ reportRepository })
+const reportService = createReportService({ reportRepository })
 
 const inventoryRepository = createInventoryRepository(prisma)
 const inventoryService = createInventoryService({
@@ -70,6 +73,7 @@ export const container: AppContainer = {
   productController: createProductController({ productService }),
   categoryController: createCategoryController({ categoryService }),
   inventoryController: createInventoryController({ inventoryService }),
+  reportController: createReportController({ reportService }),
   transactionController: createTransactionController({ transactionService }),
   userController: createUserController({ userService }),
   authenticate: authenticate({ userRepository }),

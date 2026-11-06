@@ -5,6 +5,7 @@ import type { DashboardController } from '../controllers/dashboard.controller.js
 import type { HealthController } from '../controllers/health.controller.js'
 import type { InventoryController } from '../controllers/inventory.controller.js'
 import type { ProductController } from '../controllers/product.controller.js'
+import type { ReportController } from '../controllers/report.controller.js'
 import type { TransactionController } from '../controllers/transaction.controller.js'
 import type { UserController } from '../controllers/user.controller.js'
 
@@ -15,6 +16,7 @@ export interface AppContainer {
   productController: ProductController
   categoryController: CategoryController
   inventoryController: InventoryController
+  reportController: ReportController
   transactionController: TransactionController
   userController: UserController
   authenticate: RequestHandler

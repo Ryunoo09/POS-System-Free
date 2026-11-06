@@ -22,6 +22,7 @@ const cleanDatabase = async (): Promise<void> => {
 
 let productAId: string
 let productBId: string
+let categoryId: string
 
 beforeAll(async () => {
   await cleanDatabase()
@@ -38,6 +39,7 @@ beforeAll(async () => {
   cashierToken = signAccessToken({ sub: cashier.id, role: 'CASHIER' })
 
   const category = await prisma.category.create({ data: { name: 'Kategori Dashboard' } })
+  categoryId = category.id
   const productA = await prisma.product.create({
     data: {
       sku: 'DASH-A',
@@ -300,5 +302,171 @@ describe('transactions API', () => {
     expect(response.status).toBe(200)
     expect(response.body.data).toHaveLength(1)
     expect(response.body.data[0].invoice_number).toBe('INV-DASH-001')
+  })
+})
+
+describe('reports API', () => {
+  it('mengembalikan ringkasan yang identik dengan dashboard', async () => {
+    const dashboard = await request(app)
+      .get('/api/dashboard/summary')
+      .query({ start_date: '2026-11-01', end_date: '2026-11-03' })
+      .set(auth(adminToken))
+    const report = await request(app)
+      .get('/api/reports/sales')
+      .query({ start_date: '2026-11-01', end_date: '2026-11-03' })
+      .set(auth(adminToken))
+
+    expect(report.status).toBe(200)
+    expect(report.body.data.summary).toEqual({
+      revenue: dashboard.body.data.revenue,
+      cogs: dashboard.body.data.cogs,
+      gross_profit: dashboard.body.data.gross_profit,
+      transaction_count: dashboard.body.data.transaction_count,
+    })
+    expect(report.body.data.summary).toEqual({
+      revenue: '140000.00',
+      cogs: '80000.00',
+      gross_profit: '60000.00',
+      transaction_count: 2,
+    })
+  })
+
+  it('mengelompokkan penjualan harian dengan batas WIB', async () => {
+    const response = await request(app)
+      .get('/api/reports/sales')
+      .query({ start_date: '2026-11-01', end_date: '2026-11-03', group_by: 'daily' })
+      .set(auth(adminToken))
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.rows).toEqual([
+      {
+        period: '2026-11-01',
+        period_label: '1 Nov 2026',
+        transaction_count: 1,
+        revenue: '90000.00',
+        cogs: '60000.00',
+        gross_profit: '30000.00',
+      },
+      {
+        period: '2026-11-02',
+        period_label: '2 Nov 2026',
+        transaction_count: 1,
+        revenue: '50000.00',
+        cogs: '20000.00',
+        gross_profit: '30000.00',
+      },
+    ])
+  })
+
+  it('mengelompokkan penjualan bulanan', async () => {
+    const response = await request(app)
+      .get('/api/reports/sales')
+      .query({ start_date: '2026-11-01', end_date: '2026-11-30', group_by: 'monthly' })
+      .set(auth(adminToken))
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.rows).toEqual([
+      {
+        period: '2026-11-01',
+        period_label: 'November 2026',
+        transaction_count: 2,
+        revenue: '140000.00',
+        cogs: '80000.00',
+        gross_profit: '60000.00',
+      },
+    ])
+  })
+
+  it('mendaftar penjualan produk dengan pagination dan urutan terlaris', async () => {
+    const response = await request(app)
+      .get('/api/reports/products')
+      .query({ start_date: '2026-11-01', end_date: '2026-11-03', sort: 'best_selling', limit: 1 })
+      .set(auth(adminToken))
+
+    expect(response.status).toBe(200)
+    expect(response.body.meta).toEqual({ page: 1, limit: 1, total_items: 2, total_pages: 2 })
+    expect(response.body.data.rows).toEqual([
+      {
+        product_id: productAId,
+        sku: 'DASH-A',
+        name: 'Produk A',
+        category: 'Kategori Dashboard',
+        quantity_sold: 2,
+        revenue: '100000.00',
+        cogs: '60000.00',
+        gross_profit: '40000.00',
+      },
+    ])
+  })
+
+  it('memfilter penjualan produk berdasarkan kategori', async () => {
+    const matching = await request(app)
+      .get('/api/reports/products')
+      .query({
+        start_date: '2026-11-01',
+        end_date: '2026-11-03',
+        category_id: categoryId,
+      })
+      .set(auth(adminToken))
+    const empty = await request(app)
+      .get('/api/reports/products')
+      .query({
+        start_date: '2026-11-01',
+        end_date: '2026-11-03',
+        category_id: randomUUID(),
+      })
+      .set(auth(adminToken))
+
+    expect(matching.body.meta.total_items).toBe(2)
+    expect(empty.body.meta.total_items).toBe(0)
+    expect(empty.body.data.rows).toEqual([])
+    // Ringkasan tetap mencakup seluruh rentang, bukan hanya kategori terfilter.
+    expect(empty.body.data.summary.transaction_count).toBe(2)
+  })
+
+  it('mendaftar performa kasir dengan rata-rata transaksi', async () => {
+    const response = await request(app)
+      .get('/api/reports/cashiers')
+      .query({ start_date: '2026-11-01', end_date: '2026-11-03' })
+      .set(auth(adminToken))
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.rows).toEqual([
+      {
+        cashier_id: expect.any(String),
+        cashier_name: 'Kasir Dashboard',
+        transaction_count: 1,
+        revenue: '90000.00',
+        gross_profit: '30000.00',
+        average_transaction: '90000.00',
+      },
+      {
+        cashier_id: expect.any(String),
+        cashier_name: 'Admin Dashboard',
+        transaction_count: 1,
+        revenue: '50000.00',
+        gross_profit: '30000.00',
+        average_transaction: '50000.00',
+      },
+    ])
+  })
+
+  it('menolak rentang tidak valid, tanggal wajib, dan akses Cashier', async () => {
+    const reversed = await request(app)
+      .get('/api/reports/sales')
+      .query({ start_date: '2026-11-03', end_date: '2026-11-01' })
+      .set(auth(adminToken))
+    const missing = await request(app)
+      .get('/api/reports/sales')
+      .set(auth(adminToken))
+    const forbidden = await request(app)
+      .get('/api/reports/sales')
+      .query({ start_date: '2026-11-01', end_date: '2026-11-03' })
+      .set(auth(cashierToken))
+
+    expect(reversed.status).toBe(400)
+    expect(missing.status).toBe(400)
+    expect(forbidden.status).toBe(403)
+    expect(forbidden.body.code).toBe('PERMISSION_DENIED')
   })
 })
