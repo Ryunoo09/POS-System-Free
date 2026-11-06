@@ -6,6 +6,7 @@ import { validate } from '../middlewares/validate.js'
 import {
   checkoutSchema,
   listTransactionsQuerySchema,
+  transactionIdParamSchema,
 } from '../validators/transaction.validator.js'
 
 export const createTransactionRoutes = ({
@@ -31,6 +32,19 @@ export const createTransactionRoutes = ({
     authorize([PERMISSIONS.TRANSACTION_READ_ALL, PERMISSIONS.TRANSACTION_READ_OWN]),
     validate({ query: listTransactionsQuerySchema }),
     transactionController.list,
+  )
+
+  router.get(
+    '/cashiers',
+    authorize(PERMISSIONS.TRANSACTION_READ_ALL),
+    transactionController.cashiers,
+  )
+
+  router.get(
+    '/:id',
+    authorize([PERMISSIONS.TRANSACTION_READ_ALL, PERMISSIONS.TRANSACTION_READ_OWN]),
+    validate({ params: transactionIdParamSchema }),
+    transactionController.detail,
   )
 
   return router

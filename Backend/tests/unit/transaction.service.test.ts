@@ -7,10 +7,12 @@ import type {
   CreateCheckoutData,
   TransactionDetailView,
   TransactionRepository,
+  TransactionView,
 } from '../../src/repositories/transaction.repository.js'
 import {
   createTransactionService,
   type CheckoutActor,
+  type TransactionActor,
 } from '../../src/services/transaction.service.js'
 import type { CheckoutInput } from '../../src/validators/transaction.validator.js'
 
@@ -75,6 +77,55 @@ const buildDetailFromData = (data: CreateCheckoutData): TransactionDetailView =>
   })),
 })
 
+const buildView = (overrides: Partial<TransactionView> = {}): TransactionView => ({
+  id: 'tx-1',
+  invoiceNumber: 'INV-20261106-000001',
+  idempotencyKey: key,
+  cashierId: 'cashier-1',
+  status: 'COMPLETED',
+  subtotal: new Prisma.Decimal('7000.00'),
+  discountAmount: new Prisma.Decimal('0.00'),
+  taxAmount: new Prisma.Decimal('0.00'),
+  totalAmount: new Prisma.Decimal('7000.00'),
+  paymentMethod: 'CASH',
+  paymentReference: null,
+  amountPaid: new Prisma.Decimal('20000.00'),
+  changeAmount: new Prisma.Decimal('13000.00'),
+  createdAt: new Date('2026-11-06T00:00:00Z'),
+  cashier: { id: 'cashier-1', name: 'Kasir Uji' },
+  _count: { items: 1 },
+  ...overrides,
+})
+
+const buildDetail = (overrides: Partial<TransactionDetailView> = {}): TransactionDetailView => ({
+  ...buildDetailFromData({
+    invoiceNumber: 'INV-20261106-000001',
+    idempotencyKey: key,
+    cashierId: 'cashier-1',
+    subtotal: '7000.00',
+    discountAmount: '0.00',
+    taxAmount: '0.00',
+    totalAmount: '7000.00',
+    paymentMethod: 'CASH',
+    paymentReference: null,
+    amountPaid: '20000.00',
+    changeAmount: '13000.00',
+    items: [
+      {
+        productId: 'product-1',
+        productName: 'Produk Uji',
+        productSku: 'SKU-1',
+        quantity: 2,
+        unitPrice: '3500.00',
+        unitCost: '2000.00',
+        discountAmount: '0.00',
+        subtotal: '7000.00',
+      },
+    ],
+  }),
+  ...overrides,
+})
+
 const buildProductRepository = (products: ProductWithCategory[]) => {
   const updateStock = vi.fn(async (id: string, stock: number) => buildProduct({ id, stock }))
   const findManyByIdsForUpdate = vi.fn(async () => products)
@@ -128,6 +179,7 @@ const buildTransactionRepository = (existing: TransactionDetailView | null = nul
 
   const repository: TransactionRepository = {
     list: async () => ({ items: [], total: 0 }),
+    listCashiers: async () => [],
     findDetailById: async () => null,
     findByIdempotencyKey,
     createCheckout,
@@ -334,5 +386,120 @@ describe('TransactionService.checkout', () => {
 
     expect(result.transaction.subtotal).toBe('10000.00')
     expect(result.transaction.total_amount).toBe('10000.00')
+  })
+})
+
+const readActor = (overrides: Partial<TransactionActor> = {}): TransactionActor => ({
+  userId: 'cashier-1',
+  canReadAll: false,
+  canViewCostPrice: false,
+  ...overrides,
+})
+
+const buildReadService = ({
+  items = [buildView()],
+  detail = buildDetail() as TransactionDetailView | null,
+}: {
+  items?: TransactionView[]
+  detail?: TransactionDetailView | null
+} = {}) => {
+  const list = vi.fn(async () => ({ items, total: items.length }))
+  const findDetailById = vi.fn(async () => detail)
+  const listCashiers = vi.fn(async () => [{ id: 'cashier-1', name: 'Kasir Uji' }])
+
+  const repository: TransactionRepository = {
+    list,
+    listCashiers,
+    findDetailById,
+    findByIdempotencyKey: async () => null,
+    createCheckout: async () => {
+      throw new Error('tidak dipakai')
+    },
+    nextInvoiceSequence: async () => 1,
+  }
+
+  const service = createTransactionService({
+    transactionRepository: repository,
+    productRepository: buildProductRepository([]).repository,
+    stockMovementRepository: buildMovementRepository().repository,
+    taxRate: 0,
+  })
+
+  return { service, list, findDetailById, listCashiers }
+}
+
+describe('TransactionService.list', () => {
+  it('memaksa cashier_id milik sendiri dan meneruskan filter lain', async () => {
+    const { service, list } = buildReadService()
+
+    await service.list(
+      {
+        page: 2,
+        limit: 5,
+        cashier_id: 'cashier-2',
+        payment_method: 'QRIS',
+        search: 'INV-2026',
+        start_date: '2026-11-01',
+        end_date: '2026-11-02',
+      },
+      readActor(),
+    )
+
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 5,
+        take: 5,
+        cashierId: 'cashier-1',
+        paymentMethod: 'QRIS',
+        search: 'INV-2026',
+        startAt: new Date('2026-10-31T17:00:00.000Z'),
+        endAt: new Date('2026-11-02T16:59:59.999Z'),
+      }),
+    )
+  })
+
+  it('memakai cashier_id dari query untuk pembaca semua transaksi', async () => {
+    const { service, list } = buildReadService()
+
+    await service.list({ page: 1, limit: 10, cashier_id: 'cashier-2' }, readActor({ canReadAll: true }))
+
+    expect(list).toHaveBeenCalledWith(expect.objectContaining({ cashierId: 'cashier-2' }))
+  })
+})
+
+describe('TransactionService.detail', () => {
+  it('membuka unit_cost hanya untuk aktor berizin', async () => {
+    const { service } = buildReadService()
+
+    const allowed = await service.detail('tx-1', readActor({ canViewCostPrice: true }))
+    const denied = await service.detail('tx-1', readActor())
+
+    expect(allowed.items[0]?.unit_cost).toBe('2000.00')
+    expect(denied.items[0]?.unit_cost).toBeUndefined()
+  })
+
+  it('mengembalikan 404 untuk transaksi kasir lain', async () => {
+    const { service } = buildReadService()
+
+    await expect(service.detail('tx-1', readActor({ userId: 'cashier-2' }))).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      statusCode: 404,
+    })
+  })
+
+  it('mengembalikan 404 untuk transaksi yang tidak ada', async () => {
+    const { service } = buildReadService({ detail: null })
+
+    await expect(service.detail('tx-1', readActor())).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      statusCode: 404,
+    })
+  })
+
+  it('meneruskan daftar kasir dari repository', async () => {
+    const { service, listCashiers } = buildReadService()
+
+    await expect(service.cashiers()).resolves.toEqual([{ id: 'cashier-1', name: 'Kasir Uji' }])
+    expect(listCashiers).toHaveBeenCalledOnce()
   })
 })

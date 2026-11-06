@@ -9,7 +9,19 @@ export const listTransactionsQuerySchema = paginationSchema.extend({
   status: z.enum(['COMPLETED', 'CANCELLED']).optional(),
   start_date: dateSchema.optional(),
   end_date: dateSchema.optional(),
+  cashier_id: uuidSchema.optional(),
+  payment_method: z
+    .enum([
+      PAYMENT_METHODS.CASH,
+      PAYMENT_METHODS.QRIS,
+      PAYMENT_METHODS.DEBIT_CARD,
+      PAYMENT_METHODS.BANK_TRANSFER,
+    ])
+    .optional(),
+  search: z.string().trim().min(1).max(100).optional(),
 })
+
+export const transactionIdParamSchema = z.object({ id: uuidSchema })
 
 const hasAtMostTwoDecimals = (value: number): boolean =>
   Math.abs(value * 100 - Math.round(value * 100)) < 1e-6

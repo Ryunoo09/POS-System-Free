@@ -8,6 +8,7 @@ import {
 } from '../mappers/transaction.mapper.js'
 import type { ProductRepository } from '../repositories/product.repository.js'
 import type {
+  CashierOption,
   CreateCheckoutData,
   TransactionDetailView,
   TransactionRepository,
@@ -24,6 +25,7 @@ import type { CheckoutInput, ListTransactionsQuery } from '../validators/transac
 export interface TransactionActor {
   userId: string
   canReadAll: boolean
+  canViewCostPrice: boolean
 }
 
 export interface CheckoutActor {
@@ -42,6 +44,8 @@ export interface TransactionService {
     query: ListTransactionsQuery,
     actor: TransactionActor,
   ) => Promise<{ items: TransactionDto[]; meta: PaginationMeta }>
+  detail: (id: string, actor: TransactionActor) => Promise<TransactionDetailDto>
+  cashiers: () => Promise<CashierOption[]>
   checkout: (
     input: CheckoutInput,
     actor: CheckoutActor,
@@ -91,7 +95,9 @@ export const createTransactionService = ({
       skip: toSkip(query.page, query.limit),
       take: query.limit,
       status: query.status,
-      cashierId: actor.canReadAll ? undefined : actor.userId,
+      cashierId: actor.canReadAll ? query.cashier_id : actor.userId,
+      paymentMethod: query.payment_method,
+      search: query.search,
       startAt: range?.startAt,
       endAt: range?.endAt,
     })
@@ -101,6 +107,20 @@ export const createTransactionService = ({
       meta: buildPaginationMeta(query.page, query.limit, total),
     }
   },
+
+  detail: async (id, actor) => {
+    const transaction = await transactionRepository.findDetailById(id)
+
+    if (!transaction || (!actor.canReadAll && transaction.cashierId !== actor.userId)) {
+      throw new NotFoundError('Transaksi tidak ditemukan', 'NOT_FOUND')
+    }
+
+    return toTransactionDetailDto(transaction, {
+      canViewCostPrice: actor.canViewCostPrice,
+    })
+  },
+
+  cashiers: () => transactionRepository.listCashiers(),
 
   checkout: async (input, actor, idempotencyKey) => {
     const existing = await transactionRepository.findByIdempotencyKey(idempotencyKey)

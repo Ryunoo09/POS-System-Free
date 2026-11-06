@@ -19,8 +19,15 @@ export type TransactionDetailView = Transaction & {
 export interface TransactionFilters {
   status?: TransactionStatus | undefined
   cashierId?: string | undefined
+  paymentMethod?: PaymentMethod | undefined
+  search?: string | undefined
   startAt?: Date | undefined
   endAt?: Date | undefined
+}
+
+export interface CashierOption {
+  id: string
+  name: string
 }
 
 export interface ListTransactionsInput extends TransactionFilters {
@@ -56,6 +63,7 @@ export interface CreateCheckoutData {
 
 export interface TransactionRepository {
   list: (input: ListTransactionsInput) => Promise<{ items: TransactionView[]; total: number }>
+  listCashiers: () => Promise<CashierOption[]>
   findDetailById: (id: string) => Promise<TransactionDetailView | null>
   findByIdempotencyKey: (key: string) => Promise<TransactionDetailView | null>
   createCheckout: (
@@ -76,11 +84,13 @@ const detailInclude = {
 } as const
 
 export const createTransactionRepository = (prisma: PrismaClient): TransactionRepository => ({
-  list: async ({ skip, take, status, cashierId, startAt, endAt }) => {
+  list: async ({ skip, take, status, cashierId, paymentMethod, search, startAt, endAt }) => {
     const where: Prisma.TransactionWhereInput = {}
 
     if (status !== undefined) where.status = status
     if (cashierId !== undefined) where.cashierId = cashierId
+    if (paymentMethod !== undefined) where.paymentMethod = paymentMethod
+    if (search) where.invoiceNumber = { contains: search, mode: 'insensitive' }
 
     if (startAt !== undefined || endAt !== undefined) {
       where.createdAt = {
@@ -94,7 +104,7 @@ export const createTransactionRepository = (prisma: PrismaClient): TransactionRe
         where,
         skip,
         take,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         include: listInclude,
       }),
       prisma.transaction.count({ where }),
@@ -102,6 +112,13 @@ export const createTransactionRepository = (prisma: PrismaClient): TransactionRe
 
     return { items, total }
   },
+
+  listCashiers: () =>
+    prisma.user.findMany({
+      where: { role: 'CASHIER' },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
 
   findDetailById: (id) =>
     prisma.transaction.findUnique({ where: { id }, include: detailInclude }),

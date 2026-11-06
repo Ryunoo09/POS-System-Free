@@ -16,6 +16,8 @@ import type {
 
 export interface TransactionController {
   list: RequestHandler
+  detail: RequestHandler
+  cashiers: RequestHandler
   checkout: RequestHandler
 }
 
@@ -30,10 +32,30 @@ export const createTransactionController = ({
     const actor: TransactionActor = {
       userId: user.id,
       canReadAll: user.permissions.includes(PERMISSIONS.TRANSACTION_READ_ALL),
+      canViewCostPrice: user.permissions.includes(PERMISSIONS.COST_PRICE_READ),
     }
     const result = await transactionService.list(query, actor)
 
     return sendSuccess(res, { data: result.items, meta: result.meta })
+  },
+
+  detail: async (req, res) => {
+    const { id } = req.validated?.params as { id: string }
+    const user = requireActor(req)
+    const actor: TransactionActor = {
+      userId: user.id,
+      canReadAll: user.permissions.includes(PERMISSIONS.TRANSACTION_READ_ALL),
+      canViewCostPrice: user.permissions.includes(PERMISSIONS.COST_PRICE_READ),
+    }
+    const data = await transactionService.detail(id, actor)
+
+    return sendSuccess(res, { data })
+  },
+
+  cashiers: async (_req, res) => {
+    const data = await transactionService.cashiers()
+
+    return sendSuccess(res, { data })
   },
 
   checkout: async (req, res) => {
