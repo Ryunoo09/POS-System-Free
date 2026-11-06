@@ -15,9 +15,9 @@ const emit = defineEmits<{ open: [id: string] }>()
 
 <template>
   <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-slate-200 text-sm">
+    <table class="min-w-full divide-y divide-border text-sm">
       <thead>
-        <tr class="text-left text-xs uppercase tracking-wide text-slate-500">
+        <tr class="text-left text-xs uppercase tracking-wide text-ink-3">
           <th scope="col" class="px-4 py-3 font-medium">Invoice</th>
           <th scope="col" class="hidden px-4 py-3 font-medium md:table-cell">Waktu</th>
           <th scope="col" class="hidden px-4 py-3 font-medium lg:table-cell">Kasir</th>
@@ -28,32 +28,32 @@ const emit = defineEmits<{ open: [id: string] }>()
         </tr>
       </thead>
 
-      <tbody class="divide-y divide-slate-100">
+      <tbody class="divide-y divide-border">
         <tr
           v-for="item in items"
           :key="item.id"
           tabindex="0"
-          class="cursor-pointer transition hover:bg-slate-50 focus:bg-brand-50 focus:outline-none"
+          class="cursor-pointer transition hover:bg-surface-2 focus:bg-accent-soft focus:outline-none"
           @click="emit('open', item.id)"
           @keydown.enter="emit('open', item.id)"
         >
           <td class="px-4 py-3">
-            <p class="font-medium text-slate-900">{{ item.invoice_number }}</p>
-            <p class="mt-0.5 text-xs text-slate-500 md:hidden">
+            <p class="font-medium text-ink">{{ item.invoice_number }}</p>
+            <p class="mt-0.5 text-xs text-ink-3 md:hidden">
               {{ formatDateTime(item.created_at) }}
             </p>
           </td>
-          <td class="hidden px-4 py-3 text-slate-600 md:table-cell">
+          <td class="hidden px-4 py-3 text-ink-2 md:table-cell">
             {{ formatDateTime(item.created_at) }}
           </td>
-          <td class="hidden px-4 py-3 text-slate-600 lg:table-cell">{{ item.cashier.name }}</td>
-          <td class="hidden px-4 py-3 text-right text-slate-600 sm:table-cell">
+          <td class="hidden px-4 py-3 text-ink-2 lg:table-cell">{{ item.cashier.name }}</td>
+          <td class="hidden px-4 py-3 text-right text-ink-2 sm:table-cell">
             {{ formatNumber(item.item_count) }}
           </td>
-          <td class="px-4 py-3 text-right font-semibold text-slate-900">
+          <td class="px-4 py-3 text-right font-semibold text-ink">
             {{ formatRupiah(item.total_amount) }}
           </td>
-          <td class="hidden px-4 py-3 text-slate-600 lg:table-cell">
+          <td class="hidden px-4 py-3 text-ink-2 lg:table-cell">
             {{ paymentMethodLabel(item.payment_method) }}
           </td>
           <td class="px-4 py-3">

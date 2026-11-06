@@ -32,7 +32,7 @@ const variantClass = computed(
       primary: 'bg-ink text-white hover:bg-ink-hover',
       accent: 'bg-accent text-white hover:bg-accent-hover',
       secondary: 'border border-border bg-surface text-ink-2 hover:bg-surface-2',
-      danger: 'bg-negative text-white hover:bg-negative-hover',
+      danger: 'border border-negative/50 text-negative hover:border-negative hover:bg-negative-soft',
       ghost: 'text-ink-2 hover:bg-surface-2',
     })[props.variant],
 )

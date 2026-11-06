@@ -271,15 +271,15 @@ onMounted(() => {
   <section class="space-y-6">
     <header class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-semibold text-slate-900">Inventori</h1>
-        <p class="mt-1 text-sm text-slate-500">
+        <h1 class="text-[28px] font-semibold tracking-tight text-ink">Inventori</h1>
+        <p class="mt-1 text-sm text-ink-3">
           Pantau stok, stok rendah, dan riwayat pergerakan stok.
         </p>
       </div>
       <AppBadge v-if="!canAdjust" tone="neutral">Hanya lihat</AppBadge>
     </header>
 
-    <div class="flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-card" role="tablist">
+    <div class="inline-flex flex-wrap gap-0.5 rounded-lg bg-surface-2 p-0.5" role="tablist">
       <button
         v-for="item in tabs"
         :key="item.value"
@@ -287,17 +287,17 @@ onMounted(() => {
         role="tab"
         :aria-selected="tab === item.value"
         :class="[
-          'rounded-md px-3 py-1.5 text-sm font-medium transition',
+          'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
           tab === item.value
-            ? 'bg-slate-900 text-white'
-            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+            ? 'bg-surface text-ink ring-1 ring-border'
+            : 'text-ink-3 hover:text-ink',
         ]"
         @click="selectTab(item.value)"
       >
         {{ item.label }}
         <span
           v-if="item.value === 'low' && store.lowStockMeta.total_items > 0"
-          class="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-700"
+          class="ml-1 rounded-full bg-warning-soft px-1.5 py-0.5 text-[11px] text-warning"
         >
           {{ store.lowStockMeta.total_items }}
         </span>
@@ -305,7 +305,7 @@ onMounted(() => {
     </div>
 
     <div v-if="tab === 'stock'" class="space-y-4">
-      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-card">
+      <div class="rounded-xl border border-border bg-surface p-4">
         <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_16rem]">
           <AppInput
             :model-value="stockFilters.search"
@@ -317,7 +317,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+      <div class="overflow-hidden rounded-xl border border-border bg-surface">
         <div v-if="store.stockLoading" class="space-y-3 p-4">
           <SkeletonBlock v-for="index in 5" :key="index" height="2.25rem" />
         </div>
@@ -343,11 +343,11 @@ onMounted(() => {
     </div>
 
     <div v-else-if="tab === 'low'" class="space-y-4">
-      <p class="text-sm text-slate-500">
+      <p class="text-sm text-ink-3">
         Produk aktif dengan stok sama dengan atau di bawah batas minimum.
       </p>
 
-      <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+      <div class="overflow-hidden rounded-xl border border-border bg-surface">
         <div v-if="store.lowStockLoading" class="space-y-3 p-4">
           <SkeletonBlock v-for="index in 5" :key="index" height="2.25rem" />
         </div>
@@ -376,7 +376,7 @@ onMounted(() => {
     </div>
 
     <div v-else class="space-y-4">
-      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-card">
+      <div class="rounded-xl border border-border bg-surface p-4">
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <AppSelect
             v-model="historyFilters.product_id"
@@ -403,10 +403,10 @@ onMounted(() => {
             @update:model-value="setHistoryDate('end_date', $event)"
           />
         </div>
-        <p v-if="historyDateError" class="mt-2 text-xs text-rose-600">{{ historyDateError }}</p>
+        <p v-if="historyDateError" class="mt-2 text-xs text-negative">{{ historyDateError }}</p>
       </div>
 
-      <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+      <div class="overflow-hidden rounded-xl border border-border bg-surface">
         <div v-if="store.movementLoading" class="space-y-3 p-4">
           <SkeletonBlock v-for="index in 5" :key="index" height="2.25rem" />
         </div>

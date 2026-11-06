@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import AppButton from '@/components/common/AppButton.vue'
 import AppSelect from '@/components/common/AppSelect.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
+import SegmentedControl from '@/components/common/SegmentedControl.vue'
 import SkeletonBlock from '@/components/common/SkeletonBlock.vue'
 import DateRangeFilter from '@/components/dashboard/DateRangeFilter.vue'
 import SummaryCard from '@/components/dashboard/SummaryCard.vue'
@@ -99,6 +99,10 @@ const changeRange = (value: DateRange): void => {
   loadAll()
 }
 
+const changeTab = (value: string): void => {
+  tab.value = value as Tab
+}
+
 watch(groupBy, loadSales)
 
 watch(sort, () => {
@@ -121,8 +125,8 @@ const changePage = (value: number): void => {
   <div class="space-y-5">
     <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        <h1 class="text-2xl font-semibold text-slate-900">Laporan</h1>
-        <p class="mt-1 text-sm text-slate-500">Laporan penjualan, produk, dan performa kasir.</p>
+        <h1 class="text-[28px] font-semibold tracking-tight text-ink">Laporan</h1>
+        <p class="mt-1 text-sm text-ink-3">Laporan penjualan, produk, dan performa kasir.</p>
       </div>
 
       <DateRangeFilter :model-value="range" @update:model-value="changeRange" />
@@ -155,23 +159,18 @@ const changePage = (value: number): void => {
       />
     </div>
 
-    <p class="text-xs text-slate-500">
+    <p class="text-xs text-ink-3">
       Revenue sebelum pajak. Estimasi gross profit = revenue − COGS, belum termasuk biaya
       operasional.
     </p>
 
     <div class="flex flex-wrap items-end justify-between gap-3">
-      <div class="flex gap-1 rounded-lg border border-slate-200 bg-white p-1">
-        <AppButton
-          v-for="item in tabs"
-          :key="item.value"
-          :variant="tab === item.value ? 'primary' : 'ghost'"
-          size="sm"
-          @click="tab = item.value"
-        >
-          {{ item.label }}
-        </AppButton>
-      </div>
+      <SegmentedControl
+        :model-value="tab"
+        :options="tabs"
+        label="Jenis laporan"
+        @update:model-value="changeTab"
+      />
 
       <div v-if="tab === 'sales'" class="w-40">
         <AppSelect v-model="groupBy" label="Kelompok" :options="groupOptions" />

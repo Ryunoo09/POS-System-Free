@@ -147,17 +147,17 @@ const confirmToggle = async () => {
   <section class="space-y-6">
     <header class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-semibold text-slate-900">Produk</h1>
-        <p class="mt-1 text-sm text-slate-500">Kelola katalog produk, harga, dan status aktif.</p>
+        <h1 class="text-[28px] font-semibold tracking-tight text-ink">Produk</h1>
+        <p class="mt-1 text-sm text-ink-3">Kelola katalog produk, harga, dan status aktif.</p>
       </div>
       <AppButton v-if="canWrite" @click="openCreate">Tambah Produk</AppButton>
     </header>
 
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-card">
+    <div class="rounded-xl border border-border bg-surface p-4">
       <ProductFilters v-model="filters" :categories="categoryOptions" />
     </div>
 
-    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+    <div class="overflow-hidden rounded-xl border border-border bg-surface">
       <div v-if="productsStore.isLoading" class="space-y-3 p-4">
         <SkeletonBlock v-for="index in 5" :key="index" height="2.25rem" />
       </div>

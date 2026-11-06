@@ -103,14 +103,14 @@ const submit = () => {
     <div class="space-y-4">
       <div
         v-if="formError"
-        class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+        class="rounded-lg border border-negative bg-negative-soft px-3 py-2 text-sm text-negative"
       >
         {{ formError }}
       </div>
 
-      <div v-if="product" class="rounded-lg bg-slate-50 px-3 py-2">
-        <p class="text-sm font-medium text-slate-900">{{ product.name }}</p>
-        <p class="text-xs text-slate-500">
+      <div v-if="product" class="rounded-lg bg-ground px-3 py-2">
+        <p class="text-sm font-medium text-ink">{{ product.name }}</p>
+        <p class="text-xs text-ink-3">
           {{ product.sku }} · Stok saat ini {{ formatNumber(product.stock) }} {{ product.unit }}
         </p>
       </div>
@@ -142,29 +142,29 @@ const submit = () => {
         :rows="2"
       />
 
-      <div class="grid grid-cols-3 gap-2 rounded-lg border border-slate-200 p-3 text-center">
+      <div class="grid grid-cols-3 gap-2 rounded-lg border border-border p-3 text-center">
         <div>
-          <p class="text-xs text-slate-500">Stok saat ini</p>
-          <p class="mt-1 text-sm font-medium text-slate-700">
+          <p class="text-xs text-ink-3">Stok saat ini</p>
+          <p class="mt-1 text-sm font-medium text-ink-2">
             {{ formatNumber(product?.stock ?? 0) }}
           </p>
         </div>
         <div>
-          <p class="text-xs text-slate-500">Perubahan</p>
-          <p class="mt-1 text-sm font-medium text-slate-700">{{ signedQuantity }}</p>
+          <p class="text-xs text-ink-3">Perubahan</p>
+          <p class="mt-1 text-sm font-medium text-ink-2">{{ signedQuantity }}</p>
         </div>
         <div>
-          <p class="text-xs text-slate-500">Stok akhir</p>
+          <p class="text-xs text-ink-3">Stok akhir</p>
           <p
             class="mt-1 text-sm font-semibold"
-            :class="stockAfter < 0 ? 'text-rose-600' : 'text-emerald-600'"
+            :class="stockAfter < 0 ? 'text-negative' : 'text-accent'"
           >
             {{ formatNumber(stockAfter) }}
           </p>
         </div>
       </div>
 
-      <p v-if="stockAfter < 0" class="text-xs font-medium text-rose-600">
+      <p v-if="stockAfter < 0" class="text-xs font-medium text-negative">
         Stok akhir tidak boleh negatif.
       </p>
     </div>

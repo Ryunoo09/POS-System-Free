@@ -125,7 +125,7 @@ const insight = computed(() => {
   <div class="space-y-4">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        <h1 class="text-[32px] font-semibold leading-tight tracking-tight text-ink">Dashboard</h1>
+        <h1 class="text-[28px] font-semibold leading-tight tracking-tight text-ink">Dashboard</h1>
         <p class="mt-1 text-sm text-ink-2">Ringkasan performa toko pada periode terpilih.</p>
       </div>
 

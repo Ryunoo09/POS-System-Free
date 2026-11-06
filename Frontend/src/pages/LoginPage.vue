@@ -50,14 +50,14 @@ const submit = async () => {
 
 <template>
   <div>
-    <h1 class="text-2xl font-semibold text-slate-900">Masuk ke POS System</h1>
-    <p class="mt-1 text-sm text-slate-500">
+    <h1 class="text-[28px] font-semibold tracking-tight text-ink">Masuk ke POS System</h1>
+    <p class="mt-1 text-sm text-ink-3">
       Silakan masuk dengan akun yang diberikan admin.
     </p>
 
     <div
       v-if="sessionError"
-      class="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+      class="mt-5 rounded-lg border border-warning bg-warning-soft px-3 py-2 text-sm text-warning"
       role="status"
     >
       Sesi tidak dapat diverifikasi. Periksa koneksi lalu coba masuk kembali.
@@ -65,7 +65,7 @@ const submit = async () => {
 
     <div
       v-if="formError"
-      class="mt-5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+      class="mt-5 rounded-lg border border-negative bg-negative-soft px-3 py-2 text-sm text-negative"
       role="alert"
     >
       {{ formError }}
@@ -93,7 +93,7 @@ const submit = async () => {
         <template #suffix>
           <button
             type="button"
-            class="rounded px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            class="rounded px-2 py-1 text-xs font-medium text-ink-3 hover:bg-surface-2 hover:text-ink-2"
             :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
             @click="showPassword = !showPassword"
           >

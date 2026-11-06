@@ -36,14 +36,14 @@ const hasInvoice = (movement: StockMovement): boolean =>
   Boolean(movement.invoice_number)
 
 const quantityClass = (quantity: number): string =>
-  quantity > 0 ? 'text-emerald-600' : 'text-rose-600'
+  quantity > 0 ? 'text-accent' : 'text-negative'
 </script>
 
 <template>
   <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-slate-200 text-sm">
+    <table class="min-w-full divide-y divide-border text-sm">
       <thead>
-        <tr class="text-left text-xs uppercase tracking-wide text-slate-500">
+        <tr class="text-left text-xs uppercase tracking-wide text-ink-3">
           <th scope="col" class="px-4 py-3 font-medium">Waktu</th>
           <th scope="col" class="px-4 py-3 font-medium">Produk</th>
           <th scope="col" class="px-4 py-3 font-medium">Tipe</th>
@@ -55,14 +55,14 @@ const quantityClass = (quantity: number): string =>
         </tr>
       </thead>
 
-      <tbody class="divide-y divide-slate-100">
-        <tr v-for="movement in items" :key="movement.id" class="hover:bg-slate-50">
-          <td class="whitespace-nowrap px-4 py-3 text-slate-600">
+      <tbody class="divide-y divide-border">
+        <tr v-for="movement in items" :key="movement.id" class="hover:bg-surface-2">
+          <td class="whitespace-nowrap px-4 py-3 text-ink-2">
             {{ formatDateTime(movement.created_at) }}
           </td>
           <td class="px-4 py-3">
-            <p class="font-medium text-slate-900">{{ movement.product.name }}</p>
-            <p class="text-xs text-slate-500">{{ movement.product.sku }}</p>
+            <p class="font-medium text-ink">{{ movement.product.name }}</p>
+            <p class="text-xs text-ink-3">{{ movement.product.sku }}</p>
           </td>
           <td class="px-4 py-3">
             <AppBadge :tone="typeTones[movement.movement_type]">
@@ -75,23 +75,23 @@ const quantityClass = (quantity: number): string =>
           >
             {{ signedQuantity(movement.quantity) }}
           </td>
-          <td class="whitespace-nowrap px-4 py-3 text-slate-600">
+          <td class="whitespace-nowrap px-4 py-3 text-ink-2">
             {{ formatNumber(movement.stock_before) }} → {{ formatNumber(movement.stock_after) }}
           </td>
           <td class="hidden px-4 py-3 lg:table-cell">
             <RouterLink
               v-if="hasInvoice(movement)"
               :to="`/transactions/${movement.reference_id}`"
-              class="font-medium text-brand-600 hover:text-brand-700 hover:underline"
+              class="font-medium text-accent hover:text-accent hover:underline"
             >
               {{ referenceLabel(movement) }}
             </RouterLink>
-            <span v-else class="text-slate-500">{{ referenceLabel(movement) }}</span>
+            <span v-else class="text-ink-3">{{ referenceLabel(movement) }}</span>
           </td>
-          <td class="hidden px-4 py-3 text-slate-600 xl:table-cell">
+          <td class="hidden px-4 py-3 text-ink-2 xl:table-cell">
             {{ movement.created_by.name }}
           </td>
-          <td class="hidden max-w-[16rem] truncate px-4 py-3 text-slate-500 xl:table-cell" :title="movement.notes ?? ''">
+          <td class="hidden max-w-[16rem] truncate px-4 py-3 text-ink-3 xl:table-cell" :title="movement.notes ?? ''">
             {{ movement.notes ?? '—' }}
           </td>
         </tr>

@@ -15,7 +15,7 @@ const emit = defineEmits<{ retry: [] }>()
 
 <template>
   <div class="flex flex-col items-center justify-center px-6 py-10 text-center">
-    <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-rose-50">
+    <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-negative-soft">
       <span class="text-lg font-semibold text-negative" aria-hidden="true">!</span>
     </div>
     <h3 class="text-sm font-semibold text-ink">Gagal memuat data</h3>

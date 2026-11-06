@@ -175,13 +175,13 @@ const confirmPending = async () => {
   <section class="space-y-6">
     <header class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-semibold text-slate-900">Kategori</h1>
-        <p class="mt-1 text-sm text-slate-500">Kelola kategori untuk pengelompokan produk.</p>
+        <h1 class="text-[28px] font-semibold tracking-tight text-ink">Kategori</h1>
+        <p class="mt-1 text-sm text-ink-3">Kelola kategori untuk pengelompokan produk.</p>
       </div>
       <AppButton v-if="canWrite" @click="openCreate">Tambah Kategori</AppButton>
     </header>
 
-    <div class="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-card sm:grid-cols-2">
+    <div class="grid gap-3 rounded-xl border border-border bg-surface p-4 sm:grid-cols-2">
       <AppInput
         v-model="filters.search"
         label="Cari kategori"
@@ -196,7 +196,7 @@ const confirmPending = async () => {
       />
     </div>
 
-    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+    <div class="overflow-hidden rounded-xl border border-border bg-surface">
       <div v-if="categoriesStore.isLoading" class="space-y-3 p-4">
         <SkeletonBlock v-for="index in 5" :key="index" height="2.25rem" />
       </div>
@@ -219,9 +219,9 @@ const confirmPending = async () => {
 
       <template v-else>
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <table class="min-w-full divide-y divide-border text-sm">
             <thead>
-              <tr class="text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr class="text-left text-xs uppercase tracking-wide text-ink-3">
                 <th scope="col" class="px-4 py-3 font-medium">Nama</th>
                 <th scope="col" class="hidden px-4 py-3 font-medium md:table-cell">Deskripsi</th>
                 <th scope="col" class="px-4 py-3 font-medium">Jumlah Produk</th>
@@ -230,13 +230,13 @@ const confirmPending = async () => {
               </tr>
             </thead>
 
-            <tbody class="divide-y divide-slate-100">
-              <tr v-for="category in categoriesStore.items" :key="category.id" class="hover:bg-slate-50">
-                <td class="px-4 py-3 font-medium text-slate-900">{{ category.name }}</td>
-                <td class="hidden px-4 py-3 text-slate-600 md:table-cell">
+            <tbody class="divide-y divide-border">
+              <tr v-for="category in categoriesStore.items" :key="category.id" class="hover:bg-surface-2">
+                <td class="px-4 py-3 font-medium text-ink">{{ category.name }}</td>
+                <td class="hidden px-4 py-3 text-ink-2 md:table-cell">
                   {{ category.description || '—' }}
                 </td>
-                <td class="px-4 py-3 text-slate-700">{{ formatNumber(category.product_count) }}</td>
+                <td class="px-4 py-3 text-ink-2">{{ formatNumber(category.product_count) }}</td>
                 <td class="px-4 py-3">
                   <AppBadge :tone="category.is_active ? 'success' : 'neutral'">
                     {{ category.is_active ? 'Aktif' : 'Nonaktif' }}

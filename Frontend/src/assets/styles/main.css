@@ -26,6 +26,7 @@
   /* status */
   --color-negative: #b91c1c;
   --color-negative-hover: #991b1b;
+  --color-negative-soft: #fef2f2;
   --color-warning: #b45309;
   --color-warning-soft: #fef3c7;
 
@@ -45,7 +46,7 @@
   --radius-xl: 0.5rem;
 
   /* permukaan datar; bayangan hanya untuk modal/dropdown */
-  --shadow-card: none;
+  --: none;
 }
 
 @layer base {

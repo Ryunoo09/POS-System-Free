@@ -17,15 +17,15 @@ const printReceipt = (): void => {
 <template>
   <AppModal :open="open" title="Transaksi berhasil" max-width="md" @close="emit('close')">
     <div v-if="transaction" class="space-y-4">
-      <div class="rounded-xl bg-emerald-50 px-4 py-4 text-center">
-        <p class="text-sm font-medium text-emerald-700">Pembayaran diterima</p>
-        <p class="mt-1 text-3xl font-bold text-emerald-700">
+      <div class="rounded-xl bg-accent-soft px-4 py-4 text-center">
+        <p class="text-sm font-medium text-accent-ink">Pembayaran diterima</p>
+        <p class="mt-1 text-3xl font-bold text-accent-ink">
           {{ formatRupiah(transaction.total_amount) }}
         </p>
-        <p class="mt-1 text-sm text-emerald-700">
+        <p class="mt-1 text-sm text-accent-ink">
           Kembalian {{ formatRupiah(transaction.change_amount) }}
         </p>
-        <p class="mt-1 text-xs text-emerald-600">{{ transaction.invoice_number }}</p>
+        <p class="mt-1 text-xs text-accent">{{ transaction.invoice_number }}</p>
       </div>
 
       <ReceiptView :transaction="transaction" />

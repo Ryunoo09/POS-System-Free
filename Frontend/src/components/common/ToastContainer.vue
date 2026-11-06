@@ -8,7 +8,7 @@ const emit = defineEmits<{ dismiss: [id: number] }>()
 const toastClass = (type: ToastType) =>
   ({
     success: 'border-accent/30 bg-accent-soft text-accent-ink',
-    error: 'border-rose-200 bg-rose-50 text-negative',
+    error: 'border-negative bg-negative-soft text-negative',
     info: 'border-border bg-surface text-ink',
   })[type]
 </script>

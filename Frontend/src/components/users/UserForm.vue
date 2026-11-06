@@ -125,7 +125,7 @@ const submit = () => {
     <form id="user-form" class="space-y-4" novalidate @submit.prevent="submit">
       <div
         v-if="formError"
-        class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+        class="rounded-lg border border-negative bg-negative-soft px-3 py-2 text-sm text-negative"
         role="alert"
       >
         {{ formError }}
@@ -166,7 +166,7 @@ const submit = () => {
           <template #suffix>
             <button
               type="button"
-              class="rounded px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              class="rounded px-2 py-1 text-xs font-medium text-ink-3 hover:bg-surface-2 hover:text-ink-2"
               :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
               @click="showPassword = !showPassword"
             >
@@ -179,7 +179,7 @@ const submit = () => {
           <li
             v-for="rule in passwordRules"
             :key="rule.label"
-            :class="rule.valid ? 'text-emerald-600' : 'text-slate-500'"
+            :class="rule.valid ? 'text-accent' : 'text-ink-3'"
           >
             <span aria-hidden="true">{{ rule.valid ? '✓' : '•' }}</span>
             {{ rule.label }}

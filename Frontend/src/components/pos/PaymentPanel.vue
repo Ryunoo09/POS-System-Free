@@ -48,12 +48,12 @@ const setMethod = (value: string): void => {
 </script>
 
 <template>
-  <section class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-card">
-    <h2 class="text-sm font-semibold text-slate-900">Pembayaran</h2>
+  <section class="space-y-3 rounded-xl border border-border bg-surface p-4">
+    <h2 class="text-sm font-semibold text-ink">Pembayaran</h2>
 
     <div
       v-if="formError"
-      class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+      class="rounded-lg border border-negative bg-negative-soft px-3 py-2 text-sm text-negative"
     >
       {{ formError }}
     </div>
@@ -82,7 +82,7 @@ const setMethod = (value: string): void => {
         v-for="amount in quickAmounts"
         :key="amount"
         type="button"
-        class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+        class="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-ink-2 hover:bg-surface-2"
         :disabled="isCheckingOut"
         @click="emit('update:amount-paid', amount)"
       >
@@ -99,9 +99,9 @@ const setMethod = (value: string): void => {
       @update:model-value="(value) => emit('update:reference', String(value))"
     />
 
-    <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
-      <span class="text-sm text-slate-600">Kembalian</span>
-      <span class="text-lg font-semibold text-emerald-600">
+    <div class="flex items-center justify-between rounded-lg bg-ground px-3 py-2">
+      <span class="text-sm text-ink-2">Kembalian</span>
+      <span class="text-lg font-semibold text-accent">
         {{ formatRupiah(changeAmount) }}
       </span>
     </div>

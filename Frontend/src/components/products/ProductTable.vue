@@ -21,9 +21,9 @@ const emit = defineEmits<{
 
 <template>
   <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-slate-200 text-sm">
+    <table class="min-w-full divide-y divide-border text-sm">
       <thead>
-        <tr class="text-left text-xs uppercase tracking-wide text-slate-500">
+        <tr class="text-left text-xs uppercase tracking-wide text-ink-3">
           <th scope="col" class="px-4 py-3 font-medium">Produk</th>
           <th scope="col" class="hidden px-4 py-3 font-medium md:table-cell">Kategori</th>
           <th v-if="showCost" scope="col" class="hidden px-4 py-3 font-medium lg:table-cell">
@@ -36,20 +36,20 @@ const emit = defineEmits<{
         </tr>
       </thead>
 
-      <tbody class="divide-y divide-slate-100">
-        <tr v-for="product in products" :key="product.id" class="hover:bg-slate-50">
+      <tbody class="divide-y divide-border">
+        <tr v-for="product in products" :key="product.id" class="hover:bg-surface-2">
           <td class="px-4 py-3">
-            <p class="font-medium text-slate-900">{{ product.name }}</p>
-            <p class="text-xs text-slate-500">{{ product.sku }}</p>
+            <p class="font-medium text-ink">{{ product.name }}</p>
+            <p class="text-xs text-ink-3">{{ product.sku }}</p>
           </td>
-          <td class="hidden px-4 py-3 text-slate-600 md:table-cell">{{ product.category.name }}</td>
-          <td v-if="showCost" class="hidden px-4 py-3 text-slate-600 lg:table-cell">
+          <td class="hidden px-4 py-3 text-ink-2 md:table-cell">{{ product.category.name }}</td>
+          <td v-if="showCost" class="hidden px-4 py-3 text-ink-2 lg:table-cell">
             {{ product.cost_price ? formatRupiah(product.cost_price) : '—' }}
           </td>
-          <td class="px-4 py-3 text-slate-700">{{ formatRupiah(product.selling_price) }}</td>
+          <td class="px-4 py-3 text-ink-2">{{ formatRupiah(product.selling_price) }}</td>
           <td class="px-4 py-3">
             <div class="flex items-center gap-2">
-              <span :class="product.is_low_stock ? 'font-medium text-rose-600' : 'text-slate-700'">
+              <span :class="product.is_low_stock ? 'font-medium text-negative' : 'text-ink-2'">
                 {{ formatNumber(product.stock) }}
               </span>
               <AppBadge v-if="product.is_low_stock" tone="warning">Rendah</AppBadge>

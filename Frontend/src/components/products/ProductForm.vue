@@ -198,7 +198,7 @@ const submit = () => {
     <form id="product-form" class="space-y-4" novalidate @submit.prevent="submit">
       <div
         v-if="formError"
-        class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+        class="rounded-lg border border-negative bg-negative-soft px-3 py-2 text-sm text-negative"
         role="alert"
       >
         {{ formError }}
@@ -276,7 +276,7 @@ const submit = () => {
 
       <div
         v-if="marginWarning"
-        class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+        class="rounded-lg border border-warning bg-warning-soft px-3 py-2 text-sm text-warning"
         role="status"
       >
         Harga jual lebih rendah dari harga modal. Periksa kembali agar tidak merugi.
@@ -293,7 +293,7 @@ const submit = () => {
             />
             <RouterLink
               to="/inventory"
-              class="mt-1 inline-block text-xs font-medium text-brand-600 hover:underline"
+              class="mt-1 inline-block text-xs font-medium text-accent hover:underline"
             >
               Buka halaman Inventori
             </RouterLink>

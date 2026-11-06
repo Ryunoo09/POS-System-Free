@@ -73,7 +73,7 @@ const submit = () => {
     <form id="category-form" class="space-y-4" novalidate @submit.prevent="submit">
       <div
         v-if="formError"
-        class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+        class="rounded-lg border border-negative bg-negative-soft px-3 py-2 text-sm text-negative"
         role="alert"
       >
         {{ formError }}

@@ -229,19 +229,19 @@ onUnmounted(() => {
   <section class="space-y-4 pb-20 lg:pb-0">
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-semibold text-slate-900">Kasir</h1>
-        <p class="mt-1 text-sm text-slate-500">
+        <h1 class="text-[28px] font-semibold tracking-tight text-ink">Kasir</h1>
+        <p class="mt-1 text-sm text-ink-3">
           Pindai barcode atau pilih produk, lalu proses pembayaran.
         </p>
       </div>
-      <p class="text-sm text-slate-500">
-        {{ itemCount }} item · <span class="font-semibold text-slate-900">{{ formatRupiah(totalAmount) }}</span>
+      <p class="text-sm text-ink-3">
+        {{ itemCount }} item · <span class="font-semibold text-ink">{{ formatRupiah(totalAmount) }}</span>
       </p>
     </header>
 
     <div class="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <section :class="[mobileView === 'catalog' ? 'block' : 'hidden', 'space-y-4 lg:block']">
-        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-card">
+        <div class="rounded-xl border border-border bg-surface p-4">
           <div class="grid gap-3 sm:grid-cols-2">
             <div ref="barcodeWrapper">
               <AppInput
@@ -270,8 +270,8 @@ onUnmounted(() => {
             :class="[
               'rounded-full border px-3 py-1 text-xs font-medium transition',
               categoryId === chip.id
-                ? 'border-brand-600 bg-brand-600 text-white'
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
+                ? 'border-accent bg-accent text-white'
+                : 'border-border bg-surface text-ink-2 hover:bg-surface-2',
             ]"
             @click="categoryId = chip.id"
           >
@@ -332,11 +332,11 @@ onUnmounted(() => {
     </div>
 
     <div
-      class="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-slate-200 bg-white p-3 lg:hidden"
+      class="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-border bg-surface p-3 lg:hidden"
     >
       <div>
-        <p class="text-xs text-slate-500">{{ itemCount }} item</p>
-        <p class="text-base font-semibold text-slate-900">{{ formatRupiah(totalAmount) }}</p>
+        <p class="text-xs text-ink-3">{{ itemCount }} item</p>
+        <p class="text-base font-semibold text-ink">{{ formatRupiah(totalAmount) }}</p>
       </div>
       <AppButton @click="mobileView = mobileView === 'catalog' ? 'cart' : 'catalog'">
         {{ mobileView === 'catalog' ? 'Keranjang' : 'Katalog' }}

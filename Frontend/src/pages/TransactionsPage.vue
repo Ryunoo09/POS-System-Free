@@ -121,13 +121,13 @@ onMounted(() => {
   <section class="space-y-6">
     <header class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-semibold text-slate-900">Riwayat Transaksi</h1>
-        <p class="mt-1 text-sm text-slate-500">Cari dan telusuri transaksi yang sudah tercatat.</p>
+        <h1 class="text-[28px] font-semibold tracking-tight text-ink">Riwayat Transaksi</h1>
+        <p class="mt-1 text-sm text-ink-3">Cari dan telusuri transaksi yang sudah tercatat.</p>
       </div>
       <AppBadge v-if="!canFilterCashier" tone="neutral">Hanya transaksi Anda</AppBadge>
     </header>
 
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-card">
+    <div class="rounded-xl border border-border bg-surface p-4">
       <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <AppInput
           v-model="filters.start_date"
@@ -161,7 +161,7 @@ onMounted(() => {
       </div>
 
       <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <p class="text-xs text-rose-600">{{ dateError }}</p>
+        <p class="text-xs text-negative">{{ dateError }}</p>
         <div class="ml-auto flex gap-2">
           <AppButton variant="secondary" size="sm" @click="resetFilters">Reset</AppButton>
           <AppButton size="sm" @click="applyFilters">Terapkan</AppButton>
@@ -169,7 +169,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+    <div class="overflow-hidden rounded-xl border border-border bg-surface">
       <div v-if="store.isLoading" class="space-y-3 p-4">
         <SkeletonBlock v-for="index in 5" :key="index" height="2.25rem" />
       </div>

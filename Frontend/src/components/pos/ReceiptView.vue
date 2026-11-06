@@ -14,13 +14,13 @@ const paymentLabel = computed(
 </script>
 
 <template>
-  <div class="receipt mx-auto w-full max-w-[80mm] bg-white p-4 text-[12px] leading-relaxed text-slate-900">
+  <div class="receipt mx-auto w-full max-w-[80mm] bg-surface p-4 text-[12px] leading-relaxed text-ink">
     <div class="text-center">
       <p class="text-base font-bold">POS System</p>
-      <p class="text-xs text-slate-500">Struk Pembayaran</p>
+      <p class="text-xs text-ink-3">Struk Pembayaran</p>
     </div>
 
-    <div class="mt-3 space-y-1 border-y border-dashed border-slate-300 py-2 text-xs">
+    <div class="mt-3 space-y-1 border-y border-dashed border-border py-2 text-xs">
       <div class="flex justify-between gap-2">
         <span>Invoice</span>
         <span class="font-medium">{{ transaction.invoice_number }}</span>
@@ -35,10 +35,10 @@ const paymentLabel = computed(
       </div>
     </div>
 
-    <ul class="mt-2 space-y-2 border-b border-dashed border-slate-300 pb-2">
+    <ul class="mt-2 space-y-2 border-b border-dashed border-border pb-2">
       <li v-for="item in transaction.items" :key="item.product_id">
         <p class="font-medium">{{ item.product_name }}</p>
-        <div class="flex justify-between gap-2 text-xs text-slate-600">
+        <div class="flex justify-between gap-2 text-xs text-ink-2">
           <span>{{ item.quantity }} × {{ formatRupiah(item.unit_price) }}</span>
           <span>{{ formatRupiah(item.subtotal) }}</span>
         </div>
@@ -58,7 +58,7 @@ const paymentLabel = computed(
         <dt>Pajak</dt>
         <dd>{{ formatRupiah(transaction.tax_amount) }}</dd>
       </div>
-      <div class="flex justify-between gap-2 border-t border-slate-300 pt-1 text-sm font-bold">
+      <div class="flex justify-between gap-2 border-t border-border pt-1 text-sm font-bold">
         <dt>Total</dt>
         <dd>{{ formatRupiah(transaction.total_amount) }}</dd>
       </div>
@@ -76,7 +76,7 @@ const paymentLabel = computed(
       </div>
     </dl>
 
-    <p class="mt-4 text-center text-xs text-slate-500">Terima kasih</p>
+    <p class="mt-4 text-center text-xs text-ink-3">Terima kasih</p>
   </div>
 </template>
 

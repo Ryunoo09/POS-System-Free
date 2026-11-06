@@ -12,5 +12,5 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="p-6 text-sm text-slate-500">Mengalihkan...</div>
+  <div class="p-6 text-sm text-ink-3">Mengalihkan...</div>
 </template>

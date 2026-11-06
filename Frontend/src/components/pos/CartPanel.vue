@@ -39,13 +39,13 @@ const setDiscount = (value: string | number): void => {
 </script>
 
 <template>
-  <section class="flex h-full flex-col rounded-xl border border-slate-200 bg-white shadow-card">
-    <header class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-      <h2 class="text-sm font-semibold text-slate-900">Keranjang</h2>
+  <section class="flex h-full flex-col rounded-xl border border-border bg-surface">
+    <header class="flex items-center justify-between border-b border-border px-4 py-3">
+      <h2 class="text-sm font-semibold text-ink">Keranjang</h2>
       <button
         v-if="items.length > 0"
         type="button"
-        class="text-xs font-medium text-slate-500 hover:text-rose-600 disabled:opacity-50"
+        class="text-xs font-medium text-ink-3 hover:text-negative disabled:opacity-50"
         :disabled="disabled"
         @click="emit('clear')"
       >
@@ -60,7 +60,7 @@ const setDiscount = (value: string | number): void => {
         description="Pilih produk dari katalog atau pindai barcode."
       />
 
-      <ul v-else class="divide-y divide-slate-100">
+      <ul v-else class="divide-y divide-border">
         <CartItemRow
           v-for="item in items"
           :key="item.product.id"
@@ -74,7 +74,7 @@ const setDiscount = (value: string | number): void => {
       </ul>
     </div>
 
-    <div class="space-y-3 border-t border-slate-200 px-4 py-3">
+    <div class="space-y-3 border-t border-border px-4 py-3">
       <AppInput
         :model-value="discountInput"
         label="Diskon transaksi"
@@ -89,19 +89,19 @@ const setDiscount = (value: string | number): void => {
       </AppInput>
 
       <dl class="space-y-1.5 text-sm">
-        <div class="flex justify-between text-slate-600">
+        <div class="flex justify-between text-ink-2">
           <dt>Subtotal</dt>
           <dd>{{ formatRupiah(subtotal) }}</dd>
         </div>
-        <div v-if="discount > 0" class="flex justify-between text-rose-600">
+        <div v-if="discount > 0" class="flex justify-between text-negative">
           <dt>Diskon</dt>
           <dd>-{{ formatRupiah(discount) }}</dd>
         </div>
-        <div class="flex justify-between text-slate-600">
+        <div class="flex justify-between text-ink-2">
           <dt>Pajak</dt>
           <dd>{{ formatRupiah(taxAmount) }}</dd>
         </div>
-        <div class="flex justify-between border-t border-slate-200 pt-2 text-base font-semibold text-slate-900">
+        <div class="flex justify-between border-t border-border pt-2 text-base font-semibold text-ink">
           <dt>Total</dt>
           <dd>{{ formatRupiah(totalAmount) }}</dd>
         </div>

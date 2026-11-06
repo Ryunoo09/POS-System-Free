@@ -46,7 +46,7 @@ onBeforeUnmount(() => {
     <div class="flex flex-wrap items-center justify-between gap-3">
       <RouterLink
         to="/transactions"
-        class="text-sm font-medium text-slate-600 hover:text-slate-900"
+        class="text-sm font-medium text-ink-2 hover:text-ink"
       >
         &larr; Kembali ke riwayat
       </RouterLink>
@@ -58,7 +58,7 @@ onBeforeUnmount(() => {
 
     <div
       v-if="store.detailLoading"
-      class="space-y-3 rounded-xl border border-slate-200 bg-white p-6 shadow-card"
+      class="space-y-3 rounded-xl border border-border bg-surface p-6"
     >
       <SkeletonBlock v-for="index in 6" :key="index" height="2.25rem" />
     </div>
@@ -71,7 +71,7 @@ onBeforeUnmount(() => {
       <template #action>
         <RouterLink
           to="/transactions"
-          class="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          class="inline-flex h-8 items-center rounded-lg border border-border bg-surface px-3 text-xs font-medium text-ink-2 hover:bg-surface-2"
         >
           Kembali ke riwayat
         </RouterLink>
@@ -83,42 +83,42 @@ onBeforeUnmount(() => {
     <template v-else-if="store.detail">
       <header class="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 class="text-2xl font-semibold text-slate-900">
+          <h1 class="text-[28px] font-semibold tracking-tight text-ink">
             {{ store.detail.invoice_number }}
           </h1>
-          <p class="mt-1 text-sm text-slate-500">Detail transaksi</p>
+          <p class="mt-1 text-sm text-ink-3">Detail transaksi</p>
         </div>
         <AppBadge :tone="transactionStatusTone(store.detail.status)">
           {{ transactionStatusLabel(store.detail.status) }}
         </AppBadge>
       </header>
 
-      <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-card">
+      <div class="rounded-xl border border-border bg-surface p-5">
         <dl class="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <dt class="text-xs uppercase tracking-wide text-slate-500">Invoice</dt>
-            <dd class="mt-1 font-medium text-slate-900">{{ store.detail.invoice_number }}</dd>
+            <dt class="text-xs uppercase tracking-wide text-ink-3">Invoice</dt>
+            <dd class="mt-1 font-medium text-ink">{{ store.detail.invoice_number }}</dd>
           </div>
           <div>
-            <dt class="text-xs uppercase tracking-wide text-slate-500">Waktu</dt>
-            <dd class="mt-1 text-slate-900">{{ formatDateTime(store.detail.created_at) }}</dd>
+            <dt class="text-xs uppercase tracking-wide text-ink-3">Waktu</dt>
+            <dd class="mt-1 text-ink">{{ formatDateTime(store.detail.created_at) }}</dd>
           </div>
           <div>
-            <dt class="text-xs uppercase tracking-wide text-slate-500">Kasir</dt>
-            <dd class="mt-1 text-slate-900">{{ store.detail.cashier.name }}</dd>
+            <dt class="text-xs uppercase tracking-wide text-ink-3">Kasir</dt>
+            <dd class="mt-1 text-ink">{{ store.detail.cashier.name }}</dd>
           </div>
           <div>
-            <dt class="text-xs uppercase tracking-wide text-slate-500">Metode</dt>
-            <dd class="mt-1 text-slate-900">
+            <dt class="text-xs uppercase tracking-wide text-ink-3">Metode</dt>
+            <dd class="mt-1 text-ink">
               {{ paymentMethodLabel(store.detail.payment_method) }}
             </dd>
           </div>
           <div>
-            <dt class="text-xs uppercase tracking-wide text-slate-500">Referensi</dt>
-            <dd class="mt-1 text-slate-900">{{ store.detail.payment_reference ?? '—' }}</dd>
+            <dt class="text-xs uppercase tracking-wide text-ink-3">Referensi</dt>
+            <dd class="mt-1 text-ink">{{ store.detail.payment_reference ?? '—' }}</dd>
           </div>
           <div>
-            <dt class="text-xs uppercase tracking-wide text-slate-500">Status</dt>
+            <dt class="text-xs uppercase tracking-wide text-ink-3">Status</dt>
             <dd class="mt-1">
               <AppBadge :tone="transactionStatusTone(store.detail.status)">
                 {{ transactionStatusLabel(store.detail.status) }}
@@ -128,15 +128,15 @@ onBeforeUnmount(() => {
         </dl>
       </div>
 
-      <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
-        <div class="border-b border-slate-200 px-4 py-3">
-          <h2 class="text-sm font-semibold text-slate-900">Item transaksi</h2>
+      <div class="overflow-hidden rounded-xl border border-border bg-surface">
+        <div class="border-b border-border px-4 py-3">
+          <h2 class="text-sm font-semibold text-ink">Item transaksi</h2>
         </div>
 
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <table class="min-w-full divide-y divide-border text-sm">
             <thead>
-              <tr class="text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr class="text-left text-xs uppercase tracking-wide text-ink-3">
                 <th scope="col" class="px-4 py-3 font-medium">Produk</th>
                 <th scope="col" class="px-4 py-3 text-right font-medium">Qty</th>
                 <th scope="col" class="px-4 py-3 text-right font-medium">Harga</th>
@@ -154,25 +154,25 @@ onBeforeUnmount(() => {
               </tr>
             </thead>
 
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-border">
               <tr v-for="item in store.detail.items" :key="item.product_id">
                 <td class="px-4 py-3">
-                  <p class="font-medium text-slate-900">{{ item.product_name }}</p>
-                  <p class="mt-0.5 text-xs text-slate-500">{{ item.product_sku }}</p>
+                  <p class="font-medium text-ink">{{ item.product_name }}</p>
+                  <p class="mt-0.5 text-xs text-ink-3">{{ item.product_sku }}</p>
                 </td>
-                <td class="px-4 py-3 text-right text-slate-700">{{ item.quantity }}</td>
-                <td class="px-4 py-3 text-right text-slate-700">
+                <td class="px-4 py-3 text-right text-ink-2">{{ item.quantity }}</td>
+                <td class="px-4 py-3 text-right text-ink-2">
                   {{ formatRupiah(item.unit_price) }}
                 </td>
-                <td class="hidden px-4 py-3 text-right text-slate-700 sm:table-cell">
+                <td class="hidden px-4 py-3 text-right text-ink-2 sm:table-cell">
                   {{ formatRupiah(item.discount_amount) }}
                 </td>
-                <td class="px-4 py-3 text-right font-medium text-slate-900">
+                <td class="px-4 py-3 text-right font-medium text-ink">
                   {{ formatRupiah(item.subtotal) }}
                 </td>
                 <td
                   v-if="canViewCostPrice"
-                  class="hidden px-4 py-3 text-right text-slate-700 lg:table-cell"
+                  class="hidden px-4 py-3 text-right text-ink-2 lg:table-cell"
                 >
                   {{ item.unit_cost ? formatRupiah(item.unit_cost) : '—' }}
                 </td>
@@ -183,36 +183,36 @@ onBeforeUnmount(() => {
       </div>
 
       <div
-        class="rounded-xl border border-slate-200 bg-white p-5 shadow-card sm:ml-auto sm:max-w-md"
+        class="rounded-xl border border-border bg-surface p-5 sm:ml-auto sm:max-w-md"
       >
-        <h2 class="text-sm font-semibold text-slate-900">Ringkasan pembayaran</h2>
+        <h2 class="text-sm font-semibold text-ink">Ringkasan pembayaran</h2>
 
         <dl class="mt-3 space-y-2 text-sm">
           <div class="flex justify-between gap-3">
-            <dt class="text-slate-600">Subtotal</dt>
-            <dd class="text-slate-900">{{ formatRupiah(store.detail.subtotal) }}</dd>
+            <dt class="text-ink-2">Subtotal</dt>
+            <dd class="text-ink">{{ formatRupiah(store.detail.subtotal) }}</dd>
           </div>
           <div v-if="Number(store.detail.discount_amount) > 0" class="flex justify-between gap-3">
-            <dt class="text-slate-600">Diskon</dt>
-            <dd class="text-slate-900">-{{ formatRupiah(store.detail.discount_amount) }}</dd>
+            <dt class="text-ink-2">Diskon</dt>
+            <dd class="text-ink">-{{ formatRupiah(store.detail.discount_amount) }}</dd>
           </div>
           <div class="flex justify-between gap-3">
-            <dt class="text-slate-600">Pajak</dt>
-            <dd class="text-slate-900">{{ formatRupiah(store.detail.tax_amount) }}</dd>
+            <dt class="text-ink-2">Pajak</dt>
+            <dd class="text-ink">{{ formatRupiah(store.detail.tax_amount) }}</dd>
           </div>
           <div
-            class="flex justify-between gap-3 border-t border-slate-200 pt-2 text-base font-semibold"
+            class="flex justify-between gap-3 border-t border-border pt-2 text-base font-semibold"
           >
-            <dt class="text-slate-900">Total</dt>
-            <dd class="text-slate-900">{{ formatRupiah(store.detail.total_amount) }}</dd>
+            <dt class="text-ink">Total</dt>
+            <dd class="text-ink">{{ formatRupiah(store.detail.total_amount) }}</dd>
           </div>
           <div class="flex justify-between gap-3">
-            <dt class="text-slate-600">Dibayar</dt>
-            <dd class="text-slate-900">{{ formatRupiah(store.detail.amount_paid) }}</dd>
+            <dt class="text-ink-2">Dibayar</dt>
+            <dd class="text-ink">{{ formatRupiah(store.detail.amount_paid) }}</dd>
           </div>
           <div class="flex justify-between gap-3">
-            <dt class="text-slate-600">Kembalian</dt>
-            <dd class="text-slate-900">{{ formatRupiah(store.detail.change_amount) }}</dd>
+            <dt class="text-ink-2">Kembalian</dt>
+            <dd class="text-ink">{{ formatRupiah(store.detail.change_amount) }}</dd>
           </div>
         </dl>
       </div>

@@ -9,7 +9,7 @@ const toneClass = computed(
   () =>
     ({
       success: 'bg-accent-soft text-accent-ink',
-      danger: 'bg-rose-50 text-negative',
+      danger: 'bg-negative-soft text-negative',
       warning: 'bg-warning-soft text-warning',
       neutral: 'bg-surface-2 text-ink-2',
     })[props.tone],
