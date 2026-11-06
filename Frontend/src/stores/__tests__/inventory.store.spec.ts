@@ -115,6 +115,27 @@ describe('inventory.store', () => {
     })
   })
 
+  it('mengabaikan respons riwayat yang datang terlambat', async () => {
+    let resolveFirst: (value: ListResult<StockMovement>) => void = () => {}
+    const first = new Promise<ListResult<StockMovement>>((resolve) => {
+      resolveFirst = resolve
+    })
+    mocks.listMovements
+      .mockReturnValueOnce(first)
+      .mockResolvedValueOnce({
+        items: [{ ...movement, id: 'movement-2', quantity: 7 }],
+        meta,
+      })
+
+    const store = useInventoryStore()
+    const pending = store.fetchMovements({ page: 1, limit: 10 })
+    await store.fetchMovements({ page: 1, limit: 10, movement_type: 'PURCHASE' })
+    resolveFirst({ items: [movement], meta })
+    await pending
+
+    expect(store.movementItems.map((item) => item.id)).toEqual(['movement-2'])
+  })
+
   it('meneruskan payload penyesuaian ke service', async () => {
     const result: AdjustStockResult = {
       movement,

@@ -33,6 +33,10 @@ export const useInventoryStore = defineStore('inventory', () => {
 
   const isSaving = ref(false)
 
+  // Pergerakan di-refresh cepat (buka tab + ganti filter); hanya respons terbaru
+  // yang boleh menimpa state agar respons lama tidak menang balapan.
+  let movementRequestId = 0
+
   const fetchStock = async (params: InventoryListParams): Promise<void> => {
     stockLoading.value = true
     stockError.value = ''
@@ -64,17 +68,23 @@ export const useInventoryStore = defineStore('inventory', () => {
   }
 
   const fetchMovements = async (params: MovementListParams): Promise<void> => {
+    const requestId = ++movementRequestId
     movementLoading.value = true
     movementError.value = ''
 
     try {
       const result = await inventoryService.listMovements(params)
+
+      if (requestId !== movementRequestId) return
+
       movementItems.value = result.items
       movementMeta.value = result.meta
     } catch (error) {
+      if (requestId !== movementRequestId) return
+
       movementError.value = errorMessage(error, 'Gagal memuat riwayat stok.')
     } finally {
-      movementLoading.value = false
+      if (requestId === movementRequestId) movementLoading.value = false
     }
   }
 
