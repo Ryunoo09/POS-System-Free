@@ -45,14 +45,18 @@ test.describe('laporan', () => {
     await login(page, 'admin@pos.local', 'Admin@12345')
     await expect(page).toHaveURL(/\/dashboard$/)
 
-    // Tunggu kartu ringkasan selesai dimuat (nilai bukan nol) sebelum dibaca.
-    await expect.poll(async () => cardValue(page, 'Penjualan')).not.toBe('Rp 0')
-    const dashboardRevenue = await cardValue(page, 'Penjualan')
+    // Tunggu kartu ringkasan selesai dimuat sebelum dibaca.
+    const dashboardRevenueCell = page
+      .locator('[data-testid="kpi"]', { hasText: 'Penjualan' })
+      .locator('dd')
+      .first()
+    await expect.poll(async () => dashboardRevenueCell.innerText()).not.toBe('Rp 0')
+    const dashboardRevenue = await dashboardRevenueCell.innerText()
 
     await page.getByRole('link', { name: 'Laporan' }).click()
     await expect(page).toHaveURL(/\/reports$/)
 
-    await page.getByLabel('Periode').selectOption('today')
+    await page.getByRole('button', { name: '7 hari', exact: true }).click()
 
     await expect.poll(async () => cardValue(page, 'Revenue')).toBe(dashboardRevenue)
   })

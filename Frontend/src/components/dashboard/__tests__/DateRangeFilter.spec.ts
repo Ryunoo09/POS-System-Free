@@ -19,7 +19,8 @@ describe('DateRangeFilter', () => {
       },
     })
 
-    await wrapper.find('select').setValue('last7')
+    const preset = wrapper.findAll('button').find((button) => button.text() === '7 hari')
+    await preset?.trigger('click')
 
     const emitted = wrapper.emitted('update:modelValue')
     expect(emitted).toBeTruthy()
@@ -36,7 +37,8 @@ describe('DateRangeFilter', () => {
       },
     })
 
-    expect((wrapper.find('select').element as HTMLSelectElement).value).toBe('last30')
+    const active = wrapper.find('button[aria-pressed="true"]')
+    expect(active.text()).toBe('30 hari')
   })
 
   it('tidak memancarkan perubahan bila tanggal awal melebihi tanggal akhir', async () => {

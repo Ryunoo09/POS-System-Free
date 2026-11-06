@@ -8,7 +8,7 @@ defineProps<{ items: Product[] }>()
 </script>
 
 <template>
-  <ul class="divide-y divide-slate-100">
+  <ul class="divide-y divide-border">
     <li
       v-for="item in items"
       :key="item.id"
@@ -17,16 +17,16 @@ defineProps<{ items: Product[] }>()
       <div class="min-w-0">
         <RouterLink
           :to="{ path: '/inventory', query: { search: item.sku } }"
-          class="block truncate text-sm font-medium text-slate-900 hover:text-brand-700"
+          class="block truncate text-sm font-medium text-ink hover:text-accent"
           :title="item.name"
         >
           {{ item.name }}
         </RouterLink>
-        <p class="text-xs text-slate-500">{{ item.sku }} &middot; {{ item.category.name }}</p>
+        <p class="truncate text-xs text-ink-3">{{ item.sku }} &middot; {{ item.category.name }}</p>
       </div>
 
       <div class="flex shrink-0 items-center gap-2">
-        <span class="text-sm text-slate-700">
+        <span class="text-sm text-ink-2 tabular-nums">
           {{ formatNumber(item.stock) }}/{{ formatNumber(item.min_stock) }}
         </span>
         <AppBadge tone="warning">Rendah</AppBadge>

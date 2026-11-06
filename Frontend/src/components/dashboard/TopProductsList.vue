@@ -7,25 +7,21 @@ defineProps<{ items: TopProduct[] }>()
 
 <template>
   <ol class="space-y-3">
-    <li
-      v-for="(item, index) in items"
-      :key="item.product_id"
-      class="flex items-center gap-3"
-    >
+    <li v-for="(item, index) in items" :key="item.product_id" class="flex items-center gap-3">
       <span
-        class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600"
+        class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-2 text-xs font-semibold text-ink-2 tabular-nums"
       >
         {{ index + 1 }}
       </span>
 
       <div class="min-w-0 flex-1">
-        <p class="truncate text-sm font-medium text-slate-900" :title="item.name">{{ item.name }}</p>
-        <p class="text-xs text-slate-500">
+        <p class="truncate text-sm font-medium text-ink" :title="item.name">{{ item.name }}</p>
+        <p class="text-xs text-ink-3">
           {{ item.sku }} &middot; {{ formatNumber(item.quantity_sold) }} terjual
         </p>
       </div>
 
-      <span class="shrink-0 text-sm font-medium text-slate-700">
+      <span class="shrink-0 text-sm font-medium text-ink tabular-nums">
         {{ formatRupiah(item.revenue) }}
       </span>
     </li>

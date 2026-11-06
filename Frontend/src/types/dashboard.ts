@@ -1,3 +1,5 @@
+import type { PaymentMethod } from './transaction'
+
 export interface DateRange {
   start_date: string
   end_date: string
@@ -10,6 +12,14 @@ export interface DashboardPeriod {
   end_date: string
 }
 
+export interface DashboardSummaryPrevious {
+  period: DashboardPeriod
+  revenue: string
+  cogs: string
+  gross_profit: string
+  transaction_count: number
+}
+
 export interface DashboardSummary {
   period: DashboardPeriod
   revenue: string
@@ -19,6 +29,7 @@ export interface DashboardSummary {
   total_products: number
   total_stock: number
   low_stock_count: number
+  previous: DashboardSummaryPrevious
 }
 
 export interface DailySales {
@@ -33,4 +44,22 @@ export interface TopProduct {
   name: string
   quantity_sold: number
   revenue: string
+}
+
+export interface PaymentMethodSales {
+  payment_method: PaymentMethod
+  transaction_count: number
+  revenue: string
+}
+
+export interface CategorySales {
+  category_id: string | null
+  category: string
+  quantity_sold: number
+  revenue: string
+}
+
+export interface DashboardBreakdown {
+  payment_methods: PaymentMethodSales[]
+  categories: CategorySales[]
 }

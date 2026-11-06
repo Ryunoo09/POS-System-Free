@@ -9,10 +9,10 @@ const data = [
 ]
 
 describe('SalesChart', () => {
-  it('menggambar satu titik per hari dan tabel aksesibel', () => {
+  it('menggambar satu batang per hari dan tabel aksesibel', () => {
     const wrapper = mount(SalesChart, { props: { data } })
 
-    expect(wrapper.findAll('circle')).toHaveLength(3)
+    expect(wrapper.findAll('rect')).toHaveLength(3)
     expect(wrapper.findAll('tbody tr')).toHaveLength(3)
     expect(wrapper.text()).toContain('Data penjualan harian')
   })
@@ -24,7 +24,15 @@ describe('SalesChart', () => {
       },
     })
 
-    expect(wrapper.findAll('circle')).toHaveLength(1)
-    expect(wrapper.find('path[stroke="currentColor"]').exists()).toBe(true)
+    expect(wrapper.findAll('rect')).toHaveLength(1)
+    expect(wrapper.find('rect').attributes('height')).toBe('0')
+  })
+
+  it('menandai batang tertinggi dengan warna aksen penuh', () => {
+    const wrapper = mount(SalesChart, { props: { data } })
+
+    const rects = wrapper.findAll('rect')
+    expect(rects[0]?.classes()).toContain('fill-accent')
+    expect(rects[1]?.classes()).toContain('fill-accent-mark')
   })
 })

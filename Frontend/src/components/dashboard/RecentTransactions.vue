@@ -11,21 +11,21 @@ const paymentLabel = (method: PaymentMethod): string =>
 </script>
 
 <template>
-  <ul class="divide-y divide-slate-100">
+  <ul class="divide-y divide-border">
     <li v-for="item in items" :key="item.id" class="py-2 first:pt-0 last:pb-0">
       <div class="flex items-center justify-between gap-3">
         <RouterLink
           :to="`/transactions/${item.id}`"
-          class="truncate text-sm font-medium text-slate-900 hover:text-brand-700"
+          class="truncate text-sm font-medium text-ink hover:text-accent"
         >
           {{ item.invoice_number }}
         </RouterLink>
-        <span class="shrink-0 text-sm font-semibold text-slate-900">
+        <span class="shrink-0 text-sm font-semibold text-ink tabular-nums">
           {{ formatRupiah(item.total_amount) }}
         </span>
       </div>
 
-      <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+      <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-3">
         <span>{{ item.cashier.name }}</span>
         <span aria-hidden="true">&middot;</span>
         <span>{{ paymentLabel(item.payment_method) }}</span>

@@ -142,7 +142,7 @@ describe('ReportsPage', () => {
   it('mengubah kelompok penjualan memuat ulang laporan', async () => {
     const wrapper = await mountPage()
 
-    await wrapper.findAll('select')[1]?.setValue('weekly')
+    await wrapper.find('select').setValue('weekly')
     await flushPromises()
 
     expect(mocks.getSales).toHaveBeenLastCalledWith(

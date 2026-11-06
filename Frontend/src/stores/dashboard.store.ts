@@ -3,7 +3,13 @@ import { defineStore } from 'pinia'
 import { dashboardService } from '@/services/dashboard.service'
 import { inventoryService } from '@/services/inventory.service'
 import { transactionsService } from '@/services/transactions.service'
-import type { DailySales, DashboardSummary, DateRange, TopProduct } from '@/types/dashboard'
+import type {
+  DailySales,
+  DashboardBreakdown,
+  DashboardSummary,
+  DateRange,
+  TopProduct,
+} from '@/types/dashboard'
 import type { Product } from '@/types/product'
 import type { TransactionSummary } from '@/types/transaction'
 import { errorMessage } from '@/utils/errors'
@@ -16,6 +22,10 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const sales = ref<DailySales[]>([])
   const salesLoading = ref(false)
   const salesError = ref('')
+
+  const breakdown = ref<DashboardBreakdown | null>(null)
+  const breakdownLoading = ref(false)
+  const breakdownError = ref('')
 
   const topProducts = ref<TopProduct[]>([])
   const topProductsLoading = ref(false)
@@ -52,6 +62,19 @@ export const useDashboardStore = defineStore('dashboard', () => {
       salesError.value = errorMessage(error, 'Gagal memuat grafik penjualan.')
     } finally {
       salesLoading.value = false
+    }
+  }
+
+  const loadBreakdown = async (range: DateRange): Promise<void> => {
+    breakdownLoading.value = true
+    breakdownError.value = ''
+
+    try {
+      breakdown.value = await dashboardService.getBreakdown(range)
+    } catch (error) {
+      breakdownError.value = errorMessage(error, 'Gagal memuat rincian penjualan.')
+    } finally {
+      breakdownLoading.value = false
     }
   }
 
@@ -99,6 +122,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     await Promise.all([
       loadSummary(range),
       loadSales(range),
+      loadBreakdown(range),
       loadTopProducts(range),
       loadLowStock(),
       loadRecentTransactions(range),
@@ -112,6 +136,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
     sales,
     salesLoading,
     salesError,
+    breakdown,
+    breakdownLoading,
+    breakdownError,
     topProducts,
     topProductsLoading,
     topProductsError,
@@ -123,6 +150,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     recentTransactionsError,
     loadSummary,
     loadSales,
+    loadBreakdown,
     loadTopProducts,
     loadLowStock,
     loadRecentTransactions,

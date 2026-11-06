@@ -5,9 +5,9 @@ import { formatDate, formatRupiah } from '@/utils/format'
 
 const props = defineProps<{ data: DailySales[] }>()
 
-const WIDTH = 640
-const HEIGHT = 240
-const PADDING = { top: 16, right: 16, bottom: 32, left: 56 }
+const WIDTH = 720
+const HEIGHT = 248
+const PADDING = { top: 24, right: 8, bottom: 30, left: 72 }
 const innerWidth = WIDTH - PADDING.left - PADDING.right
 const innerHeight = HEIGHT - PADDING.top - PADDING.bottom
 
@@ -20,31 +20,28 @@ const compactCurrency = (value: number): string => `Rp ${compact.format(value)}`
 
 const maxValue = computed(() => Math.max(...props.data.map((row) => Number(row.revenue)), 1))
 
-const points = computed(() =>
-  props.data.map((row, index) => {
-    const x =
-      PADDING.left +
-      (props.data.length <= 1 ? innerWidth / 2 : (index / (props.data.length - 1)) * innerWidth)
-    const y = PADDING.top + innerHeight - (Number(row.revenue) / maxValue.value) * innerHeight
+const slotWidth = computed(() => innerWidth / Math.max(props.data.length, 1))
+const barWidth = computed(() => Math.max(2, Math.min(slotWidth.value * 0.62, 32)))
 
-    return { ...row, x, y }
+const bars = computed(() =>
+  props.data.map((row, index) => {
+    const revenue = Number(row.revenue)
+    const height = (revenue / maxValue.value) * innerHeight
+    const x = PADDING.left + index * slotWidth.value + (slotWidth.value - barWidth.value) / 2
+    const y = PADDING.top + innerHeight - height
+
+    return { ...row, revenue, x, y, height }
   }),
 )
 
-const linePath = computed(() =>
-  points.value
-    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
-    .join(' '),
-)
+const peakIndex = computed(() => {
+  let index = 0
 
-const areaPath = computed(() => {
-  const first = points.value[0]
-  const last = points.value[points.value.length - 1]
+  bars.value.forEach((bar, current) => {
+    if (bar.revenue > (bars.value[index]?.revenue ?? 0)) index = current
+  })
 
-  if (!first || !last) return ''
-
-  const baseline = PADDING.top + innerHeight
-  return `${linePath.value} L ${last.x.toFixed(1)} ${baseline} L ${first.x.toFixed(1)} ${baseline} Z`
+  return index
 })
 
 const gridLines = computed(() =>
@@ -55,26 +52,36 @@ const gridLines = computed(() =>
 )
 
 const xLabels = computed(() => {
-  if (points.value.length === 0) return []
+  const total = bars.value.length
+  if (total === 0) return []
+
+  if (total <= 5) return bars.value
 
   const indexes = new Set([
     0,
-    Math.floor((points.value.length - 1) / 2),
-    points.value.length - 1,
+    Math.round((total - 1) / 4),
+    Math.round((total - 1) / 2),
+    Math.round(((total - 1) * 3) / 4),
+    total - 1,
   ])
 
   return [...indexes].flatMap((index) => {
-    const point = points.value[index]
-    return point ? [point] : []
+    const bar = bars.value[index]
+    return bar ? [bar] : []
   })
 })
+
+const shortDate = (value: string): string =>
+  new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' })
+    .format(new Date(`${value}T00:00:00+07:00`))
+    .replace('.', '')
 </script>
 
 <template>
-  <div class="w-full">
+  <div class="w-full min-w-0 overflow-x-auto">
     <svg
       :viewBox="`0 0 ${WIDTH} ${HEIGHT}`"
-      class="h-auto w-full text-brand-600"
+      class="h-auto w-full min-w-[600px]"
       role="img"
       aria-label="Grafik penjualan harian"
     >
@@ -86,7 +93,7 @@ const xLabels = computed(() => {
           :x2="WIDTH - PADDING.right"
           :y1="line.y"
           :y2="line.y"
-          class="stroke-slate-200"
+          class="stroke-border"
           stroke-width="1"
         />
         <text
@@ -95,42 +102,35 @@ const xLabels = computed(() => {
           :x="PADDING.left - 8"
           :y="line.y + 4"
           text-anchor="end"
-          class="fill-slate-400 text-[10px]"
+          class="fill-ink-3 text-[10px]"
         >
           {{ line.label }}
         </text>
       </g>
 
-      <path :d="areaPath" fill="currentColor" opacity="0.12" />
-      <path
-        :d="linePath"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-
-      <circle
-        v-for="point in points"
-        :key="point.date"
-        :cx="point.x"
-        :cy="point.y"
-        r="3"
-        fill="currentColor"
+      <rect
+        v-for="(bar, index) in bars"
+        :key="bar.date"
+        :x="bar.x"
+        :y="bar.y"
+        :width="barWidth"
+        :height="bar.height"
+        rx="2"
+        :class="index === peakIndex ? 'fill-accent' : 'fill-accent-mark'"
+        :opacity="index === peakIndex ? 1 : 0.85"
       >
-        <title>{{ formatDate(point.date) }}: {{ formatRupiah(point.revenue) }}</title>
-      </circle>
+        <title>{{ formatDate(bar.date) }}: {{ formatRupiah(bar.revenue) }}</title>
+      </rect>
 
       <text
-        v-for="point in xLabels"
-        :key="`x-${point.date}`"
-        :x="point.x"
-        :y="HEIGHT - 8"
+        v-for="bar in xLabels"
+        :key="`x-${bar.date}`"
+        :x="bar.x + barWidth / 2"
+        :y="HEIGHT - 10"
         text-anchor="middle"
-        class="fill-slate-400 text-[10px]"
+        class="fill-ink-3 text-[10px]"
       >
-        {{ point.date.slice(5) }}
+        {{ shortDate(bar.date) }}
       </text>
     </svg>
 

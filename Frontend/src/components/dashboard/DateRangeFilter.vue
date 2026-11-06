@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import AppInput from '@/components/common/AppInput.vue'
-import AppSelect from '@/components/common/AppSelect.vue'
+import SegmentedControl from '@/components/common/SegmentedControl.vue'
 import type { DateRange, DateRangePreset } from '@/types/dashboard'
 import { rangeForPreset, validateRange } from '@/utils/date-range'
 
@@ -9,17 +9,14 @@ const model = defineModel<DateRange>({ required: true })
 
 const presetOptions: ReadonlyArray<{ value: DateRangePreset; label: string }> = [
   { value: 'today', label: 'Hari ini' },
-  { value: 'last7', label: '7 hari terakhir' },
-  { value: 'last30', label: '30 hari terakhir' },
+  { value: 'last7', label: '7 hari' },
+  { value: 'last30', label: '30 hari' },
   { value: 'thisMonth', label: 'Bulan ini' },
-  { value: 'custom', label: 'Kustom' },
 ]
 
-/** Cocokkan rentang dengan preset terdekat agar pilihan awal filter benar. */
+/** Cocokkan rentang dengan preset agar pilihan awal filter benar. */
 const detectPreset = (range: DateRange): DateRangePreset => {
   for (const option of presetOptions) {
-    if (option.value === 'custom') continue
-
     const candidate = rangeForPreset(option.value)
     if (candidate.start_date === range.start_date && candidate.end_date === range.end_date) {
       return option.value
@@ -71,36 +68,39 @@ const onDateChange = (): void => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
-    <div class="sm:w-44">
-      <AppSelect
-        label="Periode"
+  <div class="flex flex-col gap-3 lg:items-end">
+    <div>
+      <p class="mb-1.5 text-[13px] font-medium text-ink-2">Periode</p>
+      <SegmentedControl
         :model-value="preset"
         :options="presetOptions"
+        label="Periode"
         @update:model-value="onPresetChange"
       />
     </div>
 
-    <div class="sm:w-40">
-      <AppInput
-        v-model="startDate"
-        label="Dari"
-        type="date"
-        :error="error"
-        :max="endDate"
-        @change="onDateChange"
-      />
-    </div>
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
+      <div class="sm:w-40">
+        <AppInput
+          v-model="startDate"
+          label="Dari"
+          type="date"
+          :error="error"
+          :max="endDate"
+          @change="onDateChange"
+        />
+      </div>
 
-    <div class="sm:w-40">
-      <AppInput
-        v-model="endDate"
-        label="Sampai"
-        type="date"
-        :error="error"
-        :min="startDate"
-        @change="onDateChange"
-      />
+      <div class="sm:w-40">
+        <AppInput
+          v-model="endDate"
+          label="Sampai"
+          type="date"
+          :error="error"
+          :min="startDate"
+          @change="onDateChange"
+        />
+      </div>
     </div>
   </div>
 </template>
