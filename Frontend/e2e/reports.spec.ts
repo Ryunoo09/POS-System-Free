@@ -45,15 +45,16 @@ test.describe('laporan', () => {
     await login(page, 'admin@pos.local', 'Admin@12345')
     await expect(page).toHaveURL(/\/dashboard$/)
 
+    // Tunggu kartu ringkasan selesai dimuat (nilai bukan nol) sebelum dibaca.
+    await expect.poll(async () => cardValue(page, 'Penjualan')).not.toBe('Rp 0')
     const dashboardRevenue = await cardValue(page, 'Penjualan')
 
     await page.getByRole('link', { name: 'Laporan' }).click()
     await expect(page).toHaveURL(/\/reports$/)
 
     await page.getByLabel('Periode').selectOption('today')
-    await expect(page.getByRole('columnheader', { name: 'Periode' })).toBeVisible()
 
-    expect(await cardValue(page, 'Revenue')).toBe(dashboardRevenue)
+    await expect.poll(async () => cardValue(page, 'Revenue')).toBe(dashboardRevenue)
   })
 
   test('Kasir tidak dapat membuka laporan', async ({ page }) => {

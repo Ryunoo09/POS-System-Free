@@ -29,6 +29,16 @@ describe('DateRangeFilter', () => {
     })
   })
 
+  it('menampilkan preset yang sesuai dengan rentang awal', () => {
+    const wrapper = mount(DateRangeFilter, {
+      props: {
+        modelValue: { start_date: '2026-10-08', end_date: '2026-11-06' },
+      },
+    })
+
+    expect((wrapper.find('select').element as HTMLSelectElement).value).toBe('last30')
+  })
+
   it('tidak memancarkan perubahan bila tanggal awal melebihi tanggal akhir', async () => {
     const wrapper = mount(DateRangeFilter, {
       props: {

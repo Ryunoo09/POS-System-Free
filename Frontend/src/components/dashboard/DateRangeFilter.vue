@@ -15,7 +15,21 @@ const presetOptions: ReadonlyArray<{ value: DateRangePreset; label: string }> = 
   { value: 'custom', label: 'Kustom' },
 ]
 
-const preset = ref<DateRangePreset>('today')
+/** Cocokkan rentang dengan preset terdekat agar pilihan awal filter benar. */
+const detectPreset = (range: DateRange): DateRangePreset => {
+  for (const option of presetOptions) {
+    if (option.value === 'custom') continue
+
+    const candidate = rangeForPreset(option.value)
+    if (candidate.start_date === range.start_date && candidate.end_date === range.end_date) {
+      return option.value
+    }
+  }
+
+  return 'custom'
+}
+
+const preset = ref<DateRangePreset>(detectPreset(model.value))
 const startDate = ref(model.value.start_date)
 const endDate = ref(model.value.end_date)
 const error = ref('')
@@ -25,6 +39,7 @@ watch(
   (value) => {
     startDate.value = value.start_date
     endDate.value = value.end_date
+    preset.value = detectPreset(value)
   },
   { deep: true },
 )
