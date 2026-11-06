@@ -29,9 +29,9 @@ const describedBy = () =>
 
 <template>
   <div>
-    <label :for="selectId" class="mb-1.5 block text-[13px] font-medium text-slate-700">
+    <label :for="selectId" class="mb-1.5 block text-[13px] font-medium text-ink-2">
       {{ label }}
-      <span v-if="required" class="text-rose-600" aria-hidden="true">*</span>
+      <span v-if="required" class="text-negative" aria-hidden="true">*</span>
     </label>
 
     <select
@@ -42,8 +42,8 @@ const describedBy = () =>
       :aria-invalid="Boolean(error)"
       :aria-describedby="describedBy()"
       :class="[
-        'h-10 w-full rounded-lg border bg-white px-3 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500',
-        error ? 'border-rose-600' : 'border-slate-200',
+        'h-10 w-full rounded-lg border bg-surface px-3 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-ink-3',
+        error ? 'border-negative' : 'border-border',
       ]"
     >
       <option v-if="placeholder" value="" disabled>{{ placeholder }}</option>
@@ -52,10 +52,10 @@ const describedBy = () =>
       </option>
     </select>
 
-    <p v-if="error" :id="`${selectId}-error`" class="mt-1 text-xs text-rose-600">
+    <p v-if="error" :id="`${selectId}-error`" class="mt-1 text-xs text-negative">
       {{ error }}
     </p>
-    <p v-else-if="hint" :id="`${selectId}-hint`" class="mt-1 text-xs text-slate-500">
+    <p v-else-if="hint" :id="`${selectId}-hint`" class="mt-1 text-xs text-ink-3">
       {{ hint }}
     </p>
   </div>

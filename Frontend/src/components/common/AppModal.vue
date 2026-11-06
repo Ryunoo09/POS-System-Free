@@ -42,7 +42,7 @@ watch(
     <Transition name="modal">
       <div
         v-if="open"
-        class="fixed inset-0 z-40 flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4"
+        class="fixed inset-0 z-40 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4"
         @click.self="emit('close')"
         @keydown.esc="emit('close')"
       >
@@ -53,15 +53,15 @@ watch(
           aria-modal="true"
           :aria-label="title"
           :class="[
-            'w-full rounded-t-xl bg-white shadow-xl outline-none sm:rounded-xl',
+            'w-full rounded-t-xl bg-surface shadow-xl outline-none sm:rounded-xl',
             maxWidthClass,
           ]"
         >
-          <header class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-            <h2 class="text-lg font-semibold text-slate-900">{{ title }}</h2>
+          <header class="flex items-center justify-between border-b border-border px-5 py-3">
+            <h2 class="text-lg font-semibold text-ink">{{ title }}</h2>
             <button
               type="button"
-              class="rounded-md p-1 text-xl leading-none text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              class="rounded-md p-1 text-xl leading-none text-ink-3 hover:bg-surface-2 hover:text-ink"
               aria-label="Tutup"
               @click="emit('close')"
             >
@@ -75,7 +75,7 @@ watch(
 
           <footer
             v-if="$slots.footer"
-            class="flex flex-wrap justify-end gap-2 border-t border-slate-200 px-5 py-3"
+            class="flex flex-wrap justify-end gap-2 border-t border-border px-5 py-3"
           >
             <slot name="footer" />
           </footer>

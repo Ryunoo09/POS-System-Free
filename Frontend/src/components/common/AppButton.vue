@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import LoadingSpinner from './LoadingSpinner.vue'
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'ghost'
+type Variant = 'primary' | 'accent' | 'secondary' | 'danger' | 'ghost'
 type Size = 'sm' | 'md' | 'lg'
 
 const props = withDefaults(
@@ -29,10 +29,11 @@ const emit = defineEmits<{ click: [event: MouseEvent] }>()
 const variantClass = computed(
   () =>
     ({
-      primary: 'bg-brand-600 text-white hover:bg-brand-700',
-      secondary: 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
-      danger: 'bg-rose-600 text-white hover:bg-rose-700',
-      ghost: 'text-slate-600 hover:bg-slate-100',
+      primary: 'bg-ink text-white hover:bg-ink-hover',
+      accent: 'bg-accent text-white hover:bg-accent-hover',
+      secondary: 'border border-border bg-surface text-ink-2 hover:bg-surface-2',
+      danger: 'bg-negative text-white hover:bg-negative-hover',
+      ghost: 'text-ink-2 hover:bg-surface-2',
     })[props.variant],
 )
 
@@ -51,7 +52,7 @@ const sizeClass = computed(
     :type="type"
     :disabled="disabled || loading"
     :class="[
-      'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
+      'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100',
       variantClass,
       sizeClass,
       block ? 'w-full' : '',

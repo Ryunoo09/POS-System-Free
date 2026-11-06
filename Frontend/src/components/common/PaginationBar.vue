@@ -23,8 +23,8 @@ const totalPages = computed(() => Math.max(props.meta.total_pages, 1))
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-3">
-    <p class="text-xs text-slate-500">{{ rangeLabel }}</p>
+  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+    <p class="text-xs text-ink-3">{{ rangeLabel }}</p>
 
     <div class="flex items-center gap-2">
       <AppButton
@@ -35,7 +35,7 @@ const totalPages = computed(() => Math.max(props.meta.total_pages, 1))
       >
         Sebelumnya
       </AppButton>
-      <span class="text-xs text-slate-500">Halaman {{ meta.page }} dari {{ totalPages }}</span>
+      <span class="text-xs text-ink-3">Halaman {{ meta.page }} dari {{ totalPages }}</span>
       <AppButton
         variant="secondary"
         size="sm"

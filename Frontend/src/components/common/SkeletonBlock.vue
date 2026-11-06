@@ -27,7 +27,7 @@ const roundedClass = computed(
 
 <template>
   <div
-    class="animate-pulse bg-slate-200"
+    class="animate-pulse bg-border"
     :class="roundedClass"
     :style="{ width, height }"
     aria-hidden="true"

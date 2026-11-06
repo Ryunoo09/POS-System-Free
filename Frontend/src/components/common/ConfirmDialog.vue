@@ -25,7 +25,7 @@ const emit = defineEmits<{ confirm: []; cancel: [] }>()
 
 <template>
   <AppModal :open="open" :title="title" max-width="sm" @close="emit('cancel')">
-    <p class="text-sm text-slate-600">{{ message }}</p>
+    <p class="text-sm text-ink-2">{{ message }}</p>
 
     <template #footer>
       <AppButton variant="secondary" :disabled="loading" @click="emit('cancel')">

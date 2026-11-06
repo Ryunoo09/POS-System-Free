@@ -1,3 +1,4 @@
+import '@fontsource-variable/plus-jakarta-sans'
 import './assets/styles/main.css'
 
 import { createApp } from 'vue'

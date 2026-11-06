@@ -2,16 +2,50 @@
 @import "./print.css";
 
 @theme {
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui, sans-serif;
 
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
+  /* 60% — netral terang */
+  --color-ground: #f7f6f3;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1efeb;
 
+  /* 30% — struktur & tinta */
+  --color-border: #e5e2dc;
+  --color-ink: #1c1917;
+  --color-ink-2: #57534e;
+  --color-ink-3: #78716c;
+  --color-ink-hover: #292524;
+
+  /* 10% — aksen hijau-teal */
+  --color-accent: #0f766e;
+  --color-accent-hover: #115e59;
+  --color-accent-mark: #0d9488;
+  --color-accent-soft: #ccfbf1;
+  --color-accent-ink: #134e4a;
+
+  /* status */
+  --color-negative: #b91c1c;
+  --color-negative-hover: #991b1b;
+  --color-warning: #b45309;
+  --color-warning-soft: #fef3c7;
+
+  /* brand-* dipertahankan sebagai alias skala teal agar kelas lama tetap jalan */
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-200: #99f6e4;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-800: #115e59;
+
+  /* satu radius 8px */
+  --radius: 0.5rem;
+  --radius-md: 0.5rem;
   --radius-lg: 0.5rem;
-  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06);
+  --radius-xl: 0.5rem;
+
+  /* permukaan datar; bayangan hanya untuk modal/dropdown */
+  --shadow-card: none;
 }
 
 @layer base {
@@ -20,7 +54,7 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-700 antialiased;
+    @apply bg-ground text-ink-2 antialiased;
   }
 
   button,
@@ -31,7 +65,18 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-brand-500);
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

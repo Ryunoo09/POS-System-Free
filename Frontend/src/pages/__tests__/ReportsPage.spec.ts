@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
   getSales: vi.fn<(params: SalesReportParams) => Promise<ReportPayload<SalesReportRow>>>(),
   getProducts: vi.fn<(params: ProductReportParams) => Promise<ProductReportPayload>>(),
   getCashiers: vi.fn<(params: DateRange) => Promise<ReportPayload<CashierReportRow>>>(),
-  listCategories: vi.fn(),
+  listCategories: vi.fn<() => Promise<unknown>>(),
 }))
 
 vi.mock('@/services/reports.service', () => ({
