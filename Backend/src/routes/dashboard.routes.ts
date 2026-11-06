@@ -23,6 +23,11 @@ export const createDashboardRoutes = ({
   router.get('/summary', validate({ query: dashboardQuerySchema }), dashboardController.getSummary)
   router.get('/sales', validate({ query: dashboardQuerySchema }), dashboardController.getSales)
   router.get(
+    '/breakdown',
+    validate({ query: dashboardQuerySchema }),
+    dashboardController.getBreakdown,
+  )
+  router.get(
     '/top-products',
     validate({ query: topProductsQuerySchema }),
     dashboardController.getTopProducts,

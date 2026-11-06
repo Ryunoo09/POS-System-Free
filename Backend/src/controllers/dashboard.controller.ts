@@ -7,6 +7,7 @@ export interface DashboardController {
   getSummary: RequestHandler
   getSales: RequestHandler
   getTopProducts: RequestHandler
+  getBreakdown: RequestHandler
 }
 
 export const createDashboardController = ({
@@ -31,6 +32,13 @@ export const createDashboardController = ({
   getTopProducts: async (req, res) => {
     const query = req.validated?.query as TopProductsQuery
     const data = await dashboardService.getTopProducts(query, query.limit)
+
+    return sendSuccess(res, { data })
+  },
+
+  getBreakdown: async (req, res) => {
+    const query = req.validated?.query as DashboardQuery
+    const data = await dashboardService.getBreakdown(query)
 
     return sendSuccess(res, { data })
   },

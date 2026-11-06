@@ -19,6 +19,8 @@ const buildRepository = (overrides: Partial<ReportRepository> = {}): ReportRepos
   getPeriodSales: async () => [],
   listProductSales: async () => ({ items: [], total: 0 }),
   listCashierSales: async () => [],
+  getPaymentMethodSales: async () => [],
+  getCategorySales: async () => [],
   ...overrides,
 })
 

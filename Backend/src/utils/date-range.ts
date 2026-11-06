@@ -76,6 +76,25 @@ export const resolveDateRange = (input: DateRangeInput): ResolvedDateRange => {
   }
 }
 
+/**
+ * Rentang dengan durasi sama tepat sebelum rentang ini, dipakai untuk delta KPI.
+ * Contoh: 2026-11-01..2026-11-03 -> 2026-10-29..2026-10-31.
+ */
+export const previousDateRange = (range: ResolvedDateRange): ResolvedDateRange => {
+  const totalDays = daysBetween(range.startDate, range.endDate)
+
+  const previousEnd = new Date(`${range.startDate}T00:00:00Z`)
+  previousEnd.setUTCDate(previousEnd.getUTCDate() - 1)
+
+  const previousStart = new Date(previousEnd)
+  previousStart.setUTCDate(previousStart.getUTCDate() - (totalDays - 1))
+
+  return resolveDateRange({
+    start_date: previousStart.toISOString().slice(0, 10),
+    end_date: previousEnd.toISOString().slice(0, 10),
+  })
+}
+
 /** Daftar tanggal inklusif pada rentang, urut naik. */
 export const eachDateInRange = (startDate: string, endDate: string): string[] => {
   const dates: string[] = []

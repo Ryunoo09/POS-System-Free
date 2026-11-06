@@ -186,6 +186,53 @@ describe('dashboard API', () => {
       total_products: 2,
       total_stock: 12,
       low_stock_count: 1,
+      previous: {
+        period: { start_date: '2026-10-29', end_date: '2026-10-31' },
+        revenue: '0.00',
+        cogs: '0.00',
+        gross_profit: '0.00',
+        transaction_count: 0,
+      },
+    })
+  })
+
+  it('memakai jendela durasi sama untuk delta KPI', async () => {
+    const response = await request(app)
+      .get('/api/dashboard/summary')
+      .query({ start_date: '2026-11-02', end_date: '2026-11-03' })
+      .set(auth(adminToken))
+
+    expect(response.status).toBe(200)
+    // 2 hari: 2026-11-02..03 -> sebelumnya 2026-10-31..2026-11-01 (berisi 1 transaksi).
+    expect(response.body.data.previous).toEqual({
+      period: { start_date: '2026-10-31', end_date: '2026-11-01' },
+      revenue: '90000.00',
+      cogs: '60000.00',
+      gross_profit: '30000.00',
+      transaction_count: 1,
+    })
+  })
+
+  it('mengelompokkan breakdown pembayaran dan kategori', async () => {
+    const response = await request(app)
+      .get('/api/dashboard/breakdown')
+      .query({ start_date: '2026-11-01', end_date: '2026-11-03' })
+      .set(auth(adminToken))
+
+    expect(response.status).toBe(200)
+    expect(response.body.data).toEqual({
+      payment_methods: [
+        { payment_method: 'CASH', transaction_count: 1, revenue: '90000.00' },
+        { payment_method: 'QRIS', transaction_count: 1, revenue: '50000.00' },
+      ],
+      categories: [
+        {
+          category_id: categoryId,
+          category: 'Kategori Dashboard',
+          quantity_sold: 3,
+          revenue: '150000.00',
+        },
+      ],
     })
   })
 

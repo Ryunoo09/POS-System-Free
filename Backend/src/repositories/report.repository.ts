@@ -57,6 +57,19 @@ export interface CashierSalesRow {
   averageTransaction: string
 }
 
+export interface PaymentMethodSalesRow {
+  paymentMethod: string
+  transactionCount: number
+  revenue: string
+}
+
+export interface CategorySalesRow {
+  categoryId: string | null
+  category: string
+  quantitySold: number
+  revenue: string
+}
+
 export interface ListProductSalesInput {
   skip: number
   take: number
@@ -74,6 +87,8 @@ export interface ReportRepository {
     input: ListProductSalesInput,
   ) => Promise<{ items: ProductSalesRow[]; total: number }>
   listCashierSales: (range: ResolvedDateRange) => Promise<CashierSalesRow[]>
+  getPaymentMethodSales: (range: ResolvedDateRange) => Promise<PaymentMethodSalesRow[]>
+  getCategorySales: (range: ResolvedDateRange) => Promise<CategorySalesRow[]>
 }
 
 const toMoney = (value: Prisma.Decimal | string | number | null | undefined): string =>
@@ -354,6 +369,62 @@ export const createReportRepository = (prisma: PrismaClient): ReportRepository =
       revenue: toMoney(row.revenue),
       grossProfit: toMoney(row.gross_profit),
       averageTransaction: toMoney(row.average_transaction),
+    }))
+  },
+
+  getPaymentMethodSales: async ({ startAt, endAt }) => {
+    const rows = await prisma.$queryRaw<
+      Array<{ payment_method: string; transaction_count: number; revenue: Prisma.Decimal }>
+    >(Prisma.sql`
+      SELECT
+        t.payment_method,
+        COUNT(*)::int AS transaction_count,
+        COALESCE(SUM(t.subtotal - t.discount_amount), 0) AS revenue
+      FROM transactions t
+      WHERE t.status = 'COMPLETED'
+        AND t.created_at >= ${startAt}
+        AND t.created_at <= ${endAt}
+      GROUP BY t.payment_method
+      ORDER BY revenue DESC, t.payment_method ASC
+    `)
+
+    return rows.map((row) => ({
+      paymentMethod: row.payment_method,
+      transactionCount: row.transaction_count,
+      revenue: toMoney(row.revenue),
+    }))
+  },
+
+  getCategorySales: async ({ startAt, endAt }) => {
+    const rows = await prisma.$queryRaw<
+      Array<{
+        category_id: string | null
+        category: string
+        quantity_sold: number
+        revenue: Prisma.Decimal
+      }>
+    >(Prisma.sql`
+      SELECT
+        c.id AS category_id,
+        COALESCE(c.name, 'Tanpa Kategori') AS category,
+        SUM(ti.quantity)::int AS quantity_sold,
+        COALESCE(SUM(ti.subtotal), 0) AS revenue
+      FROM transaction_items ti
+      JOIN transactions t ON t.id = ti.transaction_id
+      LEFT JOIN products p ON p.id = ti.product_id
+      LEFT JOIN categories c ON c.id = p.category_id
+      WHERE t.status = 'COMPLETED'
+        AND t.created_at >= ${startAt}
+        AND t.created_at <= ${endAt}
+      GROUP BY c.id, c.name
+      ORDER BY revenue DESC, category ASC
+    `)
+
+    return rows.map((row) => ({
+      categoryId: row.category_id,
+      category: row.category,
+      quantitySold: row.quantity_sold,
+      revenue: toMoney(row.revenue),
     }))
   },
 })
