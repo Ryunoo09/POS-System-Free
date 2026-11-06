@@ -1,9 +1,19 @@
-import type { Prisma, PrismaClient, Transaction } from '@prisma/client'
-import type { TransactionStatus } from '../constants/transactions.js'
+import { Prisma } from '@prisma/client'
+import type {
+  PrismaClient,
+  Transaction,
+  TransactionItem,
+} from '@prisma/client'
+import type { PaymentMethod, TransactionStatus } from '../constants/transactions.js'
 
 export type TransactionView = Transaction & {
   cashier: { id: string; name: string }
   _count: { items: number }
+}
+
+export type TransactionDetailView = Transaction & {
+  cashier: { id: string; name: string }
+  items: TransactionItem[]
 }
 
 export interface TransactionFilters {
@@ -18,13 +28,51 @@ export interface ListTransactionsInput extends TransactionFilters {
   take: number
 }
 
-export interface TransactionRepository {
-  list: (input: ListTransactionsInput) => Promise<{ items: TransactionView[]; total: number }>
+export interface CreateCheckoutItemData {
+  productId: string
+  productName: string
+  productSku: string
+  quantity: number
+  unitPrice: string
+  unitCost: string
+  discountAmount: string
+  subtotal: string
 }
 
-const include = {
+export interface CreateCheckoutData {
+  invoiceNumber: string
+  idempotencyKey: string
+  cashierId: string
+  subtotal: string
+  discountAmount: string
+  taxAmount: string
+  totalAmount: string
+  paymentMethod: PaymentMethod
+  paymentReference: string | null
+  amountPaid: string
+  changeAmount: string
+  items: CreateCheckoutItemData[]
+}
+
+export interface TransactionRepository {
+  list: (input: ListTransactionsInput) => Promise<{ items: TransactionView[]; total: number }>
+  findDetailById: (id: string) => Promise<TransactionDetailView | null>
+  findByIdempotencyKey: (key: string) => Promise<TransactionDetailView | null>
+  createCheckout: (
+    data: CreateCheckoutData,
+    tx: Prisma.TransactionClient,
+  ) => Promise<TransactionDetailView>
+  nextInvoiceSequence: (tx: Prisma.TransactionClient) => Promise<number>
+}
+
+const listInclude = {
   cashier: { select: { id: true, name: true } },
   _count: { select: { items: true } },
+} as const
+
+const detailInclude = {
+  cashier: { select: { id: true, name: true } },
+  items: { orderBy: { id: 'asc' } },
 } as const
 
 export const createTransactionRepository = (prisma: PrismaClient): TransactionRepository => ({
@@ -47,11 +95,56 @@ export const createTransactionRepository = (prisma: PrismaClient): TransactionRe
         skip,
         take,
         orderBy: { createdAt: 'desc' },
-        include,
+        include: listInclude,
       }),
       prisma.transaction.count({ where }),
     ])
 
     return { items, total }
+  },
+
+  findDetailById: (id) =>
+    prisma.transaction.findUnique({ where: { id }, include: detailInclude }),
+
+  findByIdempotencyKey: (key) =>
+    prisma.transaction.findUnique({ where: { idempotencyKey: key }, include: detailInclude }),
+
+  createCheckout: (data, tx) =>
+    tx.transaction.create({
+      data: {
+        invoiceNumber: data.invoiceNumber,
+        idempotencyKey: data.idempotencyKey,
+        cashierId: data.cashierId,
+        subtotal: data.subtotal,
+        discountAmount: data.discountAmount,
+        taxAmount: data.taxAmount,
+        totalAmount: data.totalAmount,
+        paymentMethod: data.paymentMethod,
+        paymentReference: data.paymentReference,
+        amountPaid: data.amountPaid,
+        changeAmount: data.changeAmount,
+        items: {
+          create: data.items.map((item) => ({
+            productId: item.productId,
+            productNameSnapshot: item.productName,
+            productSkuSnapshot: item.productSku,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            unitCost: item.unitCost,
+            discountAmount: item.discountAmount,
+            subtotal: item.subtotal,
+          })),
+        },
+      },
+      include: detailInclude,
+    }),
+
+  nextInvoiceSequence: async (tx) => {
+    const rows = await tx.$queryRaw<Array<{ nextval: bigint }>>(
+      Prisma.sql`SELECT nextval('invoice_number_seq') AS nextval`,
+    )
+    const value = rows[0]?.nextval
+
+    return typeof value === 'bigint' ? Number(value) : Number(value ?? 0)
   },
 })

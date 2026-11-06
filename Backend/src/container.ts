@@ -1,4 +1,5 @@
 import { prisma } from './config/database.js'
+import { env } from './config/env.js'
 import { createAuthController } from './controllers/auth.controller.js'
 import { createCategoryController } from './controllers/category.controller.js'
 import { createDashboardController } from './controllers/dashboard.controller.js'
@@ -55,7 +56,12 @@ const inventoryService = createInventoryService({
 })
 
 const transactionRepository = createTransactionRepository(prisma)
-const transactionService = createTransactionService({ transactionRepository })
+const transactionService = createTransactionService({
+  transactionRepository,
+  productRepository,
+  stockMovementRepository,
+  taxRate: env.TAX_RATE,
+})
 
 export const container: AppContainer = {
   healthController: createHealthController({ healthService }),

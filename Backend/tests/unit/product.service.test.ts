@@ -48,6 +48,7 @@ const buildProductRepository = (
   list: async () => ({ items: [], total: 0 }),
   findById: async () => null,
   findByIdForUpdate: async () => null,
+  findManyByIdsForUpdate: async () => [],
   findBySku: async () => null,
   findByBarcode: async () => null,
   create: async () => {

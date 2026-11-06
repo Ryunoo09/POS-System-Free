@@ -48,6 +48,10 @@ export interface ProductRepository {
     id: string,
     tx: Prisma.TransactionClient,
   ) => Promise<ProductView | null>
+  findManyByIdsForUpdate: (
+    ids: string[],
+    tx: Prisma.TransactionClient,
+  ) => Promise<ProductView[]>
   findBySku: (sku: string) => Promise<Product | null>
   findByBarcode: (barcode: string) => Promise<Product | null>
   create: (data: CreateProductData, tx?: Prisma.TransactionClient) => Promise<ProductView>
@@ -115,6 +119,23 @@ export const createProductRepository = (prisma: PrismaClient): ProductRepository
     if (locked.length === 0) return null
 
     return tx.product.findUnique({ where: { id }, include: categorySelect })
+  },
+
+  findManyByIdsForUpdate: async (ids, tx) => {
+    if (ids.length === 0) return []
+
+    const idList = Prisma.join(ids.map((id) => Prisma.sql`${id}::uuid`))
+    const locked = await tx.$queryRaw<Array<{ id: string }>>(
+      Prisma.sql`SELECT id FROM products WHERE id IN (${idList}) ORDER BY id FOR UPDATE`,
+    )
+
+    if (locked.length === 0) return []
+
+    return tx.product.findMany({
+      where: { id: { in: locked.map((row) => row.id) } },
+      orderBy: { id: 'asc' },
+      include: categorySelect,
+    })
   },
 
   findBySku: (sku) => prisma.product.findUnique({ where: { sku } }),

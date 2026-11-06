@@ -3,7 +3,10 @@ import { PERMISSIONS } from '../constants/permissions.js'
 import type { TransactionController } from '../controllers/transaction.controller.js'
 import { authorize } from '../middlewares/authorize.js'
 import { validate } from '../middlewares/validate.js'
-import { listTransactionsQuerySchema } from '../validators/transaction.validator.js'
+import {
+  checkoutSchema,
+  listTransactionsQuerySchema,
+} from '../validators/transaction.validator.js'
 
 export const createTransactionRoutes = ({
   transactionController,
@@ -15,12 +18,17 @@ export const createTransactionRoutes = ({
   const router = Router()
 
   router.use(authenticate)
-  router.use(
-    authorize([PERMISSIONS.TRANSACTION_READ_ALL, PERMISSIONS.TRANSACTION_READ_OWN]),
+
+  router.post(
+    '/',
+    authorize(PERMISSIONS.TRANSACTION_CREATE),
+    validate({ body: checkoutSchema }),
+    transactionController.checkout,
   )
 
   router.get(
     '/',
+    authorize([PERMISSIONS.TRANSACTION_READ_ALL, PERMISSIONS.TRANSACTION_READ_OWN]),
     validate({ query: listTransactionsQuerySchema }),
     transactionController.list,
   )
