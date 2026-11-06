@@ -16,6 +16,22 @@ export interface TransactionSummary {
   created_at: string
 }
 
+export interface TransactionListParams {
+  page: number
+  limit: number
+  start_date?: string
+  end_date?: string
+  cashier_id?: string
+  status?: TransactionStatus
+  payment_method?: PaymentMethod
+  search?: string
+}
+
+export interface TransactionCashierOption {
+  id: string
+  name: string
+}
+
 export interface TransactionItem {
   product_id: string
   product_name: string
