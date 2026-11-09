@@ -17,6 +17,8 @@ export type Permission =
   | 'shift:manage'
   | 'shift:read'
   | 'audit:read'
+  | 'return:create'
+  | 'return:read'
 
 export interface AuthUser {
   id: string

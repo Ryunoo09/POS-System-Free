@@ -8,8 +8,13 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import SkeletonBlock from '@/components/common/SkeletonBlock.vue'
 import ReceiptView from '@/components/pos/ReceiptView.vue'
+import ReturnRequestDialog from '@/components/returns/ReturnRequestDialog.vue'
+import { useNotification } from '@/composables/useNotification'
 import { useAuthStore } from '@/stores/auth.store'
+import { useReturnsStore } from '@/stores/returns.store'
 import { useTransactionsStore } from '@/stores/transactions.store'
+import type { ReturnCreatePayload, ReturnRecord } from '@/types/return'
+import { errorFieldErrors, errorMessage } from '@/utils/errors'
 import { formatDateTime, formatRupiah } from '@/utils/format'
 import { PERMISSIONS } from '@/utils/permissions'
 import {
@@ -21,13 +26,54 @@ import {
 const route = useRoute()
 const auth = useAuthStore()
 const store = useTransactionsStore()
+const returnsStore = useReturnsStore()
+const notification = useNotification()
 
 const transactionId = String(route.params.id ?? '')
 const printOpen = ref(false)
+const returnOpen = ref(false)
+const existingReturns = ref<ReturnRecord[]>([])
+const returnsLoading = ref(false)
+const returnsError = ref('')
 const canViewCostPrice = computed(() => auth.hasPermission(PERMISSIONS.COST_PRICE_READ))
+const canCreateReturn = computed(() => auth.hasPermission(PERMISSIONS.RETURN_CREATE))
 
 const printReceipt = (): void => {
   window.print()
+}
+
+const openReturn = (): void => {
+  returnOpen.value = true
+  returnsError.value = ''
+  existingReturns.value = []
+  returnsLoading.value = true
+
+  void returnsStore
+    .fetchForTransaction(transactionId)
+    .then((records) => {
+      existingReturns.value = records
+    })
+    .catch(() => {
+      returnsError.value = 'Gagal memuat riwayat retur. Batas kuantitas tetap divalidasi server.'
+    })
+    .finally(() => {
+      returnsLoading.value = false
+    })
+}
+
+const submitReturn = async (payload: ReturnCreatePayload): Promise<void> => {
+  returnsError.value = ''
+
+  try {
+    const record = await returnsStore.createReturn(payload)
+    notification.success(`Retur ${record.return_number} berhasil dibuat`)
+    existingReturns.value = [...existingReturns.value, record]
+    returnOpen.value = false
+  } catch (err) {
+    const fieldErrors = Object.values(errorFieldErrors(err))
+    returnsError.value =
+      fieldErrors[0] ?? errorMessage(err, 'Gagal membuat retur. Silakan coba lagi.')
+  }
 }
 
 const load = (): void => {
@@ -51,9 +97,19 @@ onBeforeUnmount(() => {
         &larr; Kembali ke riwayat
       </RouterLink>
 
-      <AppButton v-if="store.detail" variant="secondary" size="sm" @click="printOpen = true">
-        Cetak Ulang
-      </AppButton>
+      <div v-if="store.detail" class="flex flex-wrap gap-2">
+        <AppButton
+          v-if="canCreateReturn && store.detail.status === 'COMPLETED'"
+          variant="accent"
+          size="sm"
+          @click="openReturn"
+        >
+          Ajukan Retur
+        </AppButton>
+        <AppButton variant="secondary" size="sm" @click="printOpen = true">
+          Cetak Ulang
+        </AppButton>
+      </div>
     </div>
 
     <div
@@ -225,6 +281,17 @@ onBeforeUnmount(() => {
           <AppButton @click="printReceipt">Cetak Struk</AppButton>
         </template>
       </AppModal>
+
+      <ReturnRequestDialog
+        :open="returnOpen"
+        :transaction="store.detail"
+        :existing-returns="existingReturns"
+        :loading-existing="returnsLoading"
+        :is-saving="returnsStore.isSaving"
+        :server-error="returnsError"
+        @close="returnOpen = false"
+        @submit="submitReturn"
+      />
     </template>
   </section>
 </template>

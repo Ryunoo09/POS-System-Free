@@ -33,6 +33,7 @@ const detail: TransactionDetail = {
   cashier: { id: 'cashier-1', name: 'Kasir Satu' },
   items: [
     {
+      id: 'tx-item-1',
       product_id: 'product-1',
       product_name: 'Kopi Susu',
       product_sku: 'MKN-001',
