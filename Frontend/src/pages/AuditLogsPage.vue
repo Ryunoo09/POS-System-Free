@@ -41,6 +41,7 @@ const entityLabels: Record<AuditEntity, string> = {
   TRANSACTION: 'Transaksi',
   INVENTORY: 'Inventori',
   SHIFT: 'Shift',
+  RETURN: 'Retur',
 }
 
 const actionOptions: ReadonlyArray<{ value: string; label: string }> = [

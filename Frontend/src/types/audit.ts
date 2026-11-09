@@ -1,6 +1,6 @@
 export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'CANCEL' | 'ADJUST' | 'LOGIN'
 
-export type AuditEntity = 'PRODUCT' | 'USER' | 'TRANSACTION' | 'INVENTORY' | 'SHIFT'
+export type AuditEntity = 'PRODUCT' | 'USER' | 'TRANSACTION' | 'INVENTORY' | 'SHIFT' | 'RETURN'
 
 export interface AuditActor {
   id: string

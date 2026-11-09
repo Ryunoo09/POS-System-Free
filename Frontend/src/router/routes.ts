@@ -72,6 +72,12 @@ export const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'returns',
+        name: 'returns',
+        component: () => import('@/pages/ReturnsPage.vue'),
+        meta: { permissions: [PERMISSIONS.RETURN_READ], title: 'Riwayat Retur' },
+      },
+      {
         path: 'reports',
         name: 'reports',
         component: () => import('@/pages/ReportsPage.vue'),

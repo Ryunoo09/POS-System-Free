@@ -45,6 +45,12 @@ const menu: MenuItem[] = [
     icon: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3ZM9 8h6M9 12h6',
   },
   {
+    label: 'Retur',
+    to: '/returns',
+    permissions: [PERMISSIONS.RETURN_READ],
+    icon: 'M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10H9',
+  },
+  {
     label: 'Laporan',
     to: '/reports',
     permissions: [PERMISSIONS.REPORT_READ],
