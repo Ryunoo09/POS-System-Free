@@ -9,6 +9,7 @@ import CheckoutSuccessDialog from '@/components/pos/CheckoutSuccessDialog.vue'
 import PaymentPanel from '@/components/pos/PaymentPanel.vue'
 import ProductGrid from '@/components/pos/ProductGrid.vue'
 import { useDebouncedRef } from '@/composables/useDebouncedRef'
+import { useAutoPrint } from '@/composables/useAutoPrint'
 import { useCart } from '@/composables/useCart'
 import { useNotification } from '@/composables/useNotification'
 import { useCategoriesStore } from '@/stores/categories.store'
@@ -57,6 +58,11 @@ const successOpen = ref(false)
 const lastTransaction = ref<TransactionDetail | null>(null)
 const checkoutError = ref('')
 const checkoutFieldErrors = ref<Record<string, string>>({})
+
+const { autoPrint, setAutoPrint } = useAutoPrint(
+  successOpen,
+  () => lastTransaction.value?.id ?? null,
+)
 
 const categoryChips = computed(() => [
   { id: '', name: 'Semua' },
@@ -346,8 +352,10 @@ onUnmounted(() => {
     <CheckoutSuccessDialog
       :open="successOpen"
       :transaction="lastTransaction"
+      :auto-print="autoPrint"
       @close="successOpen = false"
       @new-transaction="startNewTransaction"
+      @update:auto-print="setAutoPrint"
     />
 
     <ConfirmDialog

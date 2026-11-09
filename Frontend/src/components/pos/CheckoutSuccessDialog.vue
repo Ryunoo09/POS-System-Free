@@ -5,9 +5,13 @@ import ReceiptView from './ReceiptView.vue'
 import type { TransactionDetail } from '@/types/transaction'
 import { formatRupiah } from '@/utils/format'
 
-defineProps<{ open: boolean; transaction: TransactionDetail | null }>()
+defineProps<{ open: boolean; transaction: TransactionDetail | null; autoPrint: boolean }>()
 
-const emit = defineEmits<{ close: []; 'new-transaction': [] }>()
+const emit = defineEmits<{
+  close: []
+  'new-transaction': []
+  'update:autoPrint': [value: boolean]
+}>()
 
 const printReceipt = (): void => {
   window.print()
@@ -32,6 +36,14 @@ const printReceipt = (): void => {
     </div>
 
     <template #footer>
+      <label class="mr-auto flex items-center gap-2 text-xs text-ink-2">
+        <input
+          type="checkbox"
+          :checked="autoPrint"
+          @change="emit('update:autoPrint', ($event.target as HTMLInputElement).checked)"
+        />
+        Cetak otomatis
+      </label>
       <AppButton variant="secondary" @click="printReceipt">Cetak Struk</AppButton>
       <AppButton @click="emit('new-transaction')">Transaksi Baru</AppButton>
     </template>
