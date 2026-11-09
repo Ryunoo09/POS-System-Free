@@ -8,12 +8,16 @@ import CartPanel from '@/components/pos/CartPanel.vue'
 import CheckoutSuccessDialog from '@/components/pos/CheckoutSuccessDialog.vue'
 import PaymentPanel from '@/components/pos/PaymentPanel.vue'
 import ProductGrid from '@/components/pos/ProductGrid.vue'
+import OpenShiftModal from '@/components/pos/OpenShiftModal.vue'
+import CloseShiftModal from '@/components/pos/CloseShiftModal.vue'
+import CashMovementModal from '@/components/pos/CashMovementModal.vue'
 import { useDebouncedRef } from '@/composables/useDebouncedRef'
 import { useAutoPrint } from '@/composables/useAutoPrint'
 import { useCart } from '@/composables/useCart'
 import { useNotification } from '@/composables/useNotification'
 import { useCategoriesStore } from '@/stores/categories.store'
 import { useProductsStore } from '@/stores/products.store'
+import { useShiftStore } from '@/stores/shift.store'
 import type { Product, ProductListParams } from '@/types/product'
 import type { TransactionDetail } from '@/types/transaction'
 import { errorFieldErrors, errorMessage } from '@/utils/errors'
@@ -23,6 +27,7 @@ const POS_PAGE_SIZE = 24
 
 const categories = useCategoriesStore()
 const products = useProductsStore()
+const shiftStore = useShiftStore()
 const notify = useNotification()
 const {
   cart,
@@ -55,6 +60,8 @@ const mobileView = ref<'catalog' | 'cart'>('catalog')
 
 const clearOpen = ref(false)
 const successOpen = ref(false)
+const closeShiftOpen = ref(false)
+const cashMovementOpen = ref(false)
 const lastTransaction = ref<TransactionDetail | null>(null)
 const checkoutError = ref('')
 const checkoutFieldErrors = ref<Record<string, string>>({})
@@ -155,6 +162,43 @@ const paymentError = computed(() => {
   return messages.join(' ')
 })
 
+const handleOpenShift = async (startingCash: number) => {
+  try {
+    await shiftStore.openShift({ starting_cash: startingCash })
+    notify.success('Shift kasir berhasil dibuka')
+  } catch (error) {
+    notify.error(errorMessage(error, 'Gagal membuka shift kasir'))
+  }
+}
+
+const handleOpenCloseShiftModal = async () => {
+  await shiftStore.fetchSummary()
+  closeShiftOpen.value = true
+}
+
+const handleCloseShift = async (payload: { actualCash: number; differenceNote?: string }) => {
+  try {
+    await shiftStore.closeShift({
+      actual_cash: payload.actualCash,
+      difference_note: payload.differenceNote,
+    })
+    closeShiftOpen.value = false
+    notify.success('Shift kasir berhasil ditutup')
+  } catch (error) {
+    notify.error(errorMessage(error, 'Gagal menutup shift'))
+  }
+}
+
+const handleCashMovement = async (payload: { type: 'CASH_IN' | 'CASH_OUT'; amount: number; reason: string }) => {
+  try {
+    await shiftStore.createCashMovement(payload)
+    cashMovementOpen.value = false
+    notify.success('Mutasi kas berhasil disimpan')
+  } catch (error) {
+    notify.error(errorMessage(error, 'Gagal menyimpan mutasi kas'))
+  }
+}
+
 const runCheckout = async (): Promise<void> => {
   if (!canCheckout.value || isCheckingOut.value) return
 
@@ -222,6 +266,7 @@ watch(page, loadProducts)
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
   void categories.fetchCategoryOptions()
+  void shiftStore.fetchCurrentShift()
   loadProducts()
   focusBarcode()
 })
@@ -240,9 +285,19 @@ onUnmounted(() => {
           Pindai barcode atau pilih produk, lalu proses pembayaran.
         </p>
       </div>
-      <p class="text-sm text-ink-3">
-        {{ itemCount }} item · <span class="font-semibold text-ink">{{ formatRupiah(totalAmount) }}</span>
-      </p>
+      <div class="flex items-center gap-3">
+        <template v-if="shiftStore.isShiftOpen">
+          <AppButton variant="secondary" size="sm" @click="cashMovementOpen = true">
+            Kas Masuk/Keluar
+          </AppButton>
+          <AppButton variant="secondary" size="sm" @click="handleOpenCloseShiftModal">
+            Tutup Shift
+          </AppButton>
+        </template>
+        <p class="text-sm text-ink-3">
+          {{ itemCount }} item · <span class="font-semibold text-ink">{{ formatRupiah(totalAmount) }}</span>
+        </p>
+      </div>
     </header>
 
     <div class="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -356,6 +411,27 @@ onUnmounted(() => {
       @close="successOpen = false"
       @new-transaction="startNewTransaction"
       @update:auto-print="setAutoPrint"
+    />
+
+    <OpenShiftModal
+      :open="!shiftStore.isLoading && !shiftStore.isShiftOpen"
+      :loading="shiftStore.isActionLoading"
+      @submit="handleOpenShift"
+    />
+
+    <CloseShiftModal
+      :open="closeShiftOpen"
+      :summary="shiftStore.summary"
+      :loading="shiftStore.isActionLoading"
+      @close="closeShiftOpen = false"
+      @submit="handleCloseShift"
+    />
+
+    <CashMovementModal
+      :open="cashMovementOpen"
+      :loading="shiftStore.isActionLoading"
+      @close="cashMovementOpen = false"
+      @submit="handleCashMovement"
     />
 
     <ConfirmDialog

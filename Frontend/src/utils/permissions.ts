@@ -14,6 +14,8 @@ export const PERMISSIONS = {
   REPORT_READ: 'report:read',
   USER_MANAGE: 'user:manage',
   COST_PRICE_READ: 'cost-price:read',
+  SHIFT_MANAGE: 'shift:manage',
+  SHIFT_READ: 'shift:read',
 } as const satisfies Record<string, Permission>
 
 export const hasPermission = (granted: readonly string[], permission: string): boolean =>
