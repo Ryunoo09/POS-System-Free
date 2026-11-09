@@ -9,6 +9,7 @@ import { createProductController } from './controllers/product.controller.js'
 import { createReportController } from './controllers/report.controller.js'
 import { createTransactionController } from './controllers/transaction.controller.js'
 import { createUserController } from './controllers/user.controller.js'
+import { createShiftController } from './controllers/shift.controller.js'
 import { authenticate } from './middlewares/authenticate.js'
 import { createCategoryRepository } from './repositories/category.repository.js'
 import { createHealthRepository } from './repositories/health.repository.js'
@@ -18,6 +19,7 @@ import { createReportRepository } from './repositories/report.repository.js'
 import { createStockMovementRepository } from './repositories/stock-movement.repository.js'
 import { createTransactionRepository } from './repositories/transaction.repository.js'
 import { createUserRepository } from './repositories/user.repository.js'
+import { createShiftRepository } from './repositories/shift.repository.js'
 import { createAuthService } from './services/auth.service.js'
 import { createCategoryService } from './services/category.service.js'
 import { createDashboardService } from './services/dashboard.service.js'
@@ -27,6 +29,7 @@ import { createProductService } from './services/product.service.js'
 import { createReportService } from './services/report.service.js'
 import { createTransactionService } from './services/transaction.service.js'
 import { createUserService } from './services/user.service.js'
+import { createShiftService } from './services/shift.service.js'
 import type { AppContainer } from './types/container.js'
 
 const healthRepository = createHealthRepository(prisma)
@@ -58,11 +61,15 @@ const inventoryService = createInventoryService({
   stockMovementRepository,
 })
 
+const shiftRepository = createShiftRepository(prisma)
+const shiftService = createShiftService(shiftRepository)
+
 const transactionRepository = createTransactionRepository(prisma)
 const transactionService = createTransactionService({
   transactionRepository,
   productRepository,
   stockMovementRepository,
+  shiftRepository,
   taxRate: env.TAX_RATE,
 })
 
@@ -76,5 +83,6 @@ export const container: AppContainer = {
   reportController: createReportController({ reportService }),
   transactionController: createTransactionController({ transactionService }),
   userController: createUserController({ userService }),
+  shiftController: createShiftController({ shiftService }),
   authenticate: authenticate({ userRepository }),
 }

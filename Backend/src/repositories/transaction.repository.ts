@@ -58,6 +58,7 @@ export interface CreateCheckoutData {
   paymentReference: string | null
   amountPaid: string
   changeAmount: string
+  shiftId?: string | null
   items: CreateCheckoutItemData[]
 }
 
@@ -140,6 +141,7 @@ export const createTransactionRepository = (prisma: PrismaClient): TransactionRe
         paymentReference: data.paymentReference,
         amountPaid: data.amountPaid,
         changeAmount: data.changeAmount,
+        shiftId: data.shiftId ?? null,
         items: {
           create: data.items.map((item) => ({
             productId: item.productId,

@@ -14,6 +14,7 @@ import type {
   TransactionRepository,
 } from '../repositories/transaction.repository.js'
 import type { StockMovementRepository } from '../repositories/stock-movement.repository.js'
+import type { ShiftRepository } from '../repositories/shift.repository.js'
 import type { FieldError, PaginationMeta } from '../types/http.js'
 import { resolveDateRange } from '../utils/date-range.js'
 import { isUniqueViolation } from '../utils/idempotency.js'
@@ -78,11 +79,13 @@ export const createTransactionService = ({
   transactionRepository,
   productRepository,
   stockMovementRepository,
+  shiftRepository,
   taxRate,
 }: {
   transactionRepository: TransactionRepository
   productRepository: ProductRepository
   stockMovementRepository: StockMovementRepository
+  shiftRepository?: ShiftRepository
   taxRate: number
 }): TransactionService => ({
   list: async (query, actor) => {
@@ -220,10 +223,17 @@ export const createTransactionService = ({
           )
         }
 
+        let activeShiftId: string | null = null
+        if (shiftRepository) {
+          const activeShift = await shiftRepository.findActiveByCashierId(actor.id)
+          activeShiftId = activeShift ? activeShift.id : null
+        }
+
         const checkoutData: CreateCheckoutData = {
           invoiceNumber: formatInvoiceNumber(await transactionRepository.nextInvoiceSequence(tx)),
           idempotencyKey,
           cashierId: actor.id,
+          shiftId: activeShiftId,
           subtotal: totals.subtotal,
           discountAmount: totals.discountAmount,
           taxAmount: totals.taxAmount,
