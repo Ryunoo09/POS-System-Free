@@ -10,6 +10,7 @@ import { createTransactionRoutes } from './transaction.routes.js'
 import { createUserRoutes } from './user.routes.js'
 import { createShiftRoutes } from './shift.routes.js'
 import { createAuditRoutes } from './audit.routes.js'
+import { createReturnRoutes } from './return.routes.js'
 
 export const createRoutes = (container: AppContainer): ExpressRouter => {
   const router = Router()
@@ -25,6 +26,7 @@ export const createRoutes = (container: AppContainer): ExpressRouter => {
   router.use('/transactions', createTransactionRoutes(container))
   router.use('/shifts', createShiftRoutes(container))
   router.use('/audit-logs', createAuditRoutes(container))
+  router.use('/returns', createReturnRoutes(container))
 
   return router
 }

@@ -19,6 +19,7 @@ export interface TransactionDto {
 }
 
 export interface TransactionItemDto {
+  id: string
   product_id: string
   product_name: string
   product_sku: string
@@ -76,6 +77,7 @@ export const toTransactionDetailDto = (
   cashier: { id: transaction.cashier.id, name: transaction.cashier.name },
   items: transaction.items.map((item) => {
     const dto: TransactionItemDto = {
+      id: item.id,
       product_id: item.productId,
       product_name: item.productNameSnapshot,
       product_sku: item.productSkuSnapshot,

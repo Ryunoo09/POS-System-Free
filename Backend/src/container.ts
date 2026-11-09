@@ -11,6 +11,7 @@ import { createTransactionController } from './controllers/transaction.controlle
 import { createUserController } from './controllers/user.controller.js'
 import { createShiftController } from './controllers/shift.controller.js'
 import { createAuditController } from './controllers/audit.controller.js'
+import { createReturnController } from './controllers/return.controller.js'
 import { authenticate } from './middlewares/authenticate.js'
 import { createCategoryRepository } from './repositories/category.repository.js'
 import { createHealthRepository } from './repositories/health.repository.js'
@@ -22,6 +23,7 @@ import { createTransactionRepository } from './repositories/transaction.reposito
 import { createUserRepository } from './repositories/user.repository.js'
 import { createShiftRepository } from './repositories/shift.repository.js'
 import { createAuditRepository } from './repositories/audit.repository.js'
+import { createReturnRepository } from './repositories/return.repository.js'
 import { createAuthService } from './services/auth.service.js'
 import { createCategoryService } from './services/category.service.js'
 import { createDashboardService } from './services/dashboard.service.js'
@@ -33,6 +35,7 @@ import { createTransactionService } from './services/transaction.service.js'
 import { createUserService } from './services/user.service.js'
 import { createShiftService } from './services/shift.service.js'
 import { createAuditService } from './services/audit.service.js'
+import { createReturnService } from './services/return.service.js'
 import type { AppContainer } from './types/container.js'
 
 const healthRepository = createHealthRepository(prisma)
@@ -81,6 +84,16 @@ const transactionService = createTransactionService({
   taxRate: env.TAX_RATE,
 })
 
+const returnRepository = createReturnRepository(prisma)
+const returnService = createReturnService({
+  returnRepository,
+  transactionRepository,
+  productRepository,
+  stockMovementRepository,
+  shiftRepository,
+  audit: auditService,
+})
+
 export const container: AppContainer = {
   healthController: createHealthController({ healthService }),
   authController: createAuthController({ authService }),
@@ -93,5 +106,6 @@ export const container: AppContainer = {
   userController: createUserController({ userService }),
   shiftController: createShiftController({ shiftService }),
   auditController: createAuditController({ auditService }),
+  returnController: createReturnController({ returnService }),
   authenticate: authenticate({ userRepository }),
 }

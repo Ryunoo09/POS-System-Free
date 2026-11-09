@@ -10,6 +10,7 @@ import type { TransactionController } from '../controllers/transaction.controlle
 import type { UserController } from '../controllers/user.controller.js'
 import type { ShiftController } from '../controllers/shift.controller.js'
 import type { AuditController } from '../controllers/audit.controller.js'
+import type { ReturnController } from '../controllers/return.controller.js'
 
 export interface AppContainer {
   healthController: HealthController
@@ -23,5 +24,6 @@ export interface AppContainer {
   userController: UserController
   shiftController: ShiftController
   auditController: AuditController
+  returnController: ReturnController
   authenticate: RequestHandler
 }

@@ -20,13 +20,16 @@ export interface ShiftRepository {
       closedAt: Date
     },
   ): Promise<ShiftWithRelations>
-  createCashMovement(data: {
-    shiftId: string
-    type: 'CASH_IN' | 'CASH_OUT'
-    amount: number
-    reason: string
-    createdById: string
-  }): Promise<CashMovement & { createdBy: { id: string; name: string } }>
+  createCashMovement(
+    data: {
+      shiftId: string
+      type: 'CASH_IN' | 'CASH_OUT'
+      amount: number
+      reason: string
+      createdById: string
+    },
+    tx?: Prisma.TransactionClient,
+  ): Promise<CashMovement & { createdBy: { id: string; name: string } }>
   calculateShiftCashSummary(shiftId: string): Promise<{
     startingCash: number
     cashSales: number
@@ -93,8 +96,8 @@ export const createShiftRepository = (prisma: PrismaClient): ShiftRepository => 
     })
   },
 
-  async createCashMovement({ shiftId, type, amount, reason, createdById }) {
-    return prisma.cashMovement.create({
+  async createCashMovement({ shiftId, type, amount, reason, createdById }, tx) {
+    return (tx ?? prisma).cashMovement.create({
       data: {
         shiftId,
         type,

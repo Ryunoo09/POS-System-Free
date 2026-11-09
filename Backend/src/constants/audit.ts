@@ -15,6 +15,7 @@ export const AUDIT_ENTITIES = {
   TRANSACTION: 'TRANSACTION',
   INVENTORY: 'INVENTORY',
   SHIFT: 'SHIFT',
+  RETURN: 'RETURN',
 } as const
 
 export type AuditEntity = (typeof AUDIT_ENTITIES)[keyof typeof AUDIT_ENTITIES]
