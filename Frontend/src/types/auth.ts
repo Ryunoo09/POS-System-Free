@@ -16,6 +16,7 @@ export type Permission =
   | 'cost-price:read'
   | 'shift:manage'
   | 'shift:read'
+  | 'audit:read'
 
 export interface AuthUser {
   id: string

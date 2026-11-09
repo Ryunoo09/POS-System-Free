@@ -51,6 +51,12 @@ const menu: MenuItem[] = [
     icon: 'M4 20V6M4 20h16M8 16V10M12 16V6M16 16v-3',
   },
   {
+    label: 'Log Aktivitas',
+    to: '/audit-logs',
+    permissions: [PERMISSIONS.AUDIT_READ],
+    icon: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+  },
+  {
     label: 'Pengguna',
     to: '/users',
     permissions: [PERMISSIONS.USER_MANAGE],
