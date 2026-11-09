@@ -10,17 +10,20 @@ import WidgetCard from '@/components/dashboard/WidgetCard.vue'
 import CashierReportTable from '@/components/reports/CashierReportTable.vue'
 import ProductReportTable from '@/components/reports/ProductReportTable.vue'
 import SalesReportTable from '@/components/reports/SalesReportTable.vue'
+import ShiftReportTable from '@/components/reports/ShiftReportTable.vue'
 import { useCategoriesStore } from '@/stores/categories.store'
 import { useReportsStore } from '@/stores/reports.store'
+import { useShiftStore } from '@/stores/shift.store'
 import type { DateRange } from '@/types/dashboard'
 import type { ProductReportSort, SalesGroupBy } from '@/types/report'
 import { rangeForPreset } from '@/utils/date-range'
 import { formatNumber, formatRupiah } from '@/utils/format'
 
-type Tab = 'sales' | 'products' | 'cashiers'
+type Tab = 'sales' | 'products' | 'cashiers' | 'shifts'
 
 const store = useReportsStore()
 const categoriesStore = useCategoriesStore()
+const shiftStore = useShiftStore()
 
 const range = ref<DateRange>(rangeForPreset('last30'))
 const tab = ref<Tab>('sales')
@@ -38,6 +41,7 @@ const tabs = [
   { value: 'sales', label: 'Penjualan' },
   { value: 'products', label: 'Per Produk' },
   { value: 'cashiers', label: 'Per Kasir' },
+  { value: 'shifts', label: 'Shift Kasir' },
 ] as const
 
 const groupOptions = [
@@ -76,8 +80,12 @@ const loadCashiers = (): void => {
   void store.loadCashiers(range.value)
 }
 
+const loadShifts = (): void => {
+  void shiftStore.fetchHistory()
+}
+
 const loadAll = (): void => {
-  void Promise.all([loadSales(), loadProducts(), loadCashiers()])
+  void Promise.all([loadSales(), loadProducts(), loadCashiers(), loadShifts()])
 }
 
 const loadCategories = async (): Promise<void> => {
@@ -212,7 +220,7 @@ const changePage = (value: number): void => {
     </WidgetCard>
 
     <WidgetCard
-      v-else
+      v-else-if="tab === 'cashiers'"
       title="Laporan Per Kasir"
       :loading="store.cashiersLoading"
       :error="store.cashiersError"
@@ -221,6 +229,18 @@ const changePage = (value: number): void => {
       @retry="loadCashiers"
     >
       <CashierReportTable :items="store.cashiers" />
+    </WidgetCard>
+
+    <WidgetCard
+      v-else-if="tab === 'shifts'"
+      title="Laporan & Rekonsiliasi Shift Kasir"
+      :loading="shiftStore.isLoading"
+      :error="shiftStore.error || undefined"
+      :empty="shiftStore.history.length === 0"
+      :skeleton-rows="5"
+      @retry="loadShifts"
+    >
+      <ShiftReportTable :items="shiftStore.history" :loading="shiftStore.isLoading" />
     </WidgetCard>
   </div>
 </template>

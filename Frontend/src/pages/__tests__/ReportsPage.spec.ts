@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   getProducts: vi.fn<(params: ProductReportParams) => Promise<ProductReportPayload>>(),
   getCashiers: vi.fn<(params: DateRange) => Promise<ReportPayload<CashierReportRow>>>(),
   listCategories: vi.fn<() => Promise<unknown>>(),
+  getShifts: vi.fn<() => Promise<unknown>>(),
 }))
 
 vi.mock('@/services/reports.service', () => ({
@@ -23,6 +24,12 @@ vi.mock('@/services/reports.service', () => ({
     getSales: mocks.getSales,
     getProducts: mocks.getProducts,
     getCashiers: mocks.getCashiers,
+  },
+}))
+
+vi.mock('@/services/shift.service', () => ({
+  shiftService: {
+    getHistory: mocks.getShifts,
   },
 }))
 
@@ -60,6 +67,10 @@ const mountPage = async () => {
 describe('ReportsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.getShifts.mockResolvedValue({
+      items: [],
+      meta: { page: 1, limit: 10, total_items: 0, total_pages: 1 },
+    })
     mocks.listCategories.mockResolvedValue({
       items: [{ id: 'cat-1', name: 'Minuman' }],
       meta: { page: 1, limit: 100, total_items: 1, total_pages: 1 },

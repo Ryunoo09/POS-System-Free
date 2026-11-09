@@ -87,10 +87,14 @@ export const useShiftStore = defineStore('shift', () => {
 
   const fetchHistory = async (params?: ShiftHistoryParams) => {
     isLoading.value = true
+    error.value = null
     try {
       const res = await shiftService.getHistory(params)
       history.value = res.items
       return res
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : 'Gagal memuat riwayat shift'
+      return { items: [], meta: undefined }
     } finally {
       isLoading.value = false
     }

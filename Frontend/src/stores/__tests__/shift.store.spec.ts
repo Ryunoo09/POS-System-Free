@@ -1,19 +1,36 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { useShiftStore } from '../shift.store'
-import { shiftService } from '@/services/shift.service'
-import type { Shift, ShiftSummary } from '@/types/shift'
+import type {
+  CashMovementPayload,
+  CloseShiftPayload,
+  OpenShiftPayload,
+  Shift,
+  ShiftHistoryParams,
+  ShiftSummary,
+} from '@/types/shift'
+import type { PaginationMeta } from '@/types/api'
+
+const mocks = vi.hoisted(() => ({
+  getCurrentShift: vi.fn<() => Promise<Shift | null>>(),
+  openShift: vi.fn<(payload: OpenShiftPayload) => Promise<Shift>>(),
+  closeShift: vi.fn<(payload: CloseShiftPayload) => Promise<Shift>>(),
+  createCashMovement: vi.fn<(payload: CashMovementPayload) => Promise<Shift>>(),
+  getSummary: vi.fn<() => Promise<ShiftSummary>>(),
+  getHistory: vi.fn<(params?: ShiftHistoryParams) => Promise<{ items: Shift[]; meta?: PaginationMeta }>>(),
+}))
 
 vi.mock('@/services/shift.service', () => ({
   shiftService: {
-    getCurrentShift: vi.fn(),
-    openShift: vi.fn(),
-    closeShift: vi.fn(),
-    createCashMovement: vi.fn(),
-    getSummary: vi.fn(),
-    getHistory: vi.fn(),
+    getCurrentShift: mocks.getCurrentShift,
+    openShift: mocks.openShift,
+    closeShift: mocks.closeShift,
+    createCashMovement: mocks.createCashMovement,
+    getSummary: mocks.getSummary,
+    getHistory: mocks.getHistory,
   },
 }))
+
+const { useShiftStore } = await import('../shift.store')
 
 describe('shift.store', () => {
   const dummyShift: Shift = {
@@ -36,7 +53,7 @@ describe('shift.store', () => {
   })
 
   it('memuat current shift dan mengidentifikasi status aktif', async () => {
-    vi.mocked(shiftService.getCurrentShift).mockResolvedValue(dummyShift)
+    mocks.getCurrentShift.mockResolvedValue(dummyShift)
     const store = useShiftStore()
 
     const result = await store.fetchCurrentShift()
@@ -46,12 +63,12 @@ describe('shift.store', () => {
   })
 
   it('membuka shift baru', async () => {
-    vi.mocked(shiftService.openShift).mockResolvedValue(dummyShift)
+    mocks.openShift.mockResolvedValue(dummyShift)
     const store = useShiftStore()
 
     const result = await store.openShift({ starting_cash: 50000 })
 
-    expect(shiftService.openShift).toHaveBeenCalledWith({ starting_cash: 50000 })
+    expect(mocks.openShift).toHaveBeenCalledWith({ starting_cash: 50000 })
     expect(result.id).toBe('shift-1')
     expect(store.currentShift?.status).toBe('OPEN')
   })
@@ -65,13 +82,13 @@ describe('shift.store', () => {
       cash_difference: '0.00',
       closed_at: '2026-11-09T17:00:00Z',
     }
-    vi.mocked(shiftService.closeShift).mockResolvedValue(closedShift)
+    mocks.closeShift.mockResolvedValue(closedShift)
     const store = useShiftStore()
     store.currentShift = dummyShift
 
     await store.closeShift({ actual_cash: 70000 })
 
-    expect(shiftService.closeShift).toHaveBeenCalledWith({ actual_cash: 70000 })
+    expect(mocks.closeShift).toHaveBeenCalledWith({ actual_cash: 70000 })
     expect(store.currentShift).toBeNull()
     expect(store.isShiftOpen).toBe(false)
   })
@@ -91,7 +108,7 @@ describe('shift.store', () => {
         },
       ],
     }
-    vi.mocked(shiftService.createCashMovement).mockResolvedValue(updatedShift)
+    mocks.createCashMovement.mockResolvedValue(updatedShift)
     const store = useShiftStore()
 
     await store.createCashMovement({
@@ -100,7 +117,7 @@ describe('shift.store', () => {
       reason: 'Beli bensin',
     })
 
-    expect(shiftService.createCashMovement).toHaveBeenCalledWith({
+    expect(mocks.createCashMovement).toHaveBeenCalledWith({
       type: 'CASH_OUT',
       amount: 10000,
       reason: 'Beli bensin',
@@ -116,7 +133,7 @@ describe('shift.store', () => {
       cash_out: '5000.00',
       expected_cash: '255000.00',
     }
-    vi.mocked(shiftService.getSummary).mockResolvedValue(summary)
+    mocks.getSummary.mockResolvedValue(summary)
     const store = useShiftStore()
 
     const res = await store.fetchSummary()
