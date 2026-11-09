@@ -61,6 +61,7 @@ const buildDetailFromData = (data: CreateCheckoutData): TransactionDetailView =>
   paymentReference: data.paymentReference,
   amountPaid: new Prisma.Decimal(data.amountPaid),
   changeAmount: new Prisma.Decimal(data.changeAmount),
+  shiftId: null,
   createdAt: new Date('2026-11-06T00:00:00Z'),
   cashier: { id: data.cashierId, name: 'Kasir Uji' },
   items: data.items.map((item, index) => ({
@@ -91,6 +92,7 @@ const buildView = (overrides: Partial<TransactionView> = {}): TransactionView =>
   paymentReference: null,
   amountPaid: new Prisma.Decimal('20000.00'),
   changeAmount: new Prisma.Decimal('13000.00'),
+  shiftId: null,
   createdAt: new Date('2026-11-06T00:00:00Z'),
   cashier: { id: 'cashier-1', name: 'Kasir Uji' },
   _count: { items: 1 },

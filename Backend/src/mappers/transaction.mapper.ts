@@ -43,6 +43,7 @@ export interface TransactionDetailDto {
   payment_reference: string | null
   amount_paid: string
   change_amount: string
+  shift_id: string | null
   created_at: string
 }
 
@@ -98,5 +99,6 @@ export const toTransactionDetailDto = (
   payment_reference: transaction.paymentReference,
   amount_paid: transaction.amountPaid.toFixed(2),
   change_amount: transaction.changeAmount.toFixed(2),
+  shift_id: transaction.shiftId,
   created_at: transaction.createdAt.toISOString(),
 })
