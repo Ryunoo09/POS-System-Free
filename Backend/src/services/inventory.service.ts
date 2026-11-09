@@ -6,6 +6,7 @@ import { toStockMovementDto, type StockMovementDto } from '../mappers/stock-move
 import type { InventoryRepository } from '../repositories/inventory.repository.js'
 import type { ProductRepository } from '../repositories/product.repository.js'
 import type { StockMovementRepository } from '../repositories/stock-movement.repository.js'
+import type { AuditRecorder } from './audit.service.js'
 import type { PaginationMeta } from '../types/http.js'
 import { resolveDateRange } from '../utils/date-range.js'
 import { buildPaginationMeta, toSkip } from '../utils/pagination.js'
@@ -20,6 +21,8 @@ export interface InventoryActor {
   id: string
   name: string
   canViewCostPrice: boolean
+  ipAddress?: string | null
+  userAgent?: string | null
 }
 
 export interface AdjustmentResult {
@@ -45,10 +48,12 @@ export const createInventoryService = ({
   inventoryRepository,
   productRepository,
   stockMovementRepository,
+  audit,
 }: {
   inventoryRepository: InventoryRepository
   productRepository: ProductRepository
   stockMovementRepository: StockMovementRepository
+  audit?: AuditRecorder
 }): InventoryService => ({
   list: async (query) => {
     const { items, total } = await productRepository.list({
@@ -101,7 +106,7 @@ export const createInventoryService = ({
   },
 
   adjust: async (input, actor) => {
-    return runInTransaction(async (tx) => {
+    const outcome = await runInTransaction(async (tx) => {
       const product = await productRepository.findByIdForUpdate(input.product_id, tx)
 
       if (!product) {
@@ -149,6 +154,8 @@ export const createInventoryService = ({
       )
 
       return {
+        stockBefore,
+        stockAfter,
         movement: toStockMovementDto({
           ...movement,
           product: { id: product.id, sku: product.sku, name: product.name },
@@ -158,5 +165,22 @@ export const createInventoryService = ({
         product: { id: updated.id, sku: updated.sku, stock: updated.stock },
       }
     })
+
+    await audit?.record({
+      userId: actor.id,
+      action: 'ADJUST',
+      entity: 'INVENTORY',
+      entityId: outcome.product.id,
+      oldValue: { stock: outcome.stockBefore },
+      newValue: {
+        stock: outcome.stockAfter,
+        movement_type: input.movement_type,
+        quantity: input.quantity,
+      },
+      ipAddress: actor.ipAddress,
+      userAgent: actor.userAgent,
+    })
+
+    return { movement: outcome.movement, product: outcome.product }
   },
 })

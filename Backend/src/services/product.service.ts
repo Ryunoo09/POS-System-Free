@@ -4,7 +4,9 @@ import { toProductDto, type ProductDto } from '../mappers/product.mapper.js'
 import type { CategoryRepository } from '../repositories/category.repository.js'
 import type { ProductRepository, UpdateProductData } from '../repositories/product.repository.js'
 import type { StockMovementRepository } from '../repositories/stock-movement.repository.js'
+import type { AuditRecorder } from './audit.service.js'
 import type { PaginationMeta } from '../types/http.js'
+import { buildFieldDiff } from '../utils/audit-diff.js'
 import { buildPaginationMeta, toSkip } from '../utils/pagination.js'
 import type {
   CreateProductInput,
@@ -17,6 +19,8 @@ export interface ProductActor {
   canViewCostPrice: boolean
   /** Cashier selalu dipaksa melihat produk aktif saja. */
   isCashier: boolean
+  ipAddress?: string | null
+  userAgent?: string | null
 }
 
 export interface ProductService {
@@ -34,10 +38,12 @@ export const createProductService = ({
   productRepository,
   categoryRepository,
   stockMovementRepository,
+  audit,
 }: {
   productRepository: ProductRepository
   categoryRepository: CategoryRepository
   stockMovementRepository: StockMovementRepository
+  audit?: AuditRecorder
 }): ProductService => {
   const assertCategoryActive = async (categoryId: string): Promise<void> => {
     const category = await categoryRepository.findById(categoryId)
@@ -190,6 +196,40 @@ export const createProductService = ({
       if (input.is_active !== undefined) data.isActive = input.is_active
 
       const updated = await productRepository.update(id, data)
+
+      const diff = buildFieldDiff(
+        {
+          name: existing.name,
+          category_id: existing.categoryId,
+          unit: existing.unit,
+          cost_price: existing.costPrice.toFixed(2),
+          selling_price: existing.sellingPrice.toFixed(2),
+          min_stock: existing.minStock,
+          is_active: existing.isActive,
+        },
+        {
+          name: updated.name,
+          category_id: updated.categoryId,
+          unit: updated.unit,
+          cost_price: updated.costPrice.toFixed(2),
+          selling_price: updated.sellingPrice.toFixed(2),
+          min_stock: updated.minStock,
+          is_active: updated.isActive,
+        },
+      )
+
+      if (diff) {
+        await audit?.record({
+          userId: actor.id,
+          action: 'UPDATE',
+          entity: 'PRODUCT',
+          entityId: id,
+          oldValue: diff.oldValue,
+          newValue: diff.newValue,
+          ipAddress: actor.ipAddress,
+          userAgent: actor.userAgent,
+        })
+      }
 
       return toProductDto(updated, { canViewCostPrice: actor.canViewCostPrice })
     },

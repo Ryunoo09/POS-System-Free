@@ -1,8 +1,8 @@
-import type { RequestHandler } from 'express'
+import type { Request, RequestHandler } from 'express'
 import { PERMISSIONS } from '../constants/permissions.js'
 import type { InventoryActor, InventoryService } from '../services/inventory.service.js'
 import type { AuthUser } from '../types/auth.js'
-import { requireActor } from '../utils/request.js'
+import { auditContextFrom, requireActor } from '../utils/request.js'
 import { sendSuccess } from '../utils/response.js'
 import type {
   AdjustStockInput,
@@ -18,10 +18,11 @@ export interface InventoryController {
   adjust: RequestHandler
 }
 
-const toActor = (user: AuthUser): InventoryActor => ({
+const toActor = (user: AuthUser, req: Request): InventoryActor => ({
   id: user.id,
   name: user.name,
   canViewCostPrice: user.permissions.includes(PERMISSIONS.COST_PRICE_READ),
+  ...auditContextFrom(req),
 })
 
 export const createInventoryController = ({
@@ -38,7 +39,7 @@ export const createInventoryController = ({
 
   listLowStock: async (req, res) => {
     const query = req.validated?.query as ListLowStockQuery
-    const result = await inventoryService.listLowStock(query, toActor(requireActor(req)))
+    const result = await inventoryService.listLowStock(query, toActor(requireActor(req), req))
 
     return sendSuccess(res, { data: result.items, meta: result.meta })
   },
@@ -52,7 +53,7 @@ export const createInventoryController = ({
 
   adjust: async (req, res) => {
     const input = req.validated?.body as AdjustStockInput
-    const data = await inventoryService.adjust(input, toActor(requireActor(req)))
+    const data = await inventoryService.adjust(input, toActor(requireActor(req), req))
 
     return sendSuccess(res, {
       statusCode: 201,

@@ -3,20 +3,30 @@ import { env } from '../config/env.js'
 import { BusinessRuleError, ConflictError, NotFoundError, ValidationError } from '../errors/app-errors.js'
 import { toUserDto, type UserDto } from '../mappers/user.mapper.js'
 import type { UserRepository } from '../repositories/user.repository.js'
+import type { AuditRecorder } from './audit.service.js'
 import type { PaginationMeta } from '../types/http.js'
+import { buildFieldDiff } from '../utils/audit-diff.js'
 import { buildPaginationMeta, toSkip } from '../utils/pagination.js'
 import type { CreateUserInput, ListUsersQuery, UpdateUserInput } from '../validators/user.validator.js'
+
+export interface UserActor {
+  id: string
+  ipAddress?: string | null
+  userAgent?: string | null
+}
 
 export interface UserService {
   list: (query: ListUsersQuery) => Promise<{ items: UserDto[]; meta: PaginationMeta }>
   create: (input: CreateUserInput) => Promise<UserDto>
-  update: (id: string, input: UpdateUserInput, actorId: string) => Promise<UserDto>
+  update: (id: string, input: UpdateUserInput, actor: UserActor) => Promise<UserDto>
 }
 
 export const createUserService = ({
   userRepository,
+  audit,
 }: {
   userRepository: UserRepository
+  audit?: AuditRecorder
 }): UserService => {
   const hashPassword = (password: string): Promise<string> =>
     bcrypt.hash(password, env.BCRYPT_SALT_ROUNDS)
@@ -66,7 +76,7 @@ export const createUserService = ({
       return toUserDto(created)
     },
 
-    update: async (id, input, actorId) => {
+    update: async (id, input, actor) => {
       const target = await findOrFail(id)
 
       if (input.password !== undefined && input.password === target.email) {
@@ -75,7 +85,7 @@ export const createUserService = ({
         ])
       }
 
-      if (input.is_active === false && target.id === actorId) {
+      if (input.is_active === false && target.id === actor.id) {
         throw new BusinessRuleError(
           'Admin tidak dapat menonaktifkan akun sendiri',
           'LAST_ADMIN_PROTECTED',
@@ -107,6 +117,29 @@ export const createUserService = ({
         isActive: input.is_active,
         passwordHash: input.password === undefined ? undefined : await hashPassword(input.password),
       })
+
+      const diff = buildFieldDiff(
+        { name: target.name, role: target.role, is_active: target.isActive, password: false },
+        {
+          name: updated.name,
+          role: updated.role,
+          is_active: updated.isActive,
+          password: input.password !== undefined,
+        },
+      )
+
+      if (diff) {
+        await audit?.record({
+          userId: actor.id,
+          action: 'UPDATE',
+          entity: 'USER',
+          entityId: id,
+          oldValue: diff.oldValue,
+          newValue: diff.newValue,
+          ipAddress: actor.ipAddress,
+          userAgent: actor.userAgent,
+        })
+      }
 
       return toUserDto(updated)
     },

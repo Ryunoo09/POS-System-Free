@@ -16,6 +16,7 @@ export const PERMISSIONS = {
   COST_PRICE_READ: 'cost-price:read',
   SHIFT_MANAGE: 'shift:manage',
   SHIFT_READ: 'shift:read',
+  AUDIT_READ: 'audit:read',
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -39,6 +40,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     PERMISSIONS.COST_PRICE_READ,
     PERMISSIONS.SHIFT_MANAGE,
     PERMISSIONS.SHIFT_READ,
+    PERMISSIONS.AUDIT_READ,
   ],
   OWNER: [
     PERMISSIONS.DASHBOARD_READ,
@@ -49,6 +51,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     PERMISSIONS.REPORT_READ,
     PERMISSIONS.COST_PRICE_READ,
     PERMISSIONS.SHIFT_READ,
+    PERMISSIONS.AUDIT_READ,
   ],
   CASHIER: [
     PERMISSIONS.PRODUCT_READ,

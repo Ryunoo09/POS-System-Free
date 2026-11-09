@@ -9,6 +9,7 @@ import type { ReportController } from '../controllers/report.controller.js'
 import type { TransactionController } from '../controllers/transaction.controller.js'
 import type { UserController } from '../controllers/user.controller.js'
 import type { ShiftController } from '../controllers/shift.controller.js'
+import type { AuditController } from '../controllers/audit.controller.js'
 
 export interface AppContainer {
   healthController: HealthController
@@ -21,5 +22,6 @@ export interface AppContainer {
   transactionController: TransactionController
   userController: UserController
   shiftController: ShiftController
+  auditController: AuditController
   authenticate: RequestHandler
 }

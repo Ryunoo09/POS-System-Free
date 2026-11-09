@@ -1,6 +1,6 @@
 import type { RequestHandler } from 'express'
 import type { UserService } from '../services/user.service.js'
-import { requireActor } from '../utils/request.js'
+import { auditContextFrom, requireActor } from '../utils/request.js'
 import { sendSuccess } from '../utils/response.js'
 import type { CreateUserInput, ListUsersQuery, UpdateUserInput } from '../validators/user.validator.js'
 
@@ -33,7 +33,10 @@ export const createUserController = ({
     const { id } = req.validated?.params as { id: string }
     const input = req.validated?.body as UpdateUserInput
     const actor = requireActor(req)
-    const data = await userService.update(id, input, actor.id)
+    const data = await userService.update(id, input, {
+      id: actor.id,
+      ...auditContextFrom(req),
+    })
 
     return sendSuccess(res, { message: 'Pengguna berhasil diperbarui', data })
   },
