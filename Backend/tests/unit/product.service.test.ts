@@ -1,5 +1,5 @@
 import { Prisma, type Category } from '@prisma/client'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { CategoryRepository } from '../../src/repositories/category.repository.js'
 import type {
   ListProductsInput,
@@ -193,5 +193,49 @@ describe('ProductService.list', () => {
     expect(captured?.isActive).toBe(false)
     expect(result.items[0]).toHaveProperty('cost_price', '1000.00')
     expect(result.meta.page).toBe(2)
+  })
+})
+
+describe('ProductService.update audit hook', () => {
+  it('mencatat perubahan harga produk ke audit log', async () => {
+    const record = vi.fn(async () => {})
+    const service = createProductService({
+      productRepository: buildProductRepository({
+        findById: async () => buildProduct(),
+        update: async () => buildProduct({ sellingPrice: new Prisma.Decimal('2000.00') }),
+      }),
+      categoryRepository: buildCategoryRepository(),
+      stockMovementRepository: buildStockMovementRepository(),
+      audit: { record },
+    })
+
+    await service.update('product-1', { selling_price: 2000 }, adminActor)
+
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'UPDATE',
+        entity: 'PRODUCT',
+        entityId: 'product-1',
+        oldValue: { selling_price: '1500.00' },
+        newValue: { selling_price: '2000.00' },
+      }),
+    )
+  })
+
+  it('tidak mencatat audit bila tidak ada field yang berubah', async () => {
+    const record = vi.fn(async () => {})
+    const service = createProductService({
+      productRepository: buildProductRepository({
+        findById: async () => buildProduct(),
+        update: async () => buildProduct(),
+      }),
+      categoryRepository: buildCategoryRepository(),
+      stockMovementRepository: buildStockMovementRepository(),
+      audit: { record },
+    })
+
+    await service.update('product-1', { name: 'Produk Uji' }, adminActor)
+
+    expect(record).not.toHaveBeenCalled()
   })
 })
