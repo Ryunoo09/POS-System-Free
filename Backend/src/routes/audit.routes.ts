@@ -19,6 +19,8 @@ export const createAuditRoutes = ({
 
   router.use(authenticate)
 
+  router.get('/actors', authorize(PERMISSIONS.AUDIT_READ), auditController.actors)
+
   router.get(
     '/',
     authorize(PERMISSIONS.AUDIT_READ),

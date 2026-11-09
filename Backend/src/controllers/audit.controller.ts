@@ -5,6 +5,7 @@ import type { ListAuditLogsQuery } from '../validators/audit.validator.js'
 
 export interface AuditController {
   list: RequestHandler
+  actors: RequestHandler
 }
 
 export const createAuditController = ({
@@ -17,5 +18,11 @@ export const createAuditController = ({
     const result = await auditService.list(query)
 
     return sendSuccess(res, { data: result.items, meta: result.meta })
+  },
+
+  actors: async (_req, res) => {
+    const data = await auditService.listActors()
+
+    return sendSuccess(res, { data })
   },
 })

@@ -30,6 +30,7 @@ export interface ListAuditLogsInput extends AuditLogFilters {
 export interface AuditRepository {
   create: (data: CreateAuditLogData) => Promise<void>
   list: (input: ListAuditLogsInput) => Promise<{ items: AuditLogView[]; total: number }>
+  listActorOptions: () => Promise<Array<{ id: string; name: string }>>
 }
 
 const include = { user: { select: { id: true, name: true } } } as const
@@ -81,4 +82,11 @@ export const createAuditRepository = (prisma: PrismaClient): AuditRepository => 
 
     return { items, total }
   },
+
+  listActorOptions: () =>
+    prisma.user.findMany({
+      where: { auditLogs: { some: {} } },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
 })

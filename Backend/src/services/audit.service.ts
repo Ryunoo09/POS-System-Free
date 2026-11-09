@@ -23,6 +23,7 @@ export interface AuditRecorder {
 
 export interface AuditService extends AuditRecorder {
   list: (query: ListAuditLogsQuery) => Promise<{ items: AuditLogDto[]; meta: PaginationMeta }>
+  listActors: () => Promise<Array<{ id: string; name: string }>>
 }
 
 export const createAuditService = (auditRepository: AuditRepository): AuditService => ({
@@ -61,4 +62,6 @@ export const createAuditService = (auditRepository: AuditRepository): AuditServi
       meta: buildPaginationMeta(query.page, query.limit, total),
     }
   },
+
+  listActors: () => auditRepository.listActorOptions(),
 })
