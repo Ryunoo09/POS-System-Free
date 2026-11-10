@@ -52,6 +52,8 @@ const formError = ref('')
 const fieldErrors = ref<Record<string, string>>({})
 const pending = ref<PendingAction | null>(null)
 const detail = ref<PurchaseOrder | null>(null)
+const scanCode = ref('')
+const scannedProductId = ref<string | null>(null)
 
 const statusOptions: ReadonlyArray<{ value: string; label: string }> = [
   { value: '', label: 'Semua status' },
@@ -182,6 +184,40 @@ const pendingVariant = computed<'primary' | 'danger'>(() =>
   pending.value?.type === 'cancel' ? 'danger' : 'primary',
 )
 
+const openDetail = (order: PurchaseOrder) => {
+  detail.value = order
+  scanCode.value = ''
+  scannedProductId.value = null
+}
+
+const scanReceiving = async () => {
+  const code = scanCode.value.trim()
+  if (!code) return
+
+  scanCode.value = ''
+
+  try {
+    const product = await productsStore.findByBarcode(code)
+
+    if (!product) {
+      notify.error(`Barcode ${code} tidak ditemukan.`)
+      return
+    }
+
+    const item = detail.value?.items.find((entry) => entry.product_id === product.id)
+
+    if (!item) {
+      notify.error(`${product.name} tidak termasuk dalam PO ini.`)
+      return
+    }
+
+    scannedProductId.value = product.id
+    notify.success(`${product.name} cocok dengan item PO.`)
+  } catch (error) {
+    notify.error(errorMessage(error, 'Gagal memverifikasi barcode.'))
+  }
+}
+
 const confirmPending = async () => {
   const action = pending.value
   if (!action) return
@@ -283,7 +319,7 @@ const confirmPending = async () => {
                 </td>
                 <td class="px-4 py-3">
                   <div class="flex justify-end gap-2">
-                    <AppButton variant="ghost" size="sm" @click="detail = order">Rincian</AppButton>
+                    <AppButton variant="ghost" size="sm" @click="openDetail(order)">Rincian</AppButton>
                     <AppButton
                       v-if="canWrite && order.status === 'DRAFT'"
                       variant="secondary"
@@ -340,6 +376,13 @@ const confirmPending = async () => {
           <AppBadge :tone="statusTones[detail.status]">{{ statusLabels[detail.status] }}</AppBadge>
         </div>
 
+        <AppInput
+          v-model="scanCode"
+          label="Scan barcode untuk verifikasi barang"
+          placeholder="Scan atau ketik barcode lalu Enter"
+          @keydown.enter="scanReceiving"
+        />
+
         <div class="overflow-x-auto rounded-lg border border-border">
           <table class="min-w-full divide-y divide-border text-sm">
             <thead>
@@ -351,7 +394,11 @@ const confirmPending = async () => {
               </tr>
             </thead>
             <tbody class="divide-y divide-border">
-              <tr v-for="item in detail.items" :key="item.id">
+              <tr
+                v-for="item in detail.items"
+                :key="item.id"
+                :class="{ 'bg-accent-soft': item.product_id === scannedProductId }"
+              >
                 <td class="px-3 py-2">
                   <p class="font-medium text-ink">{{ item.product_name }}</p>
                   <p class="text-xs text-ink-3">{{ item.product_sku }}</p>
