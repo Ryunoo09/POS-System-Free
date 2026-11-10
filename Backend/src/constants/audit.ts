@@ -16,6 +16,8 @@ export const AUDIT_ENTITIES = {
   INVENTORY: 'INVENTORY',
   SHIFT: 'SHIFT',
   RETURN: 'RETURN',
+  SUPPLIER: 'SUPPLIER',
+  PURCHASE_ORDER: 'PURCHASE_ORDER',
 } as const
 
 export type AuditEntity = (typeof AUDIT_ENTITIES)[keyof typeof AUDIT_ENTITIES]

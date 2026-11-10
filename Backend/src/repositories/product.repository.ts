@@ -55,7 +55,11 @@ export interface ProductRepository {
   findBySku: (sku: string) => Promise<Product | null>
   findByBarcode: (barcode: string) => Promise<Product | null>
   create: (data: CreateProductData, tx?: Prisma.TransactionClient) => Promise<ProductView>
-  update: (id: string, data: UpdateProductData) => Promise<ProductView>
+  update: (
+    id: string,
+    data: UpdateProductData,
+    tx?: Prisma.TransactionClient,
+  ) => Promise<ProductView>
   updateStock: (
     id: string,
     stock: number,
@@ -159,7 +163,7 @@ export const createProductRepository = (prisma: PrismaClient): ProductRepository
       include: categorySelect,
     }),
 
-  update: (id, data) => {
+  update: (id, data, tx) => {
     const update: Prisma.ProductUncheckedUpdateInput = {}
 
     if (data.sku !== undefined) update.sku = data.sku
@@ -173,7 +177,7 @@ export const createProductRepository = (prisma: PrismaClient): ProductRepository
     if (data.minStock !== undefined) update.minStock = data.minStock
     if (data.isActive !== undefined) update.isActive = data.isActive
 
-    return prisma.product.update({ where: { id }, data: update, include: categorySelect })
+    return (tx ?? prisma).product.update({ where: { id }, data: update, include: categorySelect })
   },
 
   updateStock: (id, stock, tx) =>

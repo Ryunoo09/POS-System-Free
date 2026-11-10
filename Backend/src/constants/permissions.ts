@@ -19,6 +19,10 @@ export const PERMISSIONS = {
   AUDIT_READ: 'audit:read',
   RETURN_CREATE: 'return:create',
   RETURN_READ: 'return:read',
+  SUPPLIER_READ: 'supplier:read',
+  SUPPLIER_WRITE: 'supplier:write',
+  PURCHASE_READ: 'purchase:read',
+  PURCHASE_WRITE: 'purchase:write',
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -45,6 +49,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     PERMISSIONS.AUDIT_READ,
     PERMISSIONS.RETURN_CREATE,
     PERMISSIONS.RETURN_READ,
+    PERMISSIONS.SUPPLIER_READ,
+    PERMISSIONS.SUPPLIER_WRITE,
+    PERMISSIONS.PURCHASE_READ,
+    PERMISSIONS.PURCHASE_WRITE,
   ],
   OWNER: [
     PERMISSIONS.DASHBOARD_READ,
@@ -57,6 +65,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     PERMISSIONS.SHIFT_READ,
     PERMISSIONS.AUDIT_READ,
     PERMISSIONS.RETURN_READ,
+    PERMISSIONS.SUPPLIER_READ,
+    PERMISSIONS.PURCHASE_READ,
   ],
   CASHIER: [
     PERMISSIONS.PRODUCT_READ,
