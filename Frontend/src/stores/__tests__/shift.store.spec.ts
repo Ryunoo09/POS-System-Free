@@ -42,6 +42,8 @@ describe('shift.store', () => {
     actual_cash: null,
     cash_difference: null,
     difference_note: null,
+    total_sales: null,
+    non_cash_sales: null,
     cash_movements: [],
     opened_at: '2026-11-09T08:00:00Z',
     closed_at: null,
@@ -129,9 +131,15 @@ describe('shift.store', () => {
     const summary: ShiftSummary = {
       starting_cash: '50000.00',
       cash_sales: '200000.00',
+      non_cash_sales: '120000.00',
+      total_sales: '320000.00',
       cash_in: '10000.00',
       cash_out: '5000.00',
       expected_cash: '255000.00',
+      payment_breakdown: [
+        { payment_method: 'CASH', transaction_count: 4, revenue: '200000.00' },
+        { payment_method: 'QRIS', transaction_count: 2, revenue: '120000.00' },
+      ],
     }
     mocks.getSummary.mockResolvedValue(summary)
     const store = useShiftStore()

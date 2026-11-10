@@ -1,9 +1,17 @@
 import { Prisma, type PrismaClient, type Shift, type CashMovement } from '@prisma/client'
 
+export interface ShiftPaymentBreakdown {
+  paymentMethod: string
+  transactionCount: number
+  revenue: number
+}
+
 export interface ShiftWithRelations extends Shift {
   cashier: { id: string; name: string }
   cashMovements: Array<CashMovement & { createdBy: { id: string; name: string } }>
   _count?: { transactions: number }
+  salesTotal?: number
+  nonCashSales?: number
 }
 
 export interface ShiftRepository {
@@ -33,9 +41,12 @@ export interface ShiftRepository {
   calculateShiftCashSummary(shiftId: string): Promise<{
     startingCash: number
     cashSales: number
+    nonCashSales: number
+    totalSales: number
     cashIn: number
     cashOut: number
     expectedCash: number
+    paymentBreakdown: ShiftPaymentBreakdown[]
   }>
   findHistory(params: {
     cashierId?: string | undefined
@@ -120,22 +131,30 @@ export const createShiftRepository = (prisma: PrismaClient): ShiftRepository => 
       throw new Error('Shift tidak ditemukan')
     }
 
-    // Hitung total penjualan tunai yang tercatat pada shift ini
-    const cashSalesAggregate = await prisma.transaction.aggregate({
+    // Rekap penjualan shift per metode. Hanya tunai yang mengubah isi laci kas;
+    // metode lain tetap ditampilkan agar omzet shift tidak terlihat "hilang".
+    const salesRows = await prisma.transaction.groupBy({
+      by: ['paymentMethod'],
       where: {
         shiftId,
-        paymentMethod: 'CASH',
         status: 'COMPLETED',
       },
-      _sum: {
-        amountPaid: true,
-        changeAmount: true,
-      },
+      _sum: { totalAmount: true },
+      _count: { _all: true },
     })
 
-    const netCashSales =
-      Number(cashSalesAggregate._sum.amountPaid ?? 0) -
-      Number(cashSalesAggregate._sum.changeAmount ?? 0)
+    const paymentBreakdown: ShiftPaymentBreakdown[] = salesRows.map((row) => ({
+      paymentMethod: row.paymentMethod,
+      transactionCount: row._count._all,
+      revenue: Number(row._sum.totalAmount ?? 0),
+    }))
+
+    const cashSales = paymentBreakdown
+      .filter((row) => row.paymentMethod === 'CASH')
+      .reduce((sum, row) => sum + row.revenue, 0)
+    const nonCashSales = paymentBreakdown
+      .filter((row) => row.paymentMethod !== 'CASH')
+      .reduce((sum, row) => sum + row.revenue, 0)
 
     let cashIn = 0
     let cashOut = 0
@@ -147,14 +166,17 @@ export const createShiftRepository = (prisma: PrismaClient): ShiftRepository => 
     }
 
     const startingCash = Number(shift.startingCash)
-    const expectedCash = startingCash + netCashSales + cashIn - cashOut
+    const expectedCash = startingCash + cashSales + cashIn - cashOut
 
     return {
       startingCash,
-      cashSales: netCashSales,
+      cashSales,
+      nonCashSales,
+      totalSales: cashSales + nonCashSales,
       cashIn,
       cashOut,
       expectedCash,
+      paymentBreakdown,
     }
   },
 
@@ -163,7 +185,7 @@ export const createShiftRepository = (prisma: PrismaClient): ShiftRepository => 
     if (cashierId) where.cashierId = cashierId
     if (status) where.status = status
 
-    const [items, total] = await Promise.all([
+    const [rawItems, total] = await Promise.all([
       prisma.shift.findMany({
         where,
         include: shiftInclude,
@@ -173,6 +195,38 @@ export const createShiftRepository = (prisma: PrismaClient): ShiftRepository => 
       }),
       prisma.shift.count({ where }),
     ])
+
+    const items: ShiftWithRelations[] = rawItems
+
+    if (items.length > 0) {
+      const salesRows = await prisma.transaction.groupBy({
+        by: ['shiftId', 'paymentMethod'],
+        where: {
+          shiftId: { in: items.map((item) => item.id) },
+          status: 'COMPLETED',
+        },
+        _sum: { totalAmount: true },
+      })
+
+      const totals = new Map<string, { total: number; nonCash: number }>()
+
+      for (const row of salesRows) {
+        if (!row.shiftId) continue
+
+        const entry = totals.get(row.shiftId) ?? { total: 0, nonCash: 0 }
+        const amount = Number(row._sum.totalAmount ?? 0)
+
+        entry.total += amount
+        if (row.paymentMethod !== 'CASH') entry.nonCash += amount
+        totals.set(row.shiftId, entry)
+      }
+
+      for (const item of items) {
+        const entry = totals.get(item.id)
+        item.salesTotal = entry?.total ?? 0
+        item.nonCashSales = entry?.nonCash ?? 0
+      }
+    }
 
     return { items, total }
   },

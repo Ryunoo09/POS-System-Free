@@ -18,6 +18,8 @@ defineProps<{
           <th class="px-4 py-3 font-medium">Kasir</th>
           <th class="px-4 py-3 font-medium">Status</th>
           <th class="px-4 py-3 font-medium">Modal Awal</th>
+          <th class="px-4 py-3 font-medium">Total Penjualan</th>
+          <th class="hidden px-4 py-3 font-medium md:table-cell">Non-Tunai</th>
           <th class="px-4 py-3 font-medium">Ekspektasi Kas</th>
           <th class="px-4 py-3 font-medium">Uang Aktual</th>
           <th class="px-4 py-3 font-medium">Selisih</th>
@@ -37,6 +39,12 @@ defineProps<{
           </td>
           <td class="px-4 py-3 text-ink">
             {{ formatRupiah(shift.starting_cash) }}
+          </td>
+          <td class="px-4 py-3 text-ink">
+            {{ shift.total_sales ? formatRupiah(shift.total_sales) : '-' }}
+          </td>
+          <td class="hidden px-4 py-3 text-ink md:table-cell">
+            {{ shift.non_cash_sales ? formatRupiah(shift.non_cash_sales) : '-' }}
           </td>
           <td class="px-4 py-3 text-ink">
             {{ shift.expected_cash ? formatRupiah(shift.expected_cash) : '-' }}
@@ -67,7 +75,7 @@ defineProps<{
           </td>
         </tr>
         <tr v-if="!loading && items.length === 0">
-          <td colspan="8" class="p-8">
+          <td colspan="10" class="p-8">
             <EmptyState title="Belum ada data shift kasir" />
           </td>
         </tr>

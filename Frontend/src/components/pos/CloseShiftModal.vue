@@ -6,6 +6,7 @@ import AppModal from '@/components/common/AppModal.vue'
 import AppTextarea from '@/components/common/AppTextarea.vue'
 import type { ShiftSummary } from '@/types/shift'
 import { formatRupiah } from '@/utils/format'
+import { paymentMethodLabel } from '@/utils/transactions'
 
 const props = defineProps<{
   open: boolean
@@ -23,6 +24,10 @@ const differenceNote = ref('')
 const error = ref('')
 
 const expectedCash = computed(() => (props.summary ? Number(props.summary.expected_cash) : 0))
+
+const nonCashRows = computed(() =>
+  (props.summary?.payment_breakdown ?? []).filter((row) => row.payment_method !== 'CASH'),
+)
 
 const difference = computed(() => {
   if (actualCash.value === '') return null
@@ -53,6 +58,24 @@ const onSubmit = () => {
         <div class="flex justify-between">
           <span class="text-ink-3">Total Penjualan Tunai:</span>
           <span class="font-medium text-accent-ink">+{{ formatRupiah(summary.cash_sales) }}</span>
+        </div>
+        <div v-if="nonCashRows.length > 0" class="flex justify-between">
+          <span class="text-ink-3">Penjualan Non-Tunai:</span>
+          <span class="font-medium text-accent-ink">+{{ formatRupiah(summary.non_cash_sales) }}</span>
+        </div>
+        <div v-if="nonCashRows.length > 0" class="space-y-0.5 pl-3 text-[11px] text-ink-3">
+          <div
+            v-for="row in nonCashRows"
+            :key="row.payment_method"
+            class="flex justify-between"
+          >
+            <span>{{ paymentMethodLabel(row.payment_method) }} ({{ row.transaction_count }} trx)</span>
+            <span>{{ formatRupiah(row.revenue) }}</span>
+          </div>
+        </div>
+        <div class="flex justify-between border-t border-border pt-1.5">
+          <span class="text-ink-2">Total Penjualan (semua metode):</span>
+          <span class="font-semibold text-ink">{{ formatRupiah(summary.total_sales) }}</span>
         </div>
         <div class="flex justify-between">
           <span class="text-ink-3">Kas Masuk (Lainnya):</span>

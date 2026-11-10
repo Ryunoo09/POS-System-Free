@@ -20,6 +20,8 @@ export interface ShiftDto {
   cash_difference: string | null
   difference_note: string | null
   transaction_count?: number | undefined
+  total_sales: string | null
+  non_cash_sales: string | null
   cash_movements: CashMovementDto[]
   opened_at: string
   closed_at: string | null
@@ -35,6 +37,8 @@ export const toShiftDto = (shift: ShiftWithRelations): ShiftDto => ({
   cash_difference: shift.cashDifference ? shift.cashDifference.toFixed(2) : null,
   difference_note: shift.differenceNote,
   transaction_count: shift._count?.transactions,
+  total_sales: shift.salesTotal === undefined ? null : shift.salesTotal.toFixed(2),
+  non_cash_sales: shift.nonCashSales === undefined ? null : shift.nonCashSales.toFixed(2),
   cash_movements: shift.cashMovements.map((m) => ({
     id: m.id,
     shift_id: m.shiftId,

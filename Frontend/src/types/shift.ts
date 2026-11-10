@@ -1,3 +1,5 @@
+import type { PaymentMethod } from './transaction'
+
 export type ShiftStatus = 'OPEN' | 'CLOSED'
 export type CashMovementType = 'CASH_IN' | 'CASH_OUT'
 
@@ -21,17 +23,28 @@ export interface Shift {
   cash_difference: string | null
   difference_note: string | null
   transaction_count?: number
+  total_sales: string | null
+  non_cash_sales: string | null
   cash_movements: CashMovement[]
   opened_at: string
   closed_at: string | null
 }
 
+export interface ShiftPaymentBreakdown {
+  payment_method: PaymentMethod
+  transaction_count: number
+  revenue: string
+}
+
 export interface ShiftSummary {
   starting_cash: string
   cash_sales: string
+  non_cash_sales: string
+  total_sales: string
   cash_in: string
   cash_out: string
   expected_cash: string
+  payment_breakdown: ShiftPaymentBreakdown[]
 }
 
 export interface OpenShiftPayload {

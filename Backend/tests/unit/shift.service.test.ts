@@ -86,9 +86,15 @@ describe('shift.service', () => {
     vi.mocked(mockRepo.calculateShiftCashSummary).mockResolvedValue({
       startingCash: 100000,
       cashSales: 150000,
+      nonCashSales: 50000,
+      totalSales: 200000,
       cashIn: 20000,
       cashOut: 10000,
       expectedCash: 260000,
+      paymentBreakdown: [
+        { paymentMethod: 'CASH', transactionCount: 2, revenue: 150000 },
+        { paymentMethod: 'QRIS', transactionCount: 1, revenue: 50000 },
+      ],
     })
 
     const closedShift: ShiftWithRelations = {

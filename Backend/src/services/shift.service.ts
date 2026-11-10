@@ -6,9 +6,16 @@ import type { OpenShiftInput, CloseShiftInput, CashMovementInput } from '../vali
 export interface ShiftSummaryDto {
   starting_cash: string
   cash_sales: string
+  non_cash_sales: string
+  total_sales: string
   cash_in: string
   cash_out: string
   expected_cash: string
+  payment_breakdown: Array<{
+    payment_method: string
+    transaction_count: number
+    revenue: string
+  }>
 }
 
 export interface ShiftService {
@@ -97,9 +104,16 @@ export const createShiftService = (shiftRepository: ShiftRepository): ShiftServi
     return {
       starting_cash: summary.startingCash.toFixed(2),
       cash_sales: summary.cashSales.toFixed(2),
+      non_cash_sales: summary.nonCashSales.toFixed(2),
+      total_sales: summary.totalSales.toFixed(2),
       cash_in: summary.cashIn.toFixed(2),
       cash_out: summary.cashOut.toFixed(2),
       expected_cash: summary.expectedCash.toFixed(2),
+      payment_breakdown: summary.paymentBreakdown.map((row) => ({
+        payment_method: row.paymentMethod,
+        transaction_count: row.transactionCount,
+        revenue: row.revenue.toFixed(2),
+      })),
     }
   },
 
