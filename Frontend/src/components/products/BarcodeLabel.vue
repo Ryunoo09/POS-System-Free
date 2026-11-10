@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import JsBarcode from 'jsbarcode'
+import { barcodeFormat } from '@/utils/barcode'
 
 const props = withDefaults(
   defineProps<{
@@ -16,19 +17,12 @@ const props = withDefaults(
 
 const svg = ref<SVGSVGElement | null>(null)
 
-const formatFor = (value: string): string => {
-  if (/^\d{13}$/.test(value)) return 'EAN13'
-  if (/^\d{12}$/.test(value)) return 'UPC'
-  if (/^\d{8}$/.test(value)) return 'EAN8'
-  return 'CODE128'
-}
-
 const render = () => {
   if (!svg.value || !props.value) return
 
   try {
     JsBarcode(svg.value, props.value, {
-      format: formatFor(props.value),
+      format: barcodeFormat(props.value),
       width: props.width,
       height: props.height,
       displayValue: true,
