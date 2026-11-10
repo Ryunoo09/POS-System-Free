@@ -85,6 +85,17 @@ export const useProductsStore = defineStore('products', () => {
     }
   }
 
+  const generateBarcode = async (id: string): Promise<string> => {
+    isSaving.value = true
+
+    try {
+      const result = await productsService.generateBarcode(id)
+      return result.barcode
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   return {
     items,
     options,
@@ -98,5 +109,6 @@ export const useProductsStore = defineStore('products', () => {
     createProduct,
     updateProduct,
     deactivateProduct,
+    generateBarcode,
   }
 })

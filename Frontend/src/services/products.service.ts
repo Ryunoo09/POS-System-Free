@@ -1,6 +1,7 @@
 import { http } from './api'
 import type { ListResult } from '@/types/api'
 import type {
+  BarcodeAssignment,
   Product,
   ProductCreatePayload,
   ProductListParams,
@@ -24,6 +25,11 @@ export const productsService = {
 
   async deactivate(id: string): Promise<Product> {
     const response = await http.delete<Product>(`/products/${id}`)
+    return response.data
+  },
+
+  async generateBarcode(id: string): Promise<BarcodeAssignment> {
+    const response = await http.post<BarcodeAssignment>(`/products/${id}/barcode`)
     return response.data
   },
 }

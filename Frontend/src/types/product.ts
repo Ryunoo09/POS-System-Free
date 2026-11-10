@@ -64,3 +64,8 @@ export interface ProductCreatePayload {
 export type ProductUpdatePayload = Partial<Omit<ProductCreatePayload, 'stock'>> & {
   is_active?: boolean
 }
+
+export interface BarcodeAssignment {
+  id: string
+  barcode: string
+}

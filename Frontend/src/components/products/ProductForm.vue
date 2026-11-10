@@ -27,18 +27,24 @@ const props = withDefaults(
     product?: Product | null
     categories: ReadonlyArray<{ value: string; label: string }>
     loading?: boolean
+    barcodeLoading?: boolean
     fieldErrors?: Record<string, string>
     formError?: string
   }>(),
   {
     product: null,
     loading: false,
+    barcodeLoading: false,
     fieldErrors: () => ({}),
     formError: '',
   },
 )
 
-const emit = defineEmits<{ close: []; submit: [values: ProductFormValues] }>()
+const emit = defineEmits<{
+  close: []
+  submit: [values: ProductFormValues]
+  generate: []
+}>()
 
 const isUpdate = computed(() => Boolean(props.product))
 const title = computed(() => (isUpdate.value ? 'Ubah Produk' : 'Tambah Produk'))
@@ -82,6 +88,13 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => props.product?.barcode,
+  (barcode) => {
+    form.barcode = barcode ?? ''
+  },
+)
+
 const amountError = (value: string, label: string): string => {
   if (!value.trim()) return `${label} wajib diisi`
 
@@ -120,8 +133,8 @@ const validate = (): Record<string, string> => {
     errors.sku = 'SKU hanya boleh huruf, angka, atau tanda hubung'
   }
 
-  if (barcode && !/^\d{8,50}$/.test(barcode)) {
-    errors.barcode = 'Barcode harus 8–50 digit angka'
+  if (barcode && !/^\d{8,14}$/.test(barcode)) {
+    errors.barcode = 'Barcode harus 8–14 digit angka'
   }
 
   if (!form.name.trim()) {
@@ -212,13 +225,25 @@ const submit = () => {
           :error="fieldError('sku')"
           required
         />
-        <AppInput
-          v-model="form.barcode"
-          label="Barcode"
-          placeholder="Opsional, 8–50 digit"
-          inputmode="numeric"
-          :error="fieldError('barcode')"
-        />
+        <div>
+          <AppInput
+            v-model="form.barcode"
+            label="Barcode"
+            placeholder="Opsional, 8–14 digit"
+            inputmode="numeric"
+            :error="fieldError('barcode')"
+          />
+          <AppButton
+            v-if="isUpdate && !form.barcode"
+            variant="secondary"
+            size="sm"
+            class="mt-1.5"
+            :loading="barcodeLoading"
+            @click="emit('generate')"
+          >
+            Buat barcode otomatis
+          </AppButton>
+        </div>
       </div>
 
       <AppInput

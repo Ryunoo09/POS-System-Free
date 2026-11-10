@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import AppButton from '@/components/common/AppButton.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -24,6 +25,7 @@ const auth = useAuthStore()
 const productsStore = useProductsStore()
 const categoriesStore = useCategoriesStore()
 const notify = useNotification()
+const router = useRouter()
 
 const canWrite = computed(() => auth.hasPermission(PERMISSIONS.PRODUCT_WRITE))
 const showCost = computed(() => auth.hasPermission(PERMISSIONS.COST_PRICE_READ))
@@ -82,6 +84,26 @@ const openEdit = (product: Product) => {
 
 const closeForm = () => {
   formOpen.value = false
+}
+
+const barcodeLoading = ref(false)
+
+const generateBarcode = async () => {
+  const product = editing.value
+  if (!product) return
+
+  barcodeLoading.value = true
+
+  try {
+    const barcode = await productsStore.generateBarcode(product.id)
+    editing.value = { ...product, barcode }
+    notify.success(`Barcode ${barcode} berhasil dibuat`)
+    load()
+  } catch (error) {
+    notify.error(errorMessage(error, 'Gagal membuat barcode.'))
+  } finally {
+    barcodeLoading.value = false
+  }
 }
 
 const submitForm = async (values: ProductFormValues) => {
@@ -150,7 +172,12 @@ const confirmToggle = async () => {
         <h1 class="text-[28px] font-semibold tracking-tight text-ink">Produk</h1>
         <p class="mt-1 text-sm text-ink-3">Kelola katalog produk, harga, dan status aktif.</p>
       </div>
-      <AppButton v-if="canWrite" @click="openCreate">Tambah Produk</AppButton>
+      <div class="flex flex-wrap gap-2">
+        <AppButton variant="secondary" @click="router.push('/products/labels')">
+          Cetak Label
+        </AppButton>
+        <AppButton v-if="canWrite" @click="openCreate">Tambah Produk</AppButton>
+      </div>
     </header>
 
     <div class="rounded-xl border border-border bg-surface p-4">
@@ -195,10 +222,12 @@ const confirmToggle = async () => {
       :product="editing"
       :categories="categoryOptions"
       :loading="productsStore.isSaving"
+      :barcode-loading="barcodeLoading"
       :field-errors="fieldErrors"
       :form-error="formError"
       @close="closeForm"
       @submit="submitForm"
+      @generate="generateBarcode"
     />
 
     <ConfirmDialog
