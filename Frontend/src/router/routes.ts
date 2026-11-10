@@ -78,6 +78,18 @@ export const routes: RouteRecordRaw[] = [
         meta: { permissions: [PERMISSIONS.RETURN_READ], title: 'Riwayat Retur' },
       },
       {
+        path: 'suppliers',
+        name: 'suppliers',
+        component: () => import('@/pages/SuppliersPage.vue'),
+        meta: { permissions: [PERMISSIONS.SUPPLIER_READ], title: 'Supplier' },
+      },
+      {
+        path: 'purchases',
+        name: 'purchases',
+        component: () => import('@/pages/PurchasesPage.vue'),
+        meta: { permissions: [PERMISSIONS.PURCHASE_READ], title: 'Pembelian' },
+      },
+      {
         path: 'reports',
         name: 'reports',
         component: () => import('@/pages/ReportsPage.vue'),

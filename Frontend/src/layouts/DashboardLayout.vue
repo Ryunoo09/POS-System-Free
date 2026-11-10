@@ -51,6 +51,18 @@ const menu: MenuItem[] = [
     icon: 'M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10H9',
   },
   {
+    label: 'Supplier',
+    to: '/suppliers',
+    permissions: [PERMISSIONS.SUPPLIER_READ],
+    icon: 'M3 21V8l9-5 9 5v13M3 21h18M9 21v-6h6v6',
+  },
+  {
+    label: 'Pembelian',
+    to: '/purchases',
+    permissions: [PERMISSIONS.PURCHASE_READ],
+    icon: 'M4 5h2l2 11h10l2-8H6M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2ZM17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z',
+  },
+  {
     label: 'Laporan',
     to: '/reports',
     permissions: [PERMISSIONS.REPORT_READ],
