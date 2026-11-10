@@ -51,6 +51,12 @@ export const createProductRoutes = ({
     validate({ params: productIdParamSchema }),
     productController.deactivate,
   )
+  router.post(
+    '/:id/barcode',
+    authorize(PERMISSIONS.PRODUCT_WRITE),
+    validate({ params: productIdParamSchema }),
+    productController.generateBarcode,
+  )
 
   return router
 }

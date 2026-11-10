@@ -9,6 +9,7 @@ import type { StockMovementRepository } from '../../src/repositories/stock-movem
 import type { ProductWithCategory } from '../../src/mappers/product.mapper.js'
 import { createProductService, type ProductActor } from '../../src/services/product.service.js'
 import type { CreateProductInput } from '../../src/validators/product.validator.js'
+import { isValidEan13 } from '../../src/utils/barcode.js'
 
 const adminActor: ProductActor = { id: 'admin-1', canViewCostPrice: true, isCashier: false }
 const cashierActor: ProductActor = { id: 'cashier-1', canViewCostPrice: false, isCashier: true }
@@ -237,5 +238,74 @@ describe('ProductService.update audit hook', () => {
     await service.update('product-1', { name: 'Produk Uji' }, adminActor)
 
     expect(record).not.toHaveBeenCalled()
+  })
+})
+
+describe('ProductService.generateBarcode', () => {
+  it('menghasilkan EAN-13 internal yang valid', async () => {
+    let captured: string | null = null
+    const record = vi.fn(async () => {})
+    const service = createProductService({
+      productRepository: buildProductRepository({
+        findById: async () => buildProduct(),
+        update: async (_id, data) => {
+          captured = data.barcode ?? null
+          return buildProduct({ barcode: captured })
+        },
+      }),
+      categoryRepository: buildCategoryRepository(),
+      stockMovementRepository: buildStockMovementRepository(),
+      audit: { record },
+    })
+
+    const result = await service.generateBarcode('product-1', adminActor)
+
+    expect(captured).not.toBeNull()
+    expect(isValidEan13(result.barcode)).toBe(true)
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({ entity: 'PRODUCT', newValue: { barcode: result.barcode } }),
+    )
+  })
+
+  it('menolak produk yang sudah punya barcode dengan 409', async () => {
+    const service = buildService({
+      productRepository: buildProductRepository({
+        findById: async () => buildProduct({ barcode: '4006381333931' }),
+      }),
+    })
+
+    await expect(service.generateBarcode('product-1', adminActor)).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'BARCODE_ALREADY_EXISTS',
+    })
+  })
+
+  it('melewati kandidat yang bentrok lalu memakai yang unik', async () => {
+    let attempts = 0
+    const service = buildService({
+      productRepository: buildProductRepository({
+        findById: async () => buildProduct(),
+        findByBarcode: async () => {
+          attempts += 1
+          return attempts === 1 ? buildProduct() : null
+        },
+        update: async (_id, data) => buildProduct({ barcode: data.barcode ?? null }),
+      }),
+    })
+
+    const result = await service.generateBarcode('product-1', adminActor)
+
+    expect(attempts).toBeGreaterThanOrEqual(2)
+    expect(isValidEan13(result.barcode)).toBe(true)
+  })
+
+  it('menolak produk yang tidak ditemukan dengan 404', async () => {
+    const service = buildService({
+      productRepository: buildProductRepository({ findById: async () => null }),
+    })
+
+    await expect(service.generateBarcode('product-1', adminActor)).rejects.toMatchObject({
+      statusCode: 404,
+    })
   })
 })

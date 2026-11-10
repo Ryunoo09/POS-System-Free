@@ -16,6 +16,7 @@ export interface ProductController {
   create: RequestHandler
   update: RequestHandler
   deactivate: RequestHandler
+  generateBarcode: RequestHandler
 }
 
 const toActor = (user: AuthUser, req: Request): ProductActor => ({
@@ -64,5 +65,12 @@ export const createProductController = ({
     const data = await productService.deactivate(id, toActor(requireActor(req), req))
 
     return sendSuccess(res, { message: 'Produk berhasil dinonaktifkan', data })
+  },
+
+  generateBarcode: async (req, res) => {
+    const { id } = req.validated?.params as { id: string }
+    const data = await productService.generateBarcode(id, toActor(requireActor(req), req))
+
+    return sendSuccess(res, { message: 'Barcode berhasil dibuat', data })
   },
 })

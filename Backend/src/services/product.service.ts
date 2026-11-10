@@ -7,6 +7,7 @@ import type { StockMovementRepository } from '../repositories/stock-movement.rep
 import type { AuditRecorder } from './audit.service.js'
 import type { PaginationMeta } from '../types/http.js'
 import { buildFieldDiff } from '../utils/audit-diff.js'
+import { generateInternalEan13 } from '../utils/barcode.js'
 import { buildPaginationMeta, toSkip } from '../utils/pagination.js'
 import type {
   CreateProductInput,
@@ -32,7 +33,13 @@ export interface ProductService {
   create: (input: CreateProductInput, actor: ProductActor) => Promise<ProductDto>
   update: (id: string, input: UpdateProductInput, actor: ProductActor) => Promise<ProductDto>
   deactivate: (id: string, actor: ProductActor) => Promise<ProductDto>
+  generateBarcode: (
+    id: string,
+    actor: ProductActor,
+  ) => Promise<{ id: string; barcode: string }>
 }
+
+const MAX_BARCODE_ATTEMPTS = 5
 
 export const createProductService = ({
   productRepository,
@@ -244,6 +251,45 @@ export const createProductService = ({
       const updated = await productRepository.update(id, { isActive: false })
 
       return toProductDto(updated, { canViewCostPrice: actor.canViewCostPrice })
+    },
+
+    generateBarcode: async (id, actor) => {
+      const existing = await productRepository.findById(id)
+
+      if (!existing) {
+        throw new NotFoundError('Produk tidak ditemukan', 'NOT_FOUND')
+      }
+
+      if (existing.barcode) {
+        throw new ConflictError('Produk sudah memiliki barcode', 'BARCODE_ALREADY_EXISTS', [
+          { field: 'barcode', message: 'Produk sudah memiliki barcode' },
+        ])
+      }
+
+      for (let attempt = 0; attempt < MAX_BARCODE_ATTEMPTS; attempt += 1) {
+        const candidate = generateInternalEan13()
+
+        if (await productRepository.findByBarcode(candidate)) continue
+
+        await productRepository.update(id, { barcode: candidate })
+        await audit?.record({
+          userId: actor.id,
+          action: 'UPDATE',
+          entity: 'PRODUCT',
+          entityId: id,
+          oldValue: { barcode: null },
+          newValue: { barcode: candidate },
+          ipAddress: actor.ipAddress,
+          userAgent: actor.userAgent,
+        })
+
+        return { id, barcode: candidate }
+      }
+
+      throw new ConflictError(
+        'Gagal menghasilkan barcode unik, coba lagi',
+        'BARCODE_COLLISION',
+      )
     },
   }
 }
