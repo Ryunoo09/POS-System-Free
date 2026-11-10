@@ -12,6 +12,8 @@ import { createUserController } from './controllers/user.controller.js'
 import { createShiftController } from './controllers/shift.controller.js'
 import { createAuditController } from './controllers/audit.controller.js'
 import { createReturnController } from './controllers/return.controller.js'
+import { createSupplierController } from './controllers/supplier.controller.js'
+import { createPurchaseController } from './controllers/purchase.controller.js'
 import { authenticate } from './middlewares/authenticate.js'
 import { createCategoryRepository } from './repositories/category.repository.js'
 import { createHealthRepository } from './repositories/health.repository.js'
@@ -24,6 +26,8 @@ import { createUserRepository } from './repositories/user.repository.js'
 import { createShiftRepository } from './repositories/shift.repository.js'
 import { createAuditRepository } from './repositories/audit.repository.js'
 import { createReturnRepository } from './repositories/return.repository.js'
+import { createSupplierRepository } from './repositories/supplier.repository.js'
+import { createPurchaseOrderRepository } from './repositories/purchase.repository.js'
 import { createAuthService } from './services/auth.service.js'
 import { createCategoryService } from './services/category.service.js'
 import { createDashboardService } from './services/dashboard.service.js'
@@ -36,6 +40,8 @@ import { createUserService } from './services/user.service.js'
 import { createShiftService } from './services/shift.service.js'
 import { createAuditService } from './services/audit.service.js'
 import { createReturnService } from './services/return.service.js'
+import { createSupplierService } from './services/supplier.service.js'
+import { createPurchaseService } from './services/purchase.service.js'
 import type { AppContainer } from './types/container.js'
 
 const healthRepository = createHealthRepository(prisma)
@@ -94,6 +100,18 @@ const returnService = createReturnService({
   audit: auditService,
 })
 
+const supplierRepository = createSupplierRepository(prisma)
+const supplierService = createSupplierService({ supplierRepository, audit: auditService })
+
+const purchaseOrderRepository = createPurchaseOrderRepository(prisma)
+const purchaseService = createPurchaseService({
+  purchaseOrderRepository,
+  supplierRepository,
+  productRepository,
+  stockMovementRepository,
+  audit: auditService,
+})
+
 export const container: AppContainer = {
   healthController: createHealthController({ healthService }),
   authController: createAuthController({ authService }),
@@ -107,5 +125,7 @@ export const container: AppContainer = {
   shiftController: createShiftController({ shiftService }),
   auditController: createAuditController({ auditService }),
   returnController: createReturnController({ returnService }),
+  supplierController: createSupplierController({ supplierService }),
+  purchaseController: createPurchaseController({ purchaseService }),
   authenticate: authenticate({ userRepository }),
 }
