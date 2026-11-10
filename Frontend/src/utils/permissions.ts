@@ -23,6 +23,7 @@ export const PERMISSIONS = {
   SUPPLIER_WRITE: 'supplier:write',
   PURCHASE_READ: 'purchase:read',
   PURCHASE_WRITE: 'purchase:write',
+  BACKUP_MANAGE: 'backup:manage',
 } as const satisfies Record<string, Permission>
 
 export const hasPermission = (granted: readonly string[], permission: string): boolean =>

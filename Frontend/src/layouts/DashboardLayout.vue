@@ -80,6 +80,12 @@ const menu: MenuItem[] = [
     permissions: [PERMISSIONS.USER_MANAGE],
     icon: 'M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM17 11a3 3 0 1 0 0-6M21 20v-2a4 4 0 0 0-3-3.87',
   },
+  {
+    label: 'Backup',
+    to: '/backup',
+    permissions: [PERMISSIONS.BACKUP_MANAGE],
+    icon: 'M4 7c0-1.66 3.58-3 8-3s8 1.34 8 3-3.58 3-8 3-8-1.34-8-3ZM4 7v5c0 1.66 3.58 3 8 3s8-1.34 8-3V7M4 12v5c0 1.66 3.58 3 8 3s8-1.34 8-3v-5',
+  },
 ]
 
 const auth = useAuthStore()

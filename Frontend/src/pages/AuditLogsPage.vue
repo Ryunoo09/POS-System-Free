@@ -23,6 +23,7 @@ const actionLabels: Record<AuditAction, string> = {
   DELETE: 'Hapus',
   CANCEL: 'Batal',
   ADJUST: 'Penyesuaian',
+  RESTORE: 'Pemulihan',
   LOGIN: 'Masuk',
 }
 
@@ -32,6 +33,7 @@ const actionTones: Record<AuditAction, BadgeTone> = {
   DELETE: 'danger',
   CANCEL: 'danger',
   ADJUST: 'neutral',
+  RESTORE: 'danger',
   LOGIN: 'neutral',
 }
 
@@ -42,6 +44,7 @@ const entityLabels: Record<AuditEntity, string> = {
   INVENTORY: 'Inventori',
   SHIFT: 'Shift',
   RETURN: 'Retur',
+  BACKUP: 'Backup',
 }
 
 const actionOptions: ReadonlyArray<{ value: string; label: string }> = [

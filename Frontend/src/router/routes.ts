@@ -107,6 +107,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/AuditLogsPage.vue'),
         meta: { permissions: [PERMISSIONS.AUDIT_READ], title: 'Log Aktivitas' },
       },
+      {
+        path: 'backup',
+        name: 'backup',
+        component: () => import('@/pages/BackupRestorePage.vue'),
+        meta: { permissions: [PERMISSIONS.BACKUP_MANAGE], title: 'Backup & Restore' },
+      },
     ],
   },
   {

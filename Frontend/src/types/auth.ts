@@ -23,6 +23,7 @@ export type Permission =
   | 'supplier:write'
   | 'purchase:read'
   | 'purchase:write'
+  | 'backup:manage'
 
 export interface AuthUser {
   id: string
