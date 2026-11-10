@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client'
 import { describe, expect, it, vi } from 'vitest'
-import type { ProductView } from '../../src/repositories/product.repository.js'
+import type { ProductRepository, ProductView } from '../../src/repositories/product.repository.js'
 import type {
   PurchaseOrderRepository,
   PurchaseOrderView,
