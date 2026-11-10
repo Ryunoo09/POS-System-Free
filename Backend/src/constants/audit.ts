@@ -4,6 +4,7 @@ export const AUDIT_ACTIONS = {
   DELETE: 'DELETE',
   CANCEL: 'CANCEL',
   ADJUST: 'ADJUST',
+  RESTORE: 'RESTORE',
   LOGIN: 'LOGIN',
 } as const
 
@@ -18,6 +19,7 @@ export const AUDIT_ENTITIES = {
   RETURN: 'RETURN',
   SUPPLIER: 'SUPPLIER',
   PURCHASE_ORDER: 'PURCHASE_ORDER',
+  BACKUP: 'BACKUP',
 } as const
 
 export type AuditEntity = (typeof AUDIT_ENTITIES)[keyof typeof AUDIT_ENTITIES]

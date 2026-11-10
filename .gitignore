@@ -49,6 +49,9 @@ Thumbs.db
 # Graphify generated output (regenerable, jangan dipush)
 graphify-out/
 
+# Backup database lokal
+Backend/backups/
+
 # Planning docs (disimpan lokal, tidak dipush)
 docs/
 
