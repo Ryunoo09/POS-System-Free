@@ -19,6 +19,10 @@ export type Permission =
   | 'audit:read'
   | 'return:create'
   | 'return:read'
+  | 'supplier:read'
+  | 'supplier:write'
+  | 'purchase:read'
+  | 'purchase:write'
 
 export interface AuthUser {
   id: string

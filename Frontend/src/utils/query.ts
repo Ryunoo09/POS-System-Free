@@ -1,5 +1,7 @@
 import type { CategoryFilterState, CategoryListParams } from '@/types/category'
 import type { ProductFilterState, ProductListParams } from '@/types/product'
+import type { PurchaseOrderFilterState, PurchaseOrderListParams } from '@/types/purchase'
+import type { SupplierFilterState, SupplierListParams } from '@/types/supplier'
 import type { UserFilterState, UserListParams } from '@/types/user'
 import { DEFAULT_PAGE_SIZE } from './constants'
 
@@ -32,6 +34,37 @@ export const toCategoryParams = (
   if (filters.is_active === 'true' || filters.is_active === 'false') {
     params.is_active = filters.is_active
   }
+
+  return params
+}
+
+export const toSupplierParams = (
+  filters: SupplierFilterState,
+  page: number,
+  limit = DEFAULT_PAGE_SIZE,
+): SupplierListParams => {
+  const params: SupplierListParams = { page, limit }
+  const search = filters.search.trim()
+
+  if (search) params.search = search
+  if (filters.is_active === 'true' || filters.is_active === 'false') {
+    params.is_active = filters.is_active
+  }
+
+  return params
+}
+
+export const toPurchaseParams = (
+  filters: PurchaseOrderFilterState,
+  page: number,
+  limit = DEFAULT_PAGE_SIZE,
+): PurchaseOrderListParams => {
+  const params: PurchaseOrderListParams = { page, limit }
+  const search = filters.search.trim()
+
+  if (search) params.search = search
+  if (filters.status) params.status = filters.status
+  if (filters.supplier_id) params.supplier_id = filters.supplier_id
 
   return params
 }

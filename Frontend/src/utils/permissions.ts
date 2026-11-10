@@ -19,6 +19,10 @@ export const PERMISSIONS = {
   AUDIT_READ: 'audit:read',
   RETURN_CREATE: 'return:create',
   RETURN_READ: 'return:read',
+  SUPPLIER_READ: 'supplier:read',
+  SUPPLIER_WRITE: 'supplier:write',
+  PURCHASE_READ: 'purchase:read',
+  PURCHASE_WRITE: 'purchase:write',
 } as const satisfies Record<string, Permission>
 
 export const hasPermission = (granted: readonly string[], permission: string): boolean =>
