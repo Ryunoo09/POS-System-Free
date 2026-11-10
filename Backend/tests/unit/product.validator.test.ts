@@ -46,6 +46,20 @@ describe('createProductSchema', () => {
 
     expect(result.success).toBe(false)
   })
+
+  it.each(['12345678', '4006381333931', '12345678901234'])(
+    'menerima barcode %s',
+    (barcode) => {
+      expect(createProductSchema.safeParse({ ...validBody, barcode }).success).toBe(true)
+    },
+  )
+
+  it.each(['1234567', '123456789012345', 'B1234567'])(
+    'menolak barcode %s',
+    (barcode) => {
+      expect(createProductSchema.safeParse({ ...validBody, barcode }).success).toBe(false)
+    },
+  )
 })
 
 describe('updateProductSchema', () => {

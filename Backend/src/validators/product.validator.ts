@@ -24,7 +24,7 @@ const skuSchema = z
 const barcodeSchema = z
   .string()
   .trim()
-  .regex(/^\d{8,50}$/, 'Barcode harus 8–50 digit angka')
+  .regex(/^\d{8,14}$/, 'Barcode harus 8–14 digit angka')
 
 const nameSchema = z.string().trim().min(1, 'Nama wajib diisi').max(150, 'Nama maksimal 150 karakter')
 const unitSchema = z.string().trim().min(1, 'Satuan wajib diisi').max(20, 'Satuan maksimal 20 karakter')
