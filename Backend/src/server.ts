@@ -2,12 +2,15 @@ import { createServer } from 'node:http'
 import { app } from './app.js'
 import { prisma } from './config/database.js'
 import { env } from './config/env.js'
+import { backupService } from './container.js'
+import { startBackupScheduler, stopBackupScheduler } from './scheduler/backup.scheduler.js'
 import { logger } from './utils/logger.js'
 
 const server = createServer(app)
 
 server.listen(env.PORT, () => {
   logger.info(`POS API berjalan di http://localhost:${env.PORT}`)
+  startBackupScheduler(backupService)
 })
 
 server.on('error', (error: Error) => {
@@ -22,6 +25,8 @@ const shutdown = (signal: NodeJS.Signals): void => {
   isShuttingDown = true
 
   logger.info(`Menerima ${signal}, menutup server...`)
+
+  stopBackupScheduler()
 
   server.close(async () => {
     await prisma.$disconnect()

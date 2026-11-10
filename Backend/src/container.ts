@@ -14,6 +14,7 @@ import { createAuditController } from './controllers/audit.controller.js'
 import { createReturnController } from './controllers/return.controller.js'
 import { createSupplierController } from './controllers/supplier.controller.js'
 import { createPurchaseController } from './controllers/purchase.controller.js'
+import { createBackupController } from './controllers/backup.controller.js'
 import { authenticate } from './middlewares/authenticate.js'
 import { createCategoryRepository } from './repositories/category.repository.js'
 import { createHealthRepository } from './repositories/health.repository.js'
@@ -42,6 +43,7 @@ import { createAuditService } from './services/audit.service.js'
 import { createReturnService } from './services/return.service.js'
 import { createSupplierService } from './services/supplier.service.js'
 import { createPurchaseService } from './services/purchase.service.js'
+import { createBackupService } from './services/backup.service.js'
 import type { AppContainer } from './types/container.js'
 
 const healthRepository = createHealthRepository(prisma)
@@ -112,6 +114,8 @@ const purchaseService = createPurchaseService({
   audit: auditService,
 })
 
+export const backupService = createBackupService({ userRepository, audit: auditService })
+
 export const container: AppContainer = {
   healthController: createHealthController({ healthService }),
   authController: createAuthController({ authService }),
@@ -127,5 +131,6 @@ export const container: AppContainer = {
   returnController: createReturnController({ returnService }),
   supplierController: createSupplierController({ supplierService }),
   purchaseController: createPurchaseController({ purchaseService }),
+  backupController: createBackupController({ backupService }),
   authenticate: authenticate({ userRepository }),
 }

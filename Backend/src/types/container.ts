@@ -13,6 +13,7 @@ import type { AuditController } from '../controllers/audit.controller.js'
 import type { ReturnController } from '../controllers/return.controller.js'
 import type { SupplierController } from '../controllers/supplier.controller.js'
 import type { PurchaseController } from '../controllers/purchase.controller.js'
+import type { BackupController } from '../controllers/backup.controller.js'
 
 export interface AppContainer {
   healthController: HealthController
@@ -29,5 +30,6 @@ export interface AppContainer {
   returnController: ReturnController
   supplierController: SupplierController
   purchaseController: PurchaseController
+  backupController: BackupController
   authenticate: RequestHandler
 }
