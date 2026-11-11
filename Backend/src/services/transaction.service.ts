@@ -192,11 +192,15 @@ export const createTransactionService = ({
         const totals = calculateTotals({
           items: input.items.map((item) => {
             const product = productById.get(item.product_id)!
+            const unitCost = product.averageCost.greaterThan(0)
+              ? product.averageCost
+              : product.costPrice
+
             return {
               productId: product.id,
               quantity: item.quantity,
               unitPrice: product.sellingPrice.toFixed(2),
-              unitCost: product.costPrice.toFixed(2),
+              unitCost: unitCost.toFixed(2),
               discountAmount: (item.discount_amount ?? 0).toFixed(2),
             }
           }),

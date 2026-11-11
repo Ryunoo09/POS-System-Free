@@ -301,6 +301,44 @@ describe('TransactionService.checkout', () => {
     ])
   })
 
+  it('memakai averageCost sebagai snapshot unit_cost', async () => {
+    const { service } = buildService({
+      products: [
+        buildProduct({
+          costPrice: new Prisma.Decimal('2000.00'),
+          averageCost: new Prisma.Decimal('2500.00'),
+        }),
+      ],
+    })
+
+    const result = await service.checkout(
+      checkoutInput(),
+      { ...actor, canViewCostPrice: true },
+      key,
+    )
+
+    expect(result.transaction.items[0]?.unit_cost).toBe('2500.00')
+  })
+
+  it('memakai costPrice saat averageCost masih 0', async () => {
+    const { service } = buildService({
+      products: [
+        buildProduct({
+          costPrice: new Prisma.Decimal('2000.00'),
+          averageCost: new Prisma.Decimal('0'),
+        }),
+      ],
+    })
+
+    const result = await service.checkout(
+      checkoutInput(),
+      { ...actor, canViewCostPrice: true },
+      key,
+    )
+
+    expect(result.transaction.items[0]?.unit_cost).toBe('2000.00')
+  })
+
   it('mengembalikan transaksi lama untuk idempotency key yang sama', async () => {
     const existing = buildDetailFromData({
       invoiceNumber: 'INV-20261106-000021',
