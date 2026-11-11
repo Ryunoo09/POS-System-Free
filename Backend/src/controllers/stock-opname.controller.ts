@@ -16,6 +16,7 @@ export interface StockOpnameController {
   start: RequestHandler
   updateItem: RequestHandler
   submit: RequestHandler
+  approve: RequestHandler
 }
 
 const toActor = (user: AuthUser, req: Request): OpnameActor => ({
@@ -72,6 +73,13 @@ export const createStockOpnameController = ({
   submit: async (req, res) => {
     const { id } = req.validated?.params as { id: string }
     const session = await stockOpnameService.submit(id, toActor(requireActor(req), req))
+
+    return sendSuccess(res, { data: session })
+  },
+
+  approve: async (req, res) => {
+    const { id } = req.validated?.params as { id: string }
+    const session = await stockOpnameService.approve(id, toActor(requireActor(req), req))
 
     return sendSuccess(res, { data: session })
   },

@@ -1,7 +1,13 @@
 import { MAX_OPNAME_ITEMS } from '../constants/opname.js'
+import { STOCK_MOVEMENT_TYPES, STOCK_REFERENCE_TYPES } from '../constants/stock.js'
 import { AUDIT_ACTIONS, AUDIT_ENTITIES } from '../constants/audit.js'
 import { runInTransaction } from '../config/database.js'
-import { BusinessRuleError, ConflictError, NotFoundError } from '../errors/app-errors.js'
+import {
+  BusinessRuleError,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+} from '../errors/app-errors.js'
 import {
   toOpnameDetailDto,
   toOpnameItemDto,
@@ -11,6 +17,7 @@ import {
   type OpnameListItemDto,
 } from '../mappers/stock-opname.mapper.js'
 import type { ProductRepository } from '../repositories/product.repository.js'
+import type { StockMovementRepository } from '../repositories/stock-movement.repository.js'
 import type {
   OpnameDetailView,
   OpnameTx,
@@ -48,15 +55,18 @@ export interface StockOpnameService {
     actor: OpnameActor,
   ) => Promise<OpnameItemDto>
   submit: (id: string, actor: OpnameActor) => Promise<OpnameDetailDto>
+  approve: (id: string, actor: OpnameActor) => Promise<OpnameDetailDto>
 }
 
 export const createStockOpnameService = ({
   stockOpnameRepository,
   productRepository,
+  stockMovementRepository,
   audit,
 }: {
   stockOpnameRepository: StockOpnameRepository
   productRepository: ProductRepository
+  stockMovementRepository: StockMovementRepository
   audit?: AuditRecorder
 }): StockOpnameService => {
   const findDetailOrFail = async (id: string): Promise<OpnameDetailDto> => {
@@ -254,6 +264,79 @@ export const createStockOpnameService = ({
       })
 
       await auditRecord(actor, AUDIT_ACTIONS.UPDATE, updated, { status: updated.status })
+
+      return findDetailOrFail(id)
+    },
+
+    approve: async (id, actor) => {
+      const result = await runInTransaction(async (tx) => {
+        const session = await lockSessionOrFail(id, tx)
+        assertStatus(session, 'SUBMITTED')
+
+        if (session.createdById === actor.id) {
+          throw new ForbiddenError(
+            'Tidak boleh menyetujui sesi opname yang dibuat sendiri',
+            'SELF_APPROVAL_FORBIDDEN',
+          )
+        }
+
+        const counted = session.items.filter(
+          (item): item is typeof item & { physicalStock: number } => item.physicalStock !== null,
+        )
+
+        const products = await productRepository.findManyByIdsForUpdate(
+          counted.map((item) => item.productId),
+          tx,
+        )
+        const productById = new Map(products.map((product) => [product.id, product]))
+        let adjustments = 0
+
+        for (const item of counted) {
+          const product = productById.get(item.productId)
+
+          if (!product) {
+            throw new NotFoundError(
+              `Produk item opname tidak ditemukan (${item.skuSnapshot})`,
+              'PRODUCT_NOT_FOUND',
+            )
+          }
+
+          const stockBefore = product.stock
+          const stockAfter = item.physicalStock
+
+          if (stockAfter === stockBefore) continue
+
+          await productRepository.updateStock(product.id, stockAfter, tx)
+          await stockMovementRepository.create(
+            {
+              productId: product.id,
+              movementType: STOCK_MOVEMENT_TYPES.ADJUSTMENT,
+              quantity: stockAfter - stockBefore,
+              stockBefore,
+              stockAfter,
+              referenceType: STOCK_REFERENCE_TYPES.STOCK_OPNAME,
+              referenceId: session.id,
+              notes: `Opname ${session.sessionNumber}${item.reason ? `: ${item.reason}` : ''}`,
+              createdById: actor.id,
+            },
+            tx,
+          )
+          adjustments += 1
+        }
+
+        const updated = await stockOpnameRepository.updateSession(
+          id,
+          { status: 'APPROVED', approvedById: actor.id, approvedAt: new Date() },
+          tx,
+        )
+
+        return { updated, adjustments }
+      })
+
+      await auditRecord(actor, AUDIT_ACTIONS.ADJUST, result.updated, {
+        status: result.updated.status,
+        adjustments: result.adjustments,
+      })
 
       return findDetailOrFail(id)
     },

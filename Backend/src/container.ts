@@ -130,6 +130,7 @@ const stockOpnameRepository = createStockOpnameRepository(prisma)
 const stockOpnameService = createStockOpnameService({
   stockOpnameRepository,
   productRepository,
+  stockMovementRepository,
   audit: auditService,
 })
 

@@ -58,6 +58,12 @@ export const createStockOpnameRoutes = ({
     validate({ params: stockOpnameIdParamSchema }),
     stockOpnameController.submit,
   )
+  router.post(
+    '/:id/approve',
+    authorize(PERMISSIONS.STOCK_OPNAME_APPROVE),
+    validate({ params: stockOpnameIdParamSchema }),
+    stockOpnameController.approve,
+  )
 
   return router
 }

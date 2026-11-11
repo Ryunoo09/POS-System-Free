@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { describe, expect, it, vi } from 'vitest'
 import type { ProductRepository, ProductView } from '../../src/repositories/product.repository.js'
+import type { StockMovementRepository } from '../../src/repositories/stock-movement.repository.js'
 import type {
   OpnameDetailView,
   OpnameItemView,
@@ -94,6 +95,7 @@ const buildRepository = (
     detail?: OpnameDetailView | null
     item?: OpnameItemView | null
     productStock?: number
+    approveProducts?: ProductView[]
   } = {},
 ) => {
   const products = options.products ?? [
@@ -130,20 +132,33 @@ const buildRepository = (
     updateItem,
   } as unknown as StockOpnameRepository
 
+  const updateStock = vi.fn(async (id: string, stock: number) => buildProduct({ id, stock }))
+  const approveProducts = options.approveProducts ?? [buildProduct({ stock: 10 })]
   const productRepository = {
-    findByIdForUpdate: vi.fn(async () =>
-      buildProduct({ stock: options.productStock ?? 10 }),
-    ),
+    findByIdForUpdate: vi.fn(async () => buildProduct({ stock: options.productStock ?? 10 })),
+    findManyByIdsForUpdate: vi.fn(async () => approveProducts),
+    updateStock,
   } as unknown as ProductRepository
 
+  const createMovement = vi.fn(async () => undefined)
+  const stockMovementRepository = {
+    create: createMovement,
+  } as unknown as StockMovementRepository
+
   return {
-    service: createStockOpnameService({ stockOpnameRepository, productRepository }),
+    service: createStockOpnameService({
+      stockOpnameRepository,
+      productRepository,
+      stockMovementRepository,
+    }),
     createSession,
     listSessions,
     findActiveProducts,
     findItem,
     updateItem,
     updateSession,
+    updateStock,
+    createMovement,
   }
 }
 
@@ -335,5 +350,89 @@ describe('stock opname service', () => {
       expect.objectContaining({ status: 'SUBMITTED', submittedAt: expect.any(Date) }),
       expect.anything(),
     )
+  })
+
+  it('rejects approval from the session creator', async () => {
+    const { service, updateStock } = buildRepository({
+      detail: buildDetail({
+        status: 'SUBMITTED',
+        createdById: 'admin-1',
+        items: [buildItem({ physicalStock: 12, difference: 2 })],
+      }),
+    })
+
+    await expect(service.approve('session-1', { id: 'admin-1' })).rejects.toMatchObject({
+      code: 'SELF_APPROVAL_FORBIDDEN',
+    })
+    expect(updateStock).not.toHaveBeenCalled()
+  })
+
+  it('rejects approval when session is not SUBMITTED', async () => {
+    const { service } = buildRepository({
+      detail: buildDetail({ status: 'IN_PROGRESS' }),
+    })
+
+    await expect(service.approve('session-1', { id: 'owner-1' })).rejects.toMatchObject({
+      code: 'INVALID_OPNAME_STATUS',
+    })
+  })
+
+  it('applies stock only for items with a difference', async () => {
+    const products = [
+      buildProduct({ id: 'product-1', stock: 10 }),
+      buildProduct({ id: 'product-2', stock: 5 }),
+    ]
+    const { service, updateStock, createMovement, updateSession } = buildRepository({
+      approveProducts: products,
+      detail: buildDetail({
+        status: 'SUBMITTED',
+        createdById: 'admin-1',
+        sessionNumber: 'OPN-20261111-ABCD1234',
+        items: [
+          buildItem({ id: 'item-1', productId: 'product-1', physicalStock: 12, difference: 2 }),
+          buildItem({ id: 'item-2', productId: 'product-2', physicalStock: 5, difference: 0 }),
+        ],
+      }),
+    })
+
+    await service.approve('session-1', { id: 'owner-1' })
+
+    expect(updateStock).toHaveBeenCalledTimes(1)
+    expect(updateStock).toHaveBeenCalledWith('product-1', 12, expect.anything())
+    expect(createMovement).toHaveBeenCalledTimes(1)
+    expect(createMovement).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: 'product-1',
+        movementType: 'ADJUSTMENT',
+        quantity: 2,
+        stockBefore: 10,
+        stockAfter: 12,
+        referenceType: 'STOCK_OPNAME',
+        referenceId: 'session-1',
+        createdById: 'owner-1',
+      }),
+      expect.anything(),
+    )
+    expect(updateSession).toHaveBeenCalledWith(
+      'session-1',
+      expect.objectContaining({ status: 'APPROVED', approvedById: 'owner-1' }),
+      expect.anything(),
+    )
+  })
+
+  it('rolls back approval when a counted product is missing', async () => {
+    const { service, updateStock } = buildRepository({
+      approveProducts: [],
+      detail: buildDetail({
+        status: 'SUBMITTED',
+        createdById: 'admin-1',
+        items: [buildItem({ physicalStock: 12, difference: 2 })],
+      }),
+    })
+
+    await expect(service.approve('session-1', { id: 'owner-1' })).rejects.toMatchObject({
+      code: 'PRODUCT_NOT_FOUND',
+    })
+    expect(updateStock).not.toHaveBeenCalled()
   })
 })
