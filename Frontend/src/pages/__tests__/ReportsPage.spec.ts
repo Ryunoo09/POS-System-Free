@@ -4,17 +4,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DateRange } from '@/types/dashboard'
 import type {
   CashierReportRow,
+  InventoryValuationPayload,
   ProductReportParams,
   ProductReportPayload,
   ReportPayload,
   SalesReportParams,
   SalesReportRow,
+  ValuationParams,
 } from '@/types/report'
 
 const mocks = vi.hoisted(() => ({
   getSales: vi.fn<(params: SalesReportParams) => Promise<ReportPayload<SalesReportRow>>>(),
   getProducts: vi.fn<(params: ProductReportParams) => Promise<ProductReportPayload>>(),
   getCashiers: vi.fn<(params: DateRange) => Promise<ReportPayload<CashierReportRow>>>(),
+  getInventoryValuation:
+    vi.fn<(params: ValuationParams) => Promise<InventoryValuationPayload>>(),
   listCategories: vi.fn<() => Promise<unknown>>(),
   getShifts: vi.fn<() => Promise<unknown>>(),
 }))
@@ -24,6 +28,7 @@ vi.mock('@/services/reports.service', () => ({
     getSales: mocks.getSales,
     getProducts: mocks.getProducts,
     getCashiers: mocks.getCashiers,
+    getInventoryValuation: mocks.getInventoryValuation,
   },
 }))
 
@@ -117,6 +122,24 @@ describe('ReportsPage', () => {
         },
       ],
     })
+    mocks.getInventoryValuation.mockResolvedValue({
+      total_value: '500000.00',
+      total_quantity: 100,
+      items: [
+        {
+          product_id: 'product-1',
+          sku: 'SKU-1',
+          name: 'Kopi Susu',
+          category: 'Minuman',
+          stock: 100,
+          average_cost: '5000.00',
+          inventory_value: '500000.00',
+        },
+      ],
+      by_category: [
+        { category_id: 'cat-1', category: 'Minuman', quantity: 100, value: '500000.00' },
+      ],
+    })
   })
 
   it('memuat ringkasan, penjualan, produk, dan kasir saat dibuka', async () => {
@@ -148,6 +171,19 @@ describe('ReportsPage', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Kasir Satu')
+  })
+
+  it('menampilkan tab valuasi inventaris', async () => {
+    const wrapper = await mountPage()
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Valuasi')
+      ?.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Total Nilai Stok')
+    expect(wrapper.text()).toContain('500.000')
   })
 
   it('mengubah kelompok penjualan memuat ulang laporan', async () => {

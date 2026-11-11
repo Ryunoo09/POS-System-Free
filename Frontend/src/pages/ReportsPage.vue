@@ -11,6 +11,7 @@ import CashierReportTable from '@/components/reports/CashierReportTable.vue'
 import ProductReportTable from '@/components/reports/ProductReportTable.vue'
 import SalesReportTable from '@/components/reports/SalesReportTable.vue'
 import ShiftReportTable from '@/components/reports/ShiftReportTable.vue'
+import ValuationReportTable from '@/components/reports/ValuationReportTable.vue'
 import { useCategoriesStore } from '@/stores/categories.store'
 import { useReportsStore } from '@/stores/reports.store'
 import { useShiftStore } from '@/stores/shift.store'
@@ -19,7 +20,7 @@ import type { ProductReportSort, SalesGroupBy } from '@/types/report'
 import { rangeForPreset } from '@/utils/date-range'
 import { formatNumber, formatRupiah } from '@/utils/format'
 
-type Tab = 'sales' | 'products' | 'cashiers' | 'shifts'
+type Tab = 'sales' | 'products' | 'valuation' | 'cashiers' | 'shifts'
 
 const store = useReportsStore()
 const categoriesStore = useCategoriesStore()
@@ -40,6 +41,7 @@ const categories = ref<Array<{ value: string; label: string }>>([
 const tabs = [
   { value: 'sales', label: 'Penjualan' },
   { value: 'products', label: 'Per Produk' },
+  { value: 'valuation', label: 'Valuasi' },
   { value: 'cashiers', label: 'Per Kasir' },
   { value: 'shifts', label: 'Shift Kasir' },
 ] as const
@@ -80,12 +82,16 @@ const loadCashiers = (): void => {
   void store.loadCashiers(range.value)
 }
 
+const loadValuation = (): void => {
+  void store.loadValuation({})
+}
+
 const loadShifts = (): void => {
   void shiftStore.fetchHistory()
 }
 
 const loadAll = (): void => {
-  void Promise.all([loadSales(), loadProducts(), loadCashiers(), loadShifts()])
+  void Promise.all([loadSales(), loadProducts(), loadCashiers(), loadValuation(), loadShifts()])
 }
 
 const loadCategories = async (): Promise<void> => {
@@ -217,6 +223,66 @@ const changePage = (value: number): void => {
     >
       <ProductReportTable :items="store.products" />
       <PaginationBar :meta="store.productsMeta" @change="changePage" />
+    </WidgetCard>
+
+    <WidgetCard
+      v-else-if="tab === 'valuation'"
+      title="Valuasi Inventaris"
+      :loading="store.valuationLoading"
+      :error="store.valuationError"
+      :empty="false"
+      :skeleton-rows="5"
+      @retry="loadValuation"
+    >
+      <div class="space-y-5">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <SummaryCard
+            label="Total Nilai Stok"
+            :value="formatRupiah(store.valuation?.total_value ?? 0)"
+            hint="Σ stok × biaya rata-rata"
+          />
+          <SummaryCard
+            label="Total Kuantitas"
+            :value="formatNumber(store.valuation?.total_quantity ?? 0)"
+            hint="Unit tercatat"
+          />
+        </div>
+
+        <div v-if="(store.valuation?.by_category.length ?? 0) > 0" class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-border text-sm">
+            <thead>
+              <tr class="text-left text-xs uppercase tracking-wide text-ink-3">
+                <th scope="col" class="px-4 py-3 font-medium">Kategori</th>
+                <th scope="col" class="px-4 py-3 text-right font-medium">Qty</th>
+                <th scope="col" class="px-4 py-3 text-right font-medium">Nilai</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              <tr
+                v-for="row in store.valuation?.by_category ?? []"
+                :key="row.category_id ?? 'none'"
+                class="hover:bg-surface-2"
+              >
+                <td class="px-4 py-3 font-medium text-ink">{{ row.category }}</td>
+                <td class="px-4 py-3 text-right tabular-nums text-ink-2">
+                  {{ formatNumber(row.quantity) }}
+                </td>
+                <td class="px-4 py-3 text-right tabular-nums font-semibold text-ink">
+                  {{ formatRupiah(row.value) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ValuationReportTable :items="store.valuation?.items ?? []" />
+        <p
+          v-if="(store.valuation?.items.length ?? 0) === 0"
+          class="text-sm text-ink-3"
+        >
+          Belum ada produk dengan stok untuk dinilai.
+        </p>
+      </div>
     </WidgetCard>
 
     <WidgetCard

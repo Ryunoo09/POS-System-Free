@@ -5,12 +5,14 @@ import type { PaginationMeta } from '@/types/api'
 import type { DateRange } from '@/types/dashboard'
 import type {
   CashierReportRow,
+  InventoryValuationPayload,
   ProductReportRow,
   ReportSummary,
   ReportsQuery,
   SalesReportParams,
   SalesReportRow,
   ProductReportParams,
+  ValuationParams,
 } from '@/types/report'
 import { errorMessage } from '@/utils/errors'
 
@@ -36,6 +38,10 @@ export const useReportsStore = defineStore('reports', () => {
   const cashiers = ref<CashierReportRow[]>([])
   const cashiersLoading = ref(false)
   const cashiersError = ref('')
+
+  const valuation = ref<InventoryValuationPayload | null>(null)
+  const valuationLoading = ref(false)
+  const valuationError = ref('')
 
   const loadSales = async (params: SalesReportParams): Promise<void> => {
     salesLoading.value = true
@@ -83,6 +89,19 @@ export const useReportsStore = defineStore('reports', () => {
     }
   }
 
+  const loadValuation = async (params: ValuationParams): Promise<void> => {
+    valuationLoading.value = true
+    valuationError.value = ''
+
+    try {
+      valuation.value = await reportsService.getInventoryValuation(params)
+    } catch (error) {
+      valuationError.value = errorMessage(error, 'Gagal memuat valuasi inventaris.')
+    } finally {
+      valuationLoading.value = false
+    }
+  }
+
   const loadAll = async (query: ReportsQuery): Promise<void> => {
     await Promise.all([
       loadSales({ ...query.range, group_by: query.groupBy }),
@@ -94,6 +113,7 @@ export const useReportsStore = defineStore('reports', () => {
         limit: query.limit,
       }),
       loadCashiers(query.range),
+      loadValuation({}),
     ])
   }
 
@@ -109,9 +129,13 @@ export const useReportsStore = defineStore('reports', () => {
     cashiers,
     cashiersLoading,
     cashiersError,
+    valuation,
+    valuationLoading,
+    valuationError,
     loadSales,
     loadProducts,
     loadCashiers,
+    loadValuation,
     loadAll,
   }
 })

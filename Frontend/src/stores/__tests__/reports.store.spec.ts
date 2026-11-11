@@ -3,17 +3,21 @@ import { createPinia, setActivePinia } from 'pinia'
 import type { DateRange } from '@/types/dashboard'
 import type {
   CashierReportRow,
+  InventoryValuationPayload,
   ProductReportParams,
   ProductReportPayload,
   ReportPayload,
   SalesReportParams,
   SalesReportRow,
+  ValuationParams,
 } from '@/types/report'
 
 const mocks = vi.hoisted(() => ({
   getSales: vi.fn<(params: SalesReportParams) => Promise<ReportPayload<SalesReportRow>>>(),
   getProducts: vi.fn<(params: ProductReportParams) => Promise<ProductReportPayload>>(),
   getCashiers: vi.fn<(params: DateRange) => Promise<ReportPayload<CashierReportRow>>>(),
+  getInventoryValuation:
+    vi.fn<(params: ValuationParams) => Promise<InventoryValuationPayload>>(),
 }))
 
 vi.mock('@/services/reports.service', () => ({
@@ -21,6 +25,7 @@ vi.mock('@/services/reports.service', () => ({
     getSales: mocks.getSales,
     getProducts: mocks.getProducts,
     getCashiers: mocks.getCashiers,
+    getInventoryValuation: mocks.getInventoryValuation,
   },
 }))
 
@@ -55,6 +60,12 @@ describe('reports.store', () => {
       meta: { page: 1, limit: 10, total_items: 0, total_pages: 0 },
     })
     mocks.getCashiers.mockResolvedValue({ summary, rows: [] })
+    mocks.getInventoryValuation.mockResolvedValue({
+      total_value: '0.00',
+      total_quantity: 0,
+      items: [],
+      by_category: [],
+    })
   })
 
   it('memuat laporan penjualan dan menyimpan ringkasan', async () => {
@@ -125,6 +136,34 @@ describe('reports.store', () => {
     expect(store.salesError).toBe('Gagal memuat laporan penjualan.')
   })
 
+  it('memuat valuasi inventaris', async () => {
+    mocks.getInventoryValuation.mockResolvedValue({
+      total_value: '500000.00',
+      total_quantity: 100,
+      items: [
+        {
+          product_id: 'product-1',
+          sku: 'SKU-1',
+          name: 'Kopi Susu',
+          category: 'Minuman',
+          stock: 100,
+          average_cost: '5000.00',
+          inventory_value: '500000.00',
+        },
+      ],
+      by_category: [
+        { category_id: 'cat-1', category: 'Minuman', quantity: 100, value: '500000.00' },
+      ],
+    })
+    const store = useReportsStore()
+
+    await store.loadValuation({})
+
+    expect(store.valuation?.total_value).toBe('500000.00')
+    expect(store.valuation?.items).toHaveLength(1)
+    expect(store.valuationLoading).toBe(false)
+  })
+
   it('memuat seluruh tab sekaligus', async () => {
     const store = useReportsStore()
 
@@ -140,5 +179,6 @@ describe('reports.store', () => {
     expect(mocks.getSales).toHaveBeenCalledOnce()
     expect(mocks.getProducts).toHaveBeenCalledOnce()
     expect(mocks.getCashiers).toHaveBeenCalledOnce()
+    expect(mocks.getInventoryValuation).toHaveBeenCalledOnce()
   })
 })

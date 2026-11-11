@@ -41,6 +41,34 @@ export interface CashierReportRow {
   average_transaction: string
 }
 
+export interface ValuationItemRow {
+  product_id: string
+  sku: string
+  name: string
+  category: string
+  stock: number
+  average_cost: string
+  inventory_value: string
+}
+
+export interface ValuationCategoryRow {
+  category_id: string | null
+  category: string
+  quantity: number
+  value: string
+}
+
+export interface InventoryValuationPayload {
+  total_value: string
+  total_quantity: number
+  items: ValuationItemRow[]
+  by_category: ValuationCategoryRow[]
+}
+
+export interface ValuationParams {
+  category_id?: string | undefined
+}
+
 export interface ReportPayload<TRow> {
   summary: ReportSummary
   rows: TRow[]
