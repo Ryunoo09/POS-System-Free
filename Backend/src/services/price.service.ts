@@ -1,5 +1,5 @@
 import { runInTransaction } from '../config/database.js'
-import { BusinessRuleError, NotFoundError } from '../errors/app-errors.js'
+import { BusinessRuleError, ForbiddenError, NotFoundError } from '../errors/app-errors.js'
 import {
   toPriceHistoryDto,
   toScheduledPriceDto,
@@ -62,6 +62,7 @@ export interface BulkPriceItem {
 export interface PriceService {
   recordPriceChanges: (input: PriceChangeInput) => Promise<void>
   listHistory: (productId: string, actor: PriceActor) => Promise<PriceHistoryDto[]>
+  listCostHistory: (productId: string, actor: PriceActor) => Promise<PriceHistoryDto[]>
   applyDueScheduledPrices: (
     tx?: PriceTx,
     productIds?: string[],
@@ -229,6 +230,17 @@ export const createPriceService = ({
       return rows
         .filter((row) => actor.canViewCostPrice || row.field !== 'COST_PRICE')
         .map(toPriceHistoryDto)
+    },
+
+    listCostHistory: async (productId, actor) => {
+      if (!actor.canViewCostPrice) {
+        throw new ForbiddenError('Tidak punya akses harga modal', 'FORBIDDEN')
+      }
+
+      await assertProduct(productId)
+      const rows = await priceRepository.listCostHistory(productId, HISTORY_LIMIT)
+
+      return rows.map(toPriceHistoryDto)
     },
 
     applyDueScheduledPrices: (tx, productIds) => {

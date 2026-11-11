@@ -180,6 +180,7 @@ const buildMovementRepository = () => {
 const buildPriceService = (): PriceService => ({
   recordPriceChanges: async () => {},
   listHistory: async () => [],
+  listCostHistory: async () => [],
   applyDueScheduledPrices: vi.fn(async () => 0),
   schedulePrice: async () => {
     throw new Error('tidak dipakai')

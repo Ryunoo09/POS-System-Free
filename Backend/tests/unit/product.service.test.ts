@@ -100,6 +100,7 @@ const buildStockMovementRepository = (): StockMovementRepository => ({
 const buildPriceService = (overrides: Partial<PriceService> = {}): PriceService => ({
   recordPriceChanges: async () => {},
   listHistory: async () => [],
+  listCostHistory: async () => [],
   applyDueScheduledPrices: async () => 0,
   schedulePrice: async () => {
     throw new Error('tidak dipakai pada test ini')

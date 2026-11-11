@@ -28,6 +28,7 @@ export interface CreateScheduleData {
 export interface PriceRepository {
   createHistory: (data: PriceHistoryData, tx?: Prisma.TransactionClient) => Promise<void>
   listHistory: (productId: string, take: number) => Promise<PriceHistoryView[]>
+  listCostHistory: (productId: string, take: number) => Promise<PriceHistoryView[]>
   findDueSchedules: (
     now: Date,
     productIds?: string[],
@@ -70,6 +71,14 @@ export const createPriceRepository = (prisma: PrismaClient): PriceRepository => 
   listHistory: (productId, take) =>
     prisma.productPriceHistory.findMany({
       where: { productId },
+      orderBy: { createdAt: 'desc' },
+      take,
+      include: { changedBy: { select: { id: true, name: true } } },
+    }),
+
+  listCostHistory: (productId, take) =>
+    prisma.productPriceHistory.findMany({
+      where: { productId, field: { in: ['COST_PRICE', 'AVERAGE_COST'] } },
       orderBy: { createdAt: 'desc' },
       take,
       include: { changedBy: { select: { id: true, name: true } } },

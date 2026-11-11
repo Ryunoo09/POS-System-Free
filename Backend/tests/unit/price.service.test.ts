@@ -52,6 +52,7 @@ const buildProductRepository = (
 const buildPriceRepository = (overrides: Partial<PriceRepository> = {}): PriceRepository => ({
   createHistory: async () => {},
   listHistory: async () => [],
+  listCostHistory: async () => [],
   findDueSchedules: async () => [],
   claimSchedule: async () => 0,
   createSchedule: async () => {
@@ -187,6 +188,35 @@ describe('PriceService.listHistory', () => {
 
     expect(rows).toHaveLength(2)
     expect(rows[0]?.old_value).toBe('1500.00')
+  })
+})
+
+describe('PriceService.listCostHistory', () => {
+  it('mengembalikan riwayat biaya untuk user dengan cost-price:read', async () => {
+    const service = createPriceService({
+      priceRepository: buildPriceRepository({
+        listCostHistory: async () => [
+          buildHistoryRow({ id: 'h1', field: 'COST_PRICE' }),
+          buildHistoryRow({ id: 'h2', field: 'AVERAGE_COST' }),
+        ],
+      }),
+      productRepository: buildProductRepository(),
+    })
+
+    const rows = await service.listCostHistory('product-1', adminActor)
+
+    expect(rows.map((row) => row.field)).toEqual(['COST_PRICE', 'AVERAGE_COST'])
+  })
+
+  it('menolak user tanpa cost-price:read dengan 403', async () => {
+    const service = createPriceService({
+      priceRepository: buildPriceRepository(),
+      productRepository: buildProductRepository(),
+    })
+
+    await expect(service.listCostHistory('product-1', cashierActor)).rejects.toMatchObject({
+      statusCode: 403,
+    })
   })
 })
 

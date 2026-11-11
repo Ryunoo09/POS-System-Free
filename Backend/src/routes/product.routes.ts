@@ -83,6 +83,12 @@ export const createProductRoutes = ({
     productController.listPriceHistory,
   )
   router.get(
+    '/:id/cost-history',
+    authorize(PERMISSIONS.COST_PRICE_READ),
+    validate({ params: productIdParamSchema }),
+    productController.listCostHistory,
+  )
+  router.get(
     '/:id/scheduled-price',
     authorize(PERMISSIONS.PRODUCT_READ),
     validate({ params: productIdParamSchema }),

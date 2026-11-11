@@ -24,6 +24,7 @@ export interface ProductController {
   deactivate: RequestHandler
   generateBarcode: RequestHandler
   listPriceHistory: RequestHandler
+  listCostHistory: RequestHandler
   schedulePrice: RequestHandler
   getScheduledPrice: RequestHandler
   cancelScheduledPrice: RequestHandler
@@ -96,6 +97,13 @@ export const createProductController = ({
   listPriceHistory: async (req, res) => {
     const { id } = req.validated?.params as { id: string }
     const data = await priceService.listHistory(id, toPriceActor(requireActor(req)))
+
+    return sendSuccess(res, { data })
+  },
+
+  listCostHistory: async (req, res) => {
+    const { id } = req.validated?.params as { id: string }
+    const data = await priceService.listCostHistory(id, toPriceActor(requireActor(req)))
 
     return sendSuccess(res, { data })
   },
