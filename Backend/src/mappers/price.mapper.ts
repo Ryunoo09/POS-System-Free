@@ -3,7 +3,7 @@ import type { ScheduledPriceChange } from '@prisma/client'
 
 export interface PriceHistoryDto {
   id: string
-  field: 'SELLING_PRICE' | 'COST_PRICE'
+  field: 'SELLING_PRICE' | 'COST_PRICE' | 'AVERAGE_COST'
   old_value: string
   new_value: string
   source: string

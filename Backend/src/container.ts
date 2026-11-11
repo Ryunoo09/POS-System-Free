@@ -117,6 +117,7 @@ const purchaseService = createPurchaseService({
   supplierRepository,
   productRepository,
   stockMovementRepository,
+  priceService,
   audit: auditService,
 })
 

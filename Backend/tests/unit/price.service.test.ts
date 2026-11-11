@@ -20,6 +20,7 @@ const buildProduct = (overrides: Partial<ProductView> = {}): ProductView => ({
   categoryId: 'category-1',
   unit: 'pcs',
   costPrice: new Prisma.Decimal('1000.00'),
+  averageCost: new Prisma.Decimal('1000.00'),
   sellingPrice: new Prisma.Decimal('1500.00'),
   stock: 10,
   minStock: 1,
@@ -71,6 +72,7 @@ const buildHistoryRow = (overrides: Partial<PriceHistoryView> = {}): PriceHistor
   source: 'MANUAL',
   reason: null,
   changedById: 'admin-1',
+  purchaseOrderId: null,
   createdAt: new Date('2026-11-11T00:00:00.000Z'),
   changedBy: { id: 'admin-1', name: 'Admin Uji' },
   ...overrides,
@@ -100,8 +102,8 @@ describe('PriceService.recordPriceChanges', () => {
 
     await service.recordPriceChanges({
       productId: 'product-1',
-      before: { sellingPrice: '1500.00', costPrice: '1000.00' },
-      after: { sellingPrice: '2000.00', costPrice: '1000.00' },
+      before: { sellingPrice: '1500.00', costPrice: '1000.00', averageCost: '1000.00' },
+      after: { sellingPrice: '2000.00', costPrice: '1000.00', averageCost: '1000.00' },
       source: 'MANUAL',
       reason: null,
       changedById: 'admin-1',
@@ -123,8 +125,8 @@ describe('PriceService.recordPriceChanges', () => {
 
     await service.recordPriceChanges({
       productId: 'product-1',
-      before: { sellingPrice: '1500.00', costPrice: '1000.00' },
-      after: { sellingPrice: '2000.00', costPrice: '1200.00' },
+      before: { sellingPrice: '1500.00', costPrice: '1000.00', averageCost: '1000.00' },
+      after: { sellingPrice: '2000.00', costPrice: '1200.00', averageCost: '1000.00' },
       source: 'MANUAL',
       reason: null,
       changedById: 'admin-1',
@@ -142,8 +144,8 @@ describe('PriceService.recordPriceChanges', () => {
 
     await service.recordPriceChanges({
       productId: 'product-1',
-      before: { sellingPrice: '1500.00', costPrice: '1000.00' },
-      after: { sellingPrice: '1500.00', costPrice: '1000.00' },
+      before: { sellingPrice: '1500.00', costPrice: '1000.00', averageCost: '1000.00' },
+      after: { sellingPrice: '1500.00', costPrice: '1000.00', averageCost: '1000.00' },
       source: 'MANUAL',
       reason: null,
       changedById: 'admin-1',
@@ -355,3 +357,4 @@ describe('PriceService.bulk', () => {
     ).rejects.toMatchObject({ code: 'NEGATIVE_PRICE' })
   })
 })
+

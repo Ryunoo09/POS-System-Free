@@ -10,8 +10,10 @@ import type {
 import type { SupplierRepository } from '../repositories/supplier.repository.js'
 import type { StockMovementRepository } from '../repositories/stock-movement.repository.js'
 import type { AuditRecorder } from './audit.service.js'
+import type { PriceService } from './price.service.js'
 import type { FieldError, PaginationMeta } from '../types/http.js'
 import { buildPaginationMeta, toSkip } from '../utils/pagination.js'
+import { fromMinor as moneyFromMinor, toMinor as moneyToMinor } from '../utils/pricing.js'
 import { formatPurchaseOrderNumber } from '../utils/purchase-number.js'
 import type {
   CreatePurchaseOrderInput,
@@ -55,12 +57,14 @@ export const createPurchaseService = ({
   supplierRepository,
   productRepository,
   stockMovementRepository,
+  priceService,
   audit,
 }: {
   purchaseOrderRepository: PurchaseOrderRepository
   supplierRepository: SupplierRepository
   productRepository: ProductRepository
   stockMovementRepository: StockMovementRepository
+  priceService?: PriceService
   audit?: AuditRecorder
 }): PurchaseService => {
   const findOrFail = async (id: string) => {
@@ -211,13 +215,46 @@ export const createPurchaseService = ({
         for (const item of existing.items) {
           const product = productById.get(item.productId)!
           const stockAfter = product.stock + item.quantity
+          const costBefore = product.costPrice.toFixed(2)
+          const averageBefore = product.averageCost.toFixed(2)
+          const costAfter = item.costPrice.toFixed(2)
+          const weightedStock = Math.max(product.stock, 0)
+          const totalStock = weightedStock + item.quantity
+          const averageAfter =
+            totalStock > 0
+              ? moneyFromMinor(
+                  Math.round(
+                    (weightedStock * moneyToMinor(averageBefore) +
+                      item.quantity * moneyToMinor(costAfter)) /
+                      totalStock,
+                  ),
+                )
+              : costAfter
 
           await productRepository.updateStock(product.id, stockAfter, tx)
           await productRepository.update(
             product.id,
-            { costPrice: item.costPrice.toFixed(2) },
+            { costPrice: costAfter, averageCost: averageAfter },
             tx,
           )
+          await priceService?.recordPriceChanges({
+            productId: product.id,
+            before: {
+              sellingPrice: product.sellingPrice.toFixed(2),
+              costPrice: costBefore,
+              averageCost: averageBefore,
+            },
+            after: {
+              sellingPrice: product.sellingPrice.toFixed(2),
+              costPrice: costAfter,
+              averageCost: averageAfter,
+            },
+            source: 'PURCHASE',
+            reason: `Pembelian ${existing.poNumber}`,
+            changedById: actor.id,
+            purchaseOrderId: existing.id,
+            tx,
+          })
           await stockMovementRepository.create(
             {
               productId: product.id,

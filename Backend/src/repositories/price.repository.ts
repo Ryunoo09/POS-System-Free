@@ -8,12 +8,13 @@ export type PriceHistoryView = Prisma.ProductPriceHistoryGetPayload<{
 
 export interface PriceHistoryData {
   productId: string
-  field: 'SELLING_PRICE' | 'COST_PRICE'
+  field: 'SELLING_PRICE' | 'COST_PRICE' | 'AVERAGE_COST'
   oldValue: string
   newValue: string
-  source: 'MANUAL' | 'SCHEDULED' | 'BULK'
+  source: 'MANUAL' | 'SCHEDULED' | 'BULK' | 'PURCHASE'
   reason: string | null
   changedById: string | null
+  purchaseOrderId?: string | null
 }
 
 export interface CreateScheduleData {
@@ -61,6 +62,7 @@ export const createPriceRepository = (prisma: PrismaClient): PriceRepository => 
           source: data.source,
           reason: data.reason,
           changedById: data.changedById,
+          purchaseOrderId: data.purchaseOrderId ?? null,
         },
       })
       .then(() => undefined),

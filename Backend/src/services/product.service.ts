@@ -217,10 +217,12 @@ export const createProductService = ({
           before: {
             sellingPrice: existing.sellingPrice.toFixed(2),
             costPrice: existing.costPrice.toFixed(2),
+            averageCost: existing.averageCost.toFixed(2),
           },
           after: {
             sellingPrice: result.sellingPrice.toFixed(2),
             costPrice: result.costPrice.toFixed(2),
+            averageCost: result.averageCost.toFixed(2),
           },
           source: 'MANUAL',
           reason: null,

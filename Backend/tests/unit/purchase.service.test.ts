@@ -8,6 +8,7 @@ import type {
 import type { SupplierRepository } from '../../src/repositories/supplier.repository.js'
 import type { StockMovementRepository } from '../../src/repositories/stock-movement.repository.js'
 import { createPurchaseService, type PurchaseActor } from '../../src/services/purchase.service.js'
+import type { PriceService } from '../../src/services/price.service.js'
 import type { CreatePurchaseOrderInput } from '../../src/validators/purchase.validator.js'
 
 vi.mock('../../src/config/database.js', () => ({
@@ -25,6 +26,7 @@ const buildProduct = (overrides: Partial<ProductView> = {}): ProductView => ({
   categoryId: 'category-1',
   unit: 'pcs',
   costPrice: new Prisma.Decimal('2000.00'),
+  averageCost: new Prisma.Decimal('2000.00'),
   sellingPrice: new Prisma.Decimal('3500.00'),
   stock: 10,
   minStock: 2,
@@ -64,10 +66,16 @@ const buildOrder = (overrides: Partial<PurchaseOrderView> = {}): PurchaseOrderVi
   ...overrides,
 })
 
-const buildDependencies = (options: { order?: PurchaseOrderView; supplierActive?: boolean } = {}) => {
+const buildDependencies = (options: {
+  order?: PurchaseOrderView
+  supplierActive?: boolean
+  product?: ProductView
+} = {}) => {
   const updateStock = vi.fn(async (_id: string, stock: number) => buildProduct({ stock }))
   const updateProduct = vi.fn(async () => buildProduct())
   const createMovement = vi.fn(async () => undefined)
+  const recordPriceChanges = vi.fn(async () => {})
+  const priceService = { recordPriceChanges } as unknown as PriceService
 
   const createOrder = vi.fn(async () => buildOrder())
   const updateStatus = vi.fn(async (_id: string, data: { status: string }) =>
@@ -94,7 +102,7 @@ const buildDependencies = (options: { order?: PurchaseOrderView; supplierActive?
   } as unknown as SupplierRepository
 
   const productRepository = {
-    findManyByIdsForUpdate: async () => [buildProduct()],
+    findManyByIdsForUpdate: async () => [options.product ?? buildProduct()],
     updateStock,
     update: updateProduct,
   } as unknown as ProductRepository
@@ -110,10 +118,20 @@ const buildDependencies = (options: { order?: PurchaseOrderView; supplierActive?
     supplierRepository,
     productRepository,
     stockMovementRepository,
+    priceService,
     audit: { record },
   })
 
-  return { service, createOrder, updateStatus, updateStock, updateProduct, createMovement, record }
+  return {
+    service,
+    createOrder,
+    updateStatus,
+    updateStock,
+    updateProduct,
+    createMovement,
+    record,
+    recordPriceChanges,
+  }
 }
 
 const baseInput = (overrides: Partial<CreatePurchaseOrderInput> = {}): CreatePurchaseOrderInput => ({
@@ -170,8 +188,17 @@ describe('PurchaseService.receive', () => {
     expect(deps.updateStock).toHaveBeenCalledWith('product-1', 30, expect.anything())
     expect(deps.updateProduct).toHaveBeenCalledWith(
       'product-1',
-      { costPrice: '2000.00' },
+      { costPrice: '2000.00', averageCost: '2000.00' },
       expect.anything(),
+    )
+    expect(deps.recordPriceChanges).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: 'product-1',
+        source: 'PURCHASE',
+        purchaseOrderId: 'po-1',
+        before: expect.objectContaining({ averageCost: '2000.00' }),
+        after: expect.objectContaining({ averageCost: '2000.00', costPrice: '2000.00' }),
+      }),
     )
     expect(deps.createMovement).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -190,6 +217,26 @@ describe('PurchaseService.receive', () => {
       expect.anything(),
     )
     expect(result.status).toBe('RECEIVED')
+  })
+
+  it('menghitung rata-rata bergerak tertimbang saat harga beli berbeda', async () => {
+    const deps = buildDependencies({
+      product: buildProduct({ averageCost: new Prisma.Decimal('3000.00') }),
+    })
+
+    await deps.service.receive('po-1', actor)
+
+    expect(deps.updateProduct).toHaveBeenCalledWith(
+      'product-1',
+      { costPrice: '2000.00', averageCost: '2333.33' },
+      expect.anything(),
+    )
+    expect(deps.recordPriceChanges).toHaveBeenCalledWith(
+      expect.objectContaining({
+        before: expect.objectContaining({ averageCost: '3000.00' }),
+        after: expect.objectContaining({ averageCost: '2333.33' }),
+      }),
+    )
   })
 
   it('menolak penerimaan PO yang sudah dibatalkan', async () => {

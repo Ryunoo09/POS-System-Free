@@ -28,6 +28,7 @@ const buildProduct = (overrides: Partial<ProductWithCategory> = {}): ProductWith
   categoryId: 'category-1',
   unit: 'pcs',
   costPrice: new Prisma.Decimal('1000.00'),
+  averageCost: new Prisma.Decimal('1000.00'),
   sellingPrice: new Prisma.Decimal('1500.00'),
   stock: 5,
   minStock: 2,
@@ -303,8 +304,8 @@ describe('ProductService.update audit hook', () => {
       expect.objectContaining({
         productId: 'product-1',
         source: 'MANUAL',
-        before: { sellingPrice: '1500.00', costPrice: '1000.00' },
-        after: { sellingPrice: '2000.00', costPrice: '1000.00' },
+        before: expect.objectContaining({ sellingPrice: '1500.00', costPrice: '1000.00' }),
+        after: expect.objectContaining({ sellingPrice: '2000.00', costPrice: '1000.00' }),
       }),
     )
   })

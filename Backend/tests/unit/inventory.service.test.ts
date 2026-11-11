@@ -35,6 +35,7 @@ const buildProduct = (
   categoryId: 'category-1',
   unit: 'pcs',
   costPrice: new Prisma.Decimal('1000.00'),
+  averageCost: new Prisma.Decimal('1000.00'),
   sellingPrice: new Prisma.Decimal('1500.00'),
   stock: 10,
   minStock: 5,

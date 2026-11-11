@@ -36,6 +36,7 @@ export interface UpdateProductData {
   categoryId?: string | undefined
   unit?: string | undefined
   costPrice?: string | undefined
+  averageCost?: string | undefined
   sellingPrice?: string | undefined
   minStock?: number | undefined
   isActive?: boolean | undefined
@@ -183,6 +184,7 @@ export const createProductRepository = (prisma: PrismaClient): ProductRepository
     if (data.categoryId !== undefined) update.categoryId = data.categoryId
     if (data.unit !== undefined) update.unit = data.unit
     if (data.costPrice !== undefined) update.costPrice = data.costPrice
+    if (data.averageCost !== undefined) update.averageCost = data.averageCost
     if (data.sellingPrice !== undefined) update.sellingPrice = data.sellingPrice
     if (data.minStock !== undefined) update.minStock = data.minStock
     if (data.isActive !== undefined) update.isActive = data.isActive

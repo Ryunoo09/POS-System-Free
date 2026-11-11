@@ -13,7 +13,7 @@ import { fromMinor, toMinor } from '../utils/pricing.js'
 const HISTORY_LIMIT = 100
 const BULK_LIMIT = 500
 
-export type PriceSource = 'MANUAL' | 'SCHEDULED' | 'BULK'
+export type PriceSource = 'MANUAL' | 'SCHEDULED' | 'BULK' | 'PURCHASE'
 export type PriceMode = 'SET' | 'PERCENT' | 'NOMINAL'
 
 export interface PriceActor {
@@ -21,13 +21,20 @@ export interface PriceActor {
   canViewCostPrice: boolean
 }
 
+export interface PriceSnapshot {
+  sellingPrice: string
+  costPrice: string
+  averageCost: string
+}
+
 export interface PriceChangeInput {
   productId: string
-  before: { sellingPrice: string; costPrice: string }
-  after: { sellingPrice: string; costPrice: string }
+  before: PriceSnapshot
+  after: PriceSnapshot
   source: PriceSource
   reason: string | null
   changedById: string | null
+  purchaseOrderId?: string | null
   tx?: PriceTx
 }
 
@@ -178,25 +185,24 @@ export const createPriceService = ({
   return {
     recordPriceChanges: async (input) => {
       const rows: Array<{
-        field: 'SELLING_PRICE' | 'COST_PRICE'
+        field: 'SELLING_PRICE' | 'COST_PRICE' | 'AVERAGE_COST'
         oldValue: string
         newValue: string
       }> = []
 
-      if (toMinor(input.before.sellingPrice) !== toMinor(input.after.sellingPrice)) {
-        rows.push({
-          field: 'SELLING_PRICE',
-          oldValue: input.before.sellingPrice,
-          newValue: input.after.sellingPrice,
-        })
-      }
+      const fields: Array<{
+        field: 'SELLING_PRICE' | 'COST_PRICE' | 'AVERAGE_COST'
+        key: keyof PriceSnapshot
+      }> = [
+        { field: 'SELLING_PRICE', key: 'sellingPrice' },
+        { field: 'COST_PRICE', key: 'costPrice' },
+        { field: 'AVERAGE_COST', key: 'averageCost' },
+      ]
 
-      if (toMinor(input.before.costPrice) !== toMinor(input.after.costPrice)) {
-        rows.push({
-          field: 'COST_PRICE',
-          oldValue: input.before.costPrice,
-          newValue: input.after.costPrice,
-        })
+      for (const { field, key } of fields) {
+        if (toMinor(input.before[key]) !== toMinor(input.after[key])) {
+          rows.push({ field, oldValue: input.before[key], newValue: input.after[key] })
+        }
       }
 
       for (const row of rows) {
@@ -209,6 +215,7 @@ export const createPriceService = ({
             source: input.source,
             reason: input.reason,
             changedById: input.changedById,
+            purchaseOrderId: input.purchaseOrderId ?? null,
           },
           input.tx,
         )
