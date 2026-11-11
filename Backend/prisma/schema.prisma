@@ -50,6 +50,7 @@ enum StockReferenceType {
   TRANSACTION
   MANUAL
   PURCHASE
+  STOCK_OPNAME
 
   @@map("stock_reference_type")
 }
@@ -93,6 +94,26 @@ enum PurchaseOrderStatus {
   @@map("po_status")
 }
 
+enum StockOpnameStatus {
+  DRAFT
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  COMPLETED
+  REJECTED
+  CANCELLED
+
+  @@map("stock_opname_status")
+}
+
+enum StockOpnameScope {
+  ALL
+  CATEGORY
+  PRODUCT
+
+  @@map("stock_opname_scope")
+}
+
 // ─────────────── Models ───────────────
 
 model User {
@@ -105,15 +126,18 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  transactions    Transaction[]
-  stockMovements  StockMovement[]
-  shifts          Shift[]
-  cashMovements   CashMovement[]
-  returns         ReturnTransaction[]
-  auditLogs       AuditLog[]
-  purchaseOrders  PurchaseOrder[]
-  priceChanges    ProductPriceHistory[]  @relation("PriceChangedBy")
-  scheduledPrices ScheduledPriceChange[] @relation("ScheduledPriceCreatedBy")
+  transactions       Transaction[]
+  stockMovements     StockMovement[]
+  shifts             Shift[]
+  cashMovements      CashMovement[]
+  returns            ReturnTransaction[]
+  auditLogs          AuditLog[]
+  purchaseOrders     PurchaseOrder[]
+  priceChanges       ProductPriceHistory[]  @relation("PriceChangedBy")
+  scheduledPrices    ScheduledPriceChange[] @relation("ScheduledPriceCreatedBy")
+  createdOpnames     StockOpnameSession[]   @relation("OpnameCreatedBy")
+  approvedOpnames    StockOpnameSession[]   @relation("OpnameApprovedBy")
+  countedOpnameItems StockOpnameItem[]      @relation("OpnameCountedBy")
 
   @@index([role, isActive])
   @@map("users")
@@ -177,6 +201,7 @@ model Product {
   purchaseOrderItems PurchaseOrderItem[]
   priceHistory       ProductPriceHistory[]
   scheduledPrices    ScheduledPriceChange[]
+  stockOpnameItems   StockOpnameItem[]
 
   @@index([categoryId])
   @@index([isActive])
@@ -392,6 +417,56 @@ model PurchaseOrderItem {
   @@index([purchaseOrderId])
   @@index([productId])
   @@map("purchase_order_items")
+}
+
+model StockOpnameSession {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionNumber   String            @unique @map("session_number") @db.VarChar(30)
+  name            String            @db.VarChar(150)
+  status          StockOpnameStatus @default(DRAFT)
+  scope           StockOpnameScope
+  notes           String?           @db.VarChar(500)
+  rejectionReason String?           @map("rejection_reason") @db.VarChar(500)
+  createdById     String            @map("created_by") @db.Uuid
+  approvedById    String?           @map("approved_by") @db.Uuid
+  submittedAt     DateTime?         @map("submitted_at") @db.Timestamptz(6)
+  approvedAt      DateTime?         @map("approved_at") @db.Timestamptz(6)
+  rejectedAt      DateTime?         @map("rejected_at") @db.Timestamptz(6)
+  completedAt     DateTime?         @map("completed_at") @db.Timestamptz(6)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdBy  User              @relation("OpnameCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  approvedBy User?             @relation("OpnameApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  items      StockOpnameItem[]
+
+  @@index([status, createdAt])
+  @@index([createdById])
+  @@map("stock_opname_sessions")
+}
+
+model StockOpnameItem {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId       String    @map("session_id") @db.Uuid
+  productId       String    @map("product_id") @db.Uuid
+  skuSnapshot     String    @map("sku_snapshot") @db.VarChar(50)
+  barcodeSnapshot String?   @map("barcode_snapshot") @db.VarChar(50)
+  nameSnapshot    String    @map("name_snapshot") @db.VarChar(150)
+  systemStock     Int       @map("system_stock")
+  physicalStock   Int?      @map("physical_stock")
+  difference      Int?
+  reason          String?   @db.VarChar(255)
+  countedById     String?   @map("counted_by") @db.Uuid
+  countedAt       DateTime? @map("counted_at") @db.Timestamptz(6)
+
+  session   StockOpnameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  product   Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
+  countedBy User?              @relation("OpnameCountedBy", fields: [countedById], references: [id], onDelete: SetNull)
+
+  @@unique([sessionId, productId])
+  @@index([sessionId])
+  @@index([productId])
+  @@map("stock_opname_items")
 }
 
 enum PriceField {

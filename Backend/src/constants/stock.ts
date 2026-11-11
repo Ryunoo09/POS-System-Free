@@ -14,6 +14,7 @@ export const STOCK_REFERENCE_TYPES = {
   TRANSACTION: 'TRANSACTION',
   MANUAL: 'MANUAL',
   PURCHASE: 'PURCHASE',
+  STOCK_OPNAME: 'STOCK_OPNAME',
 } as const
 
 export type StockReferenceType =
