@@ -57,6 +57,8 @@ export interface CreateOpnameData {
 
 export type UpdateOpnameSessionData = Prisma.StockOpnameSessionUncheckedUpdateInput
 
+export type OpnameTx = Prisma.TransactionClient
+
 export type ProductForOpname = Pick<Product, 'id' | 'sku' | 'barcode' | 'name' | 'stock'>
 
 export interface StockOpnameRepository {
@@ -77,6 +79,16 @@ export interface StockOpnameRepository {
     data: UpdateOpnameSessionData,
     tx?: Prisma.TransactionClient,
   ) => Promise<OpnameSessionView>
+  findItem: (
+    sessionId: string,
+    itemId: string,
+    tx?: Prisma.TransactionClient,
+  ) => Promise<OpnameItemView | null>
+  updateItem: (
+    id: string,
+    data: Prisma.StockOpnameItemUncheckedUpdateInput,
+    tx?: Prisma.TransactionClient,
+  ) => Promise<OpnameItemView>
   findActiveProducts: (input: {
     productIds?: string[] | undefined
     categoryIds?: string[] | undefined
@@ -95,6 +107,10 @@ const detailInclude = {
     include: { countedBy: { select: { id: true, name: true } } },
   },
 } satisfies Prisma.StockOpnameSessionInclude
+
+const itemInclude = {
+  countedBy: { select: { id: true, name: true } },
+} satisfies Prisma.StockOpnameItemInclude
 
 const buildWhere = (input: ListStockOpnamesInput): Prisma.StockOpnameSessionWhereInput => {
   const where: Prisma.StockOpnameSessionWhereInput = {}
@@ -194,6 +210,15 @@ export const createStockOpnameRepository = (prisma: PrismaClient): StockOpnameRe
       data,
       include: sessionInclude,
     }),
+
+  findItem: (sessionId, itemId, tx) =>
+    (tx ?? prisma).stockOpnameItem.findFirst({
+      where: { id: itemId, sessionId },
+      include: itemInclude,
+    }),
+
+  updateItem: (id, data, tx) =>
+    (tx ?? prisma).stockOpnameItem.update({ where: { id }, data, include: itemInclude }),
 
   findActiveProducts: ({ productIds, categoryIds }) =>
     prisma.product.findMany({

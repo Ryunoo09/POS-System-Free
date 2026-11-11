@@ -129,6 +129,7 @@ export const backupService = createBackupService({ userRepository, audit: auditS
 const stockOpnameRepository = createStockOpnameRepository(prisma)
 const stockOpnameService = createStockOpnameService({
   stockOpnameRepository,
+  productRepository,
   audit: auditService,
 })
 

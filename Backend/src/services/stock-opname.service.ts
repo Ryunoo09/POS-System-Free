@@ -1,14 +1,21 @@
 import { MAX_OPNAME_ITEMS } from '../constants/opname.js'
 import { AUDIT_ACTIONS, AUDIT_ENTITIES } from '../constants/audit.js'
 import { runInTransaction } from '../config/database.js'
-import { BusinessRuleError, NotFoundError } from '../errors/app-errors.js'
+import { BusinessRuleError, ConflictError, NotFoundError } from '../errors/app-errors.js'
 import {
   toOpnameDetailDto,
+  toOpnameItemDto,
   toOpnameListItemDto,
   type OpnameDetailDto,
+  type OpnameItemDto,
   type OpnameListItemDto,
 } from '../mappers/stock-opname.mapper.js'
-import type { StockOpnameRepository } from '../repositories/stock-opname.repository.js'
+import type { ProductRepository } from '../repositories/product.repository.js'
+import type {
+  OpnameDetailView,
+  OpnameTx,
+  StockOpnameRepository,
+} from '../repositories/stock-opname.repository.js'
 import type { PaginationMeta } from '../types/http.js'
 import { resolveDateRange } from '../utils/date-range.js'
 import { formatOpnameSessionNumber } from '../utils/opname-number.js'
@@ -17,6 +24,7 @@ import type { AuditRecorder } from './audit.service.js'
 import type {
   CreateStockOpnameInput,
   ListStockOpnamesQuery,
+  UpdateStockOpnameItemInput,
 } from '../validators/stock-opname.validator.js'
 
 export interface OpnameActor {
@@ -32,13 +40,23 @@ export interface StockOpnameService {
   }>
   create: (input: CreateStockOpnameInput, actor: OpnameActor) => Promise<OpnameDetailDto>
   detail: (id: string) => Promise<OpnameDetailDto>
+  start: (id: string, actor: OpnameActor) => Promise<OpnameDetailDto>
+  updateItem: (
+    sessionId: string,
+    itemId: string,
+    input: UpdateStockOpnameItemInput,
+    actor: OpnameActor,
+  ) => Promise<OpnameItemDto>
+  submit: (id: string, actor: OpnameActor) => Promise<OpnameDetailDto>
 }
 
 export const createStockOpnameService = ({
   stockOpnameRepository,
+  productRepository,
   audit,
 }: {
   stockOpnameRepository: StockOpnameRepository
+  productRepository: ProductRepository
   audit?: AuditRecorder
 }): StockOpnameService => {
   const findDetailOrFail = async (id: string): Promise<OpnameDetailDto> => {
@@ -50,6 +68,47 @@ export const createStockOpnameService = ({
 
     return toOpnameDetailDto(session)
   }
+
+  const lockSessionOrFail = async (
+    id: string,
+    tx: OpnameTx,
+  ): Promise<OpnameDetailView> => {
+    const session = await stockOpnameRepository.findByIdForUpdate(id, tx)
+
+    if (!session) {
+      throw new NotFoundError('Sesi opname tidak ditemukan', 'OPNAME_NOT_FOUND')
+    }
+
+    return session
+  }
+
+  const assertStatus = (
+    session: OpnameDetailView,
+    expected: OpnameDetailView['status'],
+  ): void => {
+    if (session.status !== expected) {
+      throw new ConflictError(
+        `Status sesi harus ${expected} untuk aksi ini (status saat ini ${session.status})`,
+        'INVALID_OPNAME_STATUS',
+      )
+    }
+  }
+
+  const auditRecord = (
+    actor: OpnameActor,
+    action: (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS],
+    session: { id: string },
+    newValue: unknown,
+  ) =>
+    audit?.record({
+      userId: actor.id,
+      action,
+      entity: AUDIT_ENTITIES.STOCK_OPNAME,
+      entityId: session.id,
+      newValue,
+      ipAddress: actor.ipAddress ?? null,
+      userAgent: actor.userAgent ?? null,
+    })
 
   return {
     list: async (query) => {
@@ -116,23 +175,87 @@ export const createStockOpnameService = ({
         ),
       )
 
-      await audit?.record({
-        userId: actor.id,
-        action: AUDIT_ACTIONS.CREATE,
-        entity: AUDIT_ENTITIES.STOCK_OPNAME,
-        entityId: created.id,
-        newValue: {
-          session_number: created.sessionNumber,
-          scope: created.scope,
-          total_items: products.length,
-        },
-        ipAddress: actor.ipAddress ?? null,
-        userAgent: actor.userAgent ?? null,
+      await auditRecord(actor, AUDIT_ACTIONS.CREATE, created, {
+        session_number: created.sessionNumber,
+        scope: created.scope,
+        total_items: products.length,
       })
 
       return findDetailOrFail(created.id)
     },
 
     detail: findDetailOrFail,
+
+    start: async (id, actor) => {
+      const updated = await runInTransaction(async (tx) => {
+        const session = await lockSessionOrFail(id, tx)
+        assertStatus(session, 'DRAFT')
+
+        return stockOpnameRepository.updateSession(id, { status: 'IN_PROGRESS' }, tx)
+      })
+
+      await auditRecord(actor, AUDIT_ACTIONS.UPDATE, updated, { status: updated.status })
+
+      return findDetailOrFail(id)
+    },
+
+    updateItem: async (sessionId, itemId, input, actor) => {
+      const item = await runInTransaction(async (tx) => {
+        const session = await lockSessionOrFail(sessionId, tx)
+        assertStatus(session, 'IN_PROGRESS')
+
+        const existing = await stockOpnameRepository.findItem(sessionId, itemId, tx)
+
+        if (!existing) {
+          throw new NotFoundError('Item opname tidak ditemukan', 'OPNAME_ITEM_NOT_FOUND')
+        }
+
+        const product = await productRepository.findByIdForUpdate(existing.productId, tx)
+
+        if (!product) {
+          throw new NotFoundError('Produk item opname tidak ditemukan', 'PRODUCT_NOT_FOUND')
+        }
+
+        // Snapshot stok sistem saat hitung di bawah row lock produk (§4.1).
+        const systemStock = product.stock
+
+        return stockOpnameRepository.updateItem(
+          itemId,
+          {
+            systemStock,
+            physicalStock: input.physical_stock,
+            difference: input.physical_stock - systemStock,
+            reason: input.reason ?? null,
+            countedById: actor.id,
+            countedAt: new Date(),
+          },
+          tx,
+        )
+      })
+
+      return toOpnameItemDto(item)
+    },
+
+    submit: async (id, actor) => {
+      const updated = await runInTransaction(async (tx) => {
+        const session = await lockSessionOrFail(id, tx)
+        assertStatus(session, 'IN_PROGRESS')
+
+        const counted = session.items.filter((item) => item.physicalStock !== null).length
+
+        if (counted === 0) {
+          throw new BusinessRuleError(
+            'Belum ada item yang dihitung',
+            'NOTHING_COUNTED',
+          )
+        }
+
+        return stockOpnameRepository.updateSession(id, { status: 'SUBMITTED', submittedAt: new Date() }, tx)
+      })
+
+      await auditRecord(actor, AUDIT_ACTIONS.UPDATE, updated, { status: updated.status })
+
+      return findDetailOrFail(id)
+    },
   }
 }

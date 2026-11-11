@@ -6,12 +6,16 @@ import { sendSuccess } from '../utils/response.js'
 import type {
   CreateStockOpnameInput,
   ListStockOpnamesQuery,
+  UpdateStockOpnameItemInput,
 } from '../validators/stock-opname.validator.js'
 
 export interface StockOpnameController {
   list: RequestHandler
   create: RequestHandler
   detail: RequestHandler
+  start: RequestHandler
+  updateItem: RequestHandler
+  submit: RequestHandler
 }
 
 const toActor = (user: AuthUser, req: Request): OpnameActor => ({
@@ -41,6 +45,33 @@ export const createStockOpnameController = ({
   detail: async (req, res) => {
     const { id } = req.validated?.params as { id: string }
     const session = await stockOpnameService.detail(id)
+
+    return sendSuccess(res, { data: session })
+  },
+
+  start: async (req, res) => {
+    const { id } = req.validated?.params as { id: string }
+    const session = await stockOpnameService.start(id, toActor(requireActor(req), req))
+
+    return sendSuccess(res, { data: session })
+  },
+
+  updateItem: async (req, res) => {
+    const { id, itemId } = req.validated?.params as { id: string; itemId: string }
+    const input = req.validated?.body as UpdateStockOpnameItemInput
+    const item = await stockOpnameService.updateItem(
+      id,
+      itemId,
+      input,
+      toActor(requireActor(req), req),
+    )
+
+    return sendSuccess(res, { data: item })
+  },
+
+  submit: async (req, res) => {
+    const { id } = req.validated?.params as { id: string }
+    const session = await stockOpnameService.submit(id, toActor(requireActor(req), req))
 
     return sendSuccess(res, { data: session })
   },

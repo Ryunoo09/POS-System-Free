@@ -6,7 +6,9 @@ import { validate } from '../middlewares/validate.js'
 import {
   createStockOpnameSchema,
   listStockOpnamesQuerySchema,
+  opnameItemParamSchema,
   stockOpnameIdParamSchema,
+  updateStockOpnameItemSchema,
 } from '../validators/stock-opname.validator.js'
 
 export const createStockOpnameRoutes = ({
@@ -37,6 +39,24 @@ export const createStockOpnameRoutes = ({
     authorize(PERMISSIONS.STOCK_OPNAME_READ),
     validate({ params: stockOpnameIdParamSchema }),
     stockOpnameController.detail,
+  )
+  router.post(
+    '/:id/start',
+    authorize(PERMISSIONS.STOCK_OPNAME_MANAGE),
+    validate({ params: stockOpnameIdParamSchema }),
+    stockOpnameController.start,
+  )
+  router.patch(
+    '/:id/items/:itemId',
+    authorize(PERMISSIONS.STOCK_OPNAME_MANAGE),
+    validate({ params: opnameItemParamSchema, body: updateStockOpnameItemSchema }),
+    stockOpnameController.updateItem,
+  )
+  router.post(
+    '/:id/submit',
+    authorize(PERMISSIONS.STOCK_OPNAME_MANAGE),
+    validate({ params: stockOpnameIdParamSchema }),
+    stockOpnameController.submit,
   )
 
   return router

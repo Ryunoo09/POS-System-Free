@@ -98,5 +98,18 @@ export const createStockOpnameSchema = z
 
 export const stockOpnameIdParamSchema = z.object({ id: uuidSchema })
 
+export const opnameItemParamSchema = z.object({ id: uuidSchema, itemId: uuidSchema })
+
+export const updateStockOpnameItemSchema = z
+  .object({
+    physical_stock: z
+      .number({ error: 'Stok fisik wajib berupa angka' })
+      .int('Stok fisik harus bilangan bulat')
+      .min(0, 'Stok fisik tidak boleh negatif'),
+    reason: z.string().trim().max(255, 'Alasan maksimal 255 karakter').optional(),
+  })
+  .strict()
+
 export type ListStockOpnamesQuery = z.infer<typeof listStockOpnamesQuerySchema>
 export type CreateStockOpnameInput = z.infer<typeof createStockOpnameSchema>
+export type UpdateStockOpnameItemInput = z.infer<typeof updateStockOpnameItemSchema>
