@@ -94,6 +94,7 @@ const transactionService = createTransactionService({
   productRepository,
   stockMovementRepository,
   shiftRepository,
+  priceService,
   taxRate: env.TAX_RATE,
 })
 

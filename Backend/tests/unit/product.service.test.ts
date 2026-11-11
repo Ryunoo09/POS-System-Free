@@ -219,6 +219,29 @@ describe('ProductService.list', () => {
   })
 })
 
+describe('ProductService.applyDueScheduledPrices', () => {
+  it('menerapkan jadwal jatuh tempo sebelum list', async () => {
+    const applyDueScheduledPrices = vi.fn(async () => 1)
+    const service = buildService({ priceService: buildPriceService({ applyDueScheduledPrices }) })
+
+    await service.list({ page: 1, limit: 10 }, adminActor)
+
+    expect(applyDueScheduledPrices).toHaveBeenCalledWith()
+  })
+
+  it('menerapkan jadwal hanya untuk produk yang diminta pada getById', async () => {
+    const applyDueScheduledPrices = vi.fn(async () => 1)
+    const service = buildService({
+      productRepository: buildProductRepository({ findById: async () => buildProduct() }),
+      priceService: buildPriceService({ applyDueScheduledPrices }),
+    })
+
+    await service.getById('product-1', adminActor)
+
+    expect(applyDueScheduledPrices).toHaveBeenCalledWith(undefined, ['product-1'])
+  })
+})
+
 describe('ProductService.update audit hook', () => {
   it('mencatat perubahan harga produk ke audit log', async () => {
     const record = vi.fn(async () => {})

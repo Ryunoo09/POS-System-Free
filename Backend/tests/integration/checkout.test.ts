@@ -7,8 +7,10 @@ import { prisma } from '../../src/config/database.js'
 import { container } from '../../src/container.js'
 import { createTransactionController } from '../../src/controllers/transaction.controller.js'
 import { createProductRepository } from '../../src/repositories/product.repository.js'
+import { createPriceRepository } from '../../src/repositories/price.repository.js'
 import { createTransactionRepository } from '../../src/repositories/transaction.repository.js'
 import { createTransactionService } from '../../src/services/transaction.service.js'
+import { createPriceService } from '../../src/services/price.service.js'
 import { logger } from '../../src/utils/logger.js'
 import { signAccessToken } from '../../src/utils/jwt.js'
 
@@ -369,6 +371,10 @@ describe('POST /api/transactions', () => {
               },
               list: async () => ({ items: [], total: 0 }),
             },
+            priceService: createPriceService({
+              priceRepository: createPriceRepository(prisma),
+              productRepository: createProductRepository(prisma),
+            }),
             taxRate: 0,
           }),
         }),

@@ -99,6 +99,8 @@ export const createProductService = ({
       const canViewCostPrice = actor.canViewCostPrice
       const isActive = actor.isCashier ? true : query.is_active
 
+      await priceService.applyDueScheduledPrices()
+
       const { items, total } = await productRepository.list({
         skip: toSkip(query.page, query.limit),
         take: query.limit,
@@ -115,6 +117,8 @@ export const createProductService = ({
     },
 
     getById: async (id, actor) => {
+      await priceService.applyDueScheduledPrices(undefined, [id])
+
       const product = await productRepository.findById(id)
 
       if (!product) {

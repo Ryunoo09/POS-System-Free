@@ -15,6 +15,7 @@ import type {
 } from '../repositories/transaction.repository.js'
 import type { StockMovementRepository } from '../repositories/stock-movement.repository.js'
 import type { ShiftRepository } from '../repositories/shift.repository.js'
+import type { PriceService } from './price.service.js'
 import type { FieldError, PaginationMeta } from '../types/http.js'
 import { resolveDateRange } from '../utils/date-range.js'
 import { isUniqueViolation } from '../utils/idempotency.js'
@@ -80,12 +81,14 @@ export const createTransactionService = ({
   productRepository,
   stockMovementRepository,
   shiftRepository,
+  priceService,
   taxRate,
 }: {
   transactionRepository: TransactionRepository
   productRepository: ProductRepository
   stockMovementRepository: StockMovementRepository
   shiftRepository?: ShiftRepository
+  priceService: PriceService
   taxRate: number
 }): TransactionService => ({
   list: async (query, actor) => {
@@ -132,6 +135,7 @@ export const createTransactionService = ({
     try {
       const created = await runInTransaction(async (tx) => {
         const productIds = [...new Set(input.items.map((item) => item.product_id))].sort()
+        await priceService.applyDueScheduledPrices(tx, productIds)
         const products = await productRepository.findManyByIdsForUpdate(productIds, tx)
         const productById = new Map(products.map((product) => [product.id, product]))
 

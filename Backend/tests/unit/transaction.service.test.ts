@@ -14,6 +14,7 @@ import {
   type CheckoutActor,
   type TransactionActor,
 } from '../../src/services/transaction.service.js'
+import type { PriceService } from '../../src/services/price.service.js'
 import type { CheckoutInput } from '../../src/validators/transaction.validator.js'
 
 vi.mock('../../src/config/database.js', () => ({
@@ -175,6 +176,19 @@ const buildMovementRepository = () => {
   return { repository, create }
 }
 
+const buildPriceService = (): PriceService => ({
+  recordPriceChanges: async () => {},
+  listHistory: async () => [],
+  applyDueScheduledPrices: vi.fn(async () => 0),
+  schedulePrice: async () => {
+    throw new Error('tidak dipakai')
+  },
+  getScheduledPrice: async () => null,
+  cancelScheduledPrice: async () => {},
+  bulkPreview: async () => [],
+  bulkApply: async () => ({ updated: 0 }),
+})
+
 const buildTransactionRepository = (existing: TransactionDetailView | null = null) => {
   const findByIdempotencyKey = vi.fn(async () => existing)
   const createCheckout = vi.fn(async (data: CreateCheckoutData) => buildDetailFromData(data))
@@ -202,17 +216,20 @@ const buildService = ({
   const productRepository = buildProductRepository(products)
   const movementRepository = buildMovementRepository()
   const transactionRepository = buildTransactionRepository(existing)
+  const priceService = buildPriceService()
 
   return {
     service: createTransactionService({
       transactionRepository: transactionRepository.repository,
       productRepository: productRepository.repository,
       stockMovementRepository: movementRepository.repository,
+      priceService,
       taxRate: 0,
     }),
     ...productRepository,
     ...movementRepository,
     ...transactionRepository,
+    priceService,
   }
 }
 
@@ -271,6 +288,16 @@ describe('TransactionService.checkout', () => {
     )
 
     expect(result.transaction.items[0]?.unit_cost).toBe('2000.00')
+  })
+
+  it('menerapkan harga terjadwal yang jatuh tempo sebelum mengambil produk', async () => {
+    const { service, priceService } = buildService()
+
+    await service.checkout(checkoutInput(), actor, key)
+
+    expect(priceService.applyDueScheduledPrices).toHaveBeenCalledWith(expect.anything(), [
+      'product-1',
+    ])
   })
 
   it('mengembalikan transaksi lama untuk idempotency key yang sama', async () => {
@@ -425,6 +452,7 @@ const buildReadService = ({
     transactionRepository: repository,
     productRepository: buildProductRepository([]).repository,
     stockMovementRepository: buildMovementRepository().repository,
+    priceService: buildPriceService(),
     taxRate: 0,
   })
 
