@@ -5,6 +5,7 @@ import { authorize } from '../middlewares/authorize.js'
 import { validate } from '../middlewares/validate.js'
 import {
   cashierReportQuerySchema,
+  cogsReportQuerySchema,
   productReportQuerySchema,
   salesReportQuerySchema,
   valuationQuerySchema,
@@ -39,6 +40,7 @@ export const createReportRoutes = ({
     validate({ query: valuationQuerySchema }),
     reportController.getInventoryValuation,
   )
+  router.get('/cogs', validate({ query: cogsReportQuerySchema }), reportController.getCogs)
 
   return router
 }

@@ -4,6 +4,7 @@ import { resolveDateRange, type DateRangeInput } from '../utils/date-range.js'
 import { buildPaginationMeta, toSkip } from '../utils/pagination.js'
 import type {
   CashierReportQuery,
+  CogsReportQuery,
   ProductReportQuery,
   SalesReportQuery,
   ValuationQuery,
@@ -13,6 +14,7 @@ export interface ReportSummaryDto {
   revenue: string
   cogs: string
   gross_profit: string
+  gross_margin_pct: string
   transaction_count: number
 }
 
@@ -23,6 +25,7 @@ export interface SalesReportRowDto {
   revenue: string
   cogs: string
   gross_profit: string
+  gross_margin_pct: string
 }
 
 export interface ProductReportRowDto {
@@ -34,6 +37,17 @@ export interface ProductReportRowDto {
   revenue: string
   cogs: string
   gross_profit: string
+  gross_margin_pct: string
+}
+
+export interface CategoryCogsReportRowDto {
+  category_id: string | null
+  category: string
+  quantity_sold: number
+  revenue: string
+  cogs: string
+  gross_profit: string
+  gross_margin_pct: string
 }
 
 export interface CashierReportRowDto {
@@ -56,6 +70,9 @@ export interface ReportService {
     query: CashierReportQuery,
   ) => Promise<{ summary: ReportSummaryDto; rows: CashierReportRowDto[] }>
   getInventoryValuation: (query: ValuationQuery) => Promise<InventoryValuationDto>
+  getCogs: (
+    query: CogsReportQuery,
+  ) => Promise<{ summary: ReportSummaryDto; rows: CategoryCogsReportRowDto[] }>
 }
 
 export interface ValuationItemDto {
@@ -141,10 +158,18 @@ export const createReportService = ({
 }): ReportService => {
   const resolve = (query: DateRangeInput) => resolveDateRange(query)
 
+  const marginPct = (revenue: string, grossProfit: string): string => {
+    const revenueValue = Number(revenue)
+    if (!revenueValue) return '0.00'
+
+    return ((Number(grossProfit) / revenueValue) * 100).toFixed(2)
+  }
+
   const toSummary = (totals: Awaited<ReturnType<ReportRepository['getSummary']>>): ReportSummaryDto => ({
     revenue: totals.revenue,
     cogs: totals.cogs,
     gross_profit: totals.grossProfit,
+    gross_margin_pct: marginPct(totals.revenue, totals.grossProfit),
     transaction_count: totals.transactionCount,
   })
 
@@ -165,6 +190,7 @@ export const createReportService = ({
           revenue: row.revenue,
           cogs: row.cogs,
           gross_profit: row.grossProfit,
+          gross_margin_pct: marginPct(row.revenue, row.grossProfit),
         })),
       }
     },
@@ -192,6 +218,7 @@ export const createReportService = ({
           revenue: row.revenue,
           cogs: row.cogs,
           gross_profit: row.grossProfit,
+          gross_margin_pct: marginPct(row.revenue, row.grossProfit),
         })),
         meta: buildPaginationMeta(query.page, query.limit, result.total),
       }
@@ -239,6 +266,27 @@ export const createReportService = ({
           category: row.category,
           quantity: row.quantity,
           value: row.value,
+        })),
+      }
+    },
+
+    getCogs: async (query) => {
+      const range = resolve(query)
+      const [totals, rows] = await Promise.all([
+        reportRepository.getSummary(range),
+        reportRepository.getCategoryCogs(range, query.category_id),
+      ])
+
+      return {
+        summary: toSummary(totals),
+        rows: rows.map((row) => ({
+          category_id: row.categoryId,
+          category: row.category,
+          quantity_sold: row.quantitySold,
+          revenue: row.revenue,
+          cogs: row.cogs,
+          gross_profit: row.grossProfit,
+          gross_margin_pct: marginPct(row.revenue, row.grossProfit),
         })),
       }
     },

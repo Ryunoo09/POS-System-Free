@@ -35,6 +35,7 @@ const summary = {
   revenue: '140000.00',
   cogs: '80000.00',
   gross_profit: '60000.00',
+  gross_margin_pct: '42.86',
   transaction_count: 2,
 }
 
@@ -65,6 +66,7 @@ describe('ReportService.getSales', () => {
         revenue: '90000.00',
         cogs: '60000.00',
         gross_profit: '30000.00',
+        gross_margin_pct: '33.33',
       },
     ])
   })
@@ -133,6 +135,7 @@ describe('ReportService.getProducts', () => {
       revenue: '100000.00',
       cogs: '60000.00',
       gross_profit: '40000.00',
+      gross_margin_pct: '40.00',
     })
   })
 })
@@ -177,6 +180,40 @@ describe('ReportService.getInventoryValuation', () => {
     })
     expect(result.by_category).toEqual([
       { category_id: 'cat-1', category: 'Makanan', quantity: 100, value: '500000.00' },
+    ])
+  })
+})
+
+describe('ReportService.getCogs', () => {
+  it('memetakan COGS per kategori beserta margin', async () => {
+    const service = createReportService({
+      reportRepository: buildRepository({
+        getCategoryCogs: async () => [
+          {
+            categoryId: 'cat-1',
+            category: 'Minuman',
+            quantitySold: 5,
+            revenue: '100000.00',
+            cogs: '60000.00',
+            grossProfit: '40000.00',
+          },
+        ],
+      }),
+    })
+
+    const result = await service.getCogs(range)
+
+    expect(result.summary).toEqual(summary)
+    expect(result.rows).toEqual([
+      {
+        category_id: 'cat-1',
+        category: 'Minuman',
+        quantity_sold: 5,
+        revenue: '100000.00',
+        cogs: '60000.00',
+        gross_profit: '40000.00',
+        gross_margin_pct: '40.00',
+      },
     ])
   })
 })

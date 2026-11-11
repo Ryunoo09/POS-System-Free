@@ -3,6 +3,7 @@ import type { ReportService } from '../services/report.service.js'
 import { sendSuccess } from '../utils/response.js'
 import type {
   CashierReportQuery,
+  CogsReportQuery,
   ProductReportQuery,
   SalesReportQuery,
   ValuationQuery,
@@ -13,6 +14,7 @@ export interface ReportController {
   getProducts: RequestHandler
   getCashiers: RequestHandler
   getInventoryValuation: RequestHandler
+  getCogs: RequestHandler
 }
 
 export const createReportController = ({
@@ -44,6 +46,13 @@ export const createReportController = ({
   getInventoryValuation: async (req, res) => {
     const query = req.validated?.query as ValuationQuery
     const data = await reportService.getInventoryValuation(query)
+
+    return sendSuccess(res, { data })
+  },
+
+  getCogs: async (req, res) => {
+    const query = req.validated?.query as CogsReportQuery
+    const data = await reportService.getCogs(query)
 
     return sendSuccess(res, { data })
   },
