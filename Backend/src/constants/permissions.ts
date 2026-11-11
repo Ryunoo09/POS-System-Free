@@ -24,6 +24,9 @@ export const PERMISSIONS = {
   PURCHASE_READ: 'purchase:read',
   PURCHASE_WRITE: 'purchase:write',
   BACKUP_MANAGE: 'backup:manage',
+  STOCK_OPNAME_READ: 'stock_opname:read',
+  STOCK_OPNAME_MANAGE: 'stock_opname:manage',
+  STOCK_OPNAME_APPROVE: 'stock_opname:approve',
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -55,6 +58,9 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     PERMISSIONS.PURCHASE_READ,
     PERMISSIONS.PURCHASE_WRITE,
     PERMISSIONS.BACKUP_MANAGE,
+    PERMISSIONS.STOCK_OPNAME_READ,
+    PERMISSIONS.STOCK_OPNAME_MANAGE,
+    PERMISSIONS.STOCK_OPNAME_APPROVE,
   ],
   OWNER: [
     PERMISSIONS.DASHBOARD_READ,
@@ -70,6 +76,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     PERMISSIONS.SUPPLIER_READ,
     PERMISSIONS.PURCHASE_READ,
     PERMISSIONS.BACKUP_MANAGE,
+    PERMISSIONS.STOCK_OPNAME_READ,
+    PERMISSIONS.STOCK_OPNAME_APPROVE,
   ],
   CASHIER: [
     PERMISSIONS.PRODUCT_READ,

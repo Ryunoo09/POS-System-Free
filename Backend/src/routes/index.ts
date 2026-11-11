@@ -14,6 +14,7 @@ import { createReturnRoutes } from './return.routes.js'
 import { createSupplierRoutes } from './supplier.routes.js'
 import { createPurchaseRoutes } from './purchase.routes.js'
 import { createBackupRoutes } from './backup.routes.js'
+import { createStockOpnameRoutes } from './stock-opname.routes.js'
 
 export const createRoutes = (container: AppContainer): ExpressRouter => {
   const router = Router()
@@ -33,6 +34,7 @@ export const createRoutes = (container: AppContainer): ExpressRouter => {
   router.use('/suppliers', createSupplierRoutes(container))
   router.use('/purchase-orders', createPurchaseRoutes(container))
   router.use('/backup', createBackupRoutes(container))
+  router.use('/stock-opnames', createStockOpnameRoutes(container))
 
   return router
 }

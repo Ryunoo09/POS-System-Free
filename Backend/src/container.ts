@@ -15,6 +15,7 @@ import { createReturnController } from './controllers/return.controller.js'
 import { createSupplierController } from './controllers/supplier.controller.js'
 import { createPurchaseController } from './controllers/purchase.controller.js'
 import { createBackupController } from './controllers/backup.controller.js'
+import { createStockOpnameController } from './controllers/stock-opname.controller.js'
 import { authenticate } from './middlewares/authenticate.js'
 import { createCategoryRepository } from './repositories/category.repository.js'
 import { createHealthRepository } from './repositories/health.repository.js'
@@ -30,6 +31,7 @@ import { createAuditRepository } from './repositories/audit.repository.js'
 import { createReturnRepository } from './repositories/return.repository.js'
 import { createSupplierRepository } from './repositories/supplier.repository.js'
 import { createPurchaseOrderRepository } from './repositories/purchase.repository.js'
+import { createStockOpnameRepository } from './repositories/stock-opname.repository.js'
 import { createAuthService } from './services/auth.service.js'
 import { createCategoryService } from './services/category.service.js'
 import { createDashboardService } from './services/dashboard.service.js'
@@ -46,6 +48,7 @@ import { createReturnService } from './services/return.service.js'
 import { createSupplierService } from './services/supplier.service.js'
 import { createPurchaseService } from './services/purchase.service.js'
 import { createBackupService } from './services/backup.service.js'
+import { createStockOpnameService } from './services/stock-opname.service.js'
 import type { AppContainer } from './types/container.js'
 
 const healthRepository = createHealthRepository(prisma)
@@ -123,6 +126,12 @@ const purchaseService = createPurchaseService({
 
 export const backupService = createBackupService({ userRepository, audit: auditService })
 
+const stockOpnameRepository = createStockOpnameRepository(prisma)
+const stockOpnameService = createStockOpnameService({
+  stockOpnameRepository,
+  audit: auditService,
+})
+
 export const container: AppContainer = {
   healthController: createHealthController({ healthService }),
   authController: createAuthController({ authService }),
@@ -139,5 +148,6 @@ export const container: AppContainer = {
   supplierController: createSupplierController({ supplierService }),
   purchaseController: createPurchaseController({ purchaseService }),
   backupController: createBackupController({ backupService }),
+  stockOpnameController: createStockOpnameController({ stockOpnameService }),
   authenticate: authenticate({ userRepository }),
 }

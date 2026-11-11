@@ -14,6 +14,7 @@ import type { ReturnController } from '../controllers/return.controller.js'
 import type { SupplierController } from '../controllers/supplier.controller.js'
 import type { PurchaseController } from '../controllers/purchase.controller.js'
 import type { BackupController } from '../controllers/backup.controller.js'
+import type { StockOpnameController } from '../controllers/stock-opname.controller.js'
 
 export interface AppContainer {
   healthController: HealthController
@@ -31,5 +32,6 @@ export interface AppContainer {
   supplierController: SupplierController
   purchaseController: PurchaseController
   backupController: BackupController
+  stockOpnameController: StockOpnameController
   authenticate: RequestHandler
 }
