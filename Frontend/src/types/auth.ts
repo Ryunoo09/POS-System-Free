@@ -24,6 +24,9 @@ export type Permission =
   | 'purchase:read'
   | 'purchase:write'
   | 'backup:manage'
+  | 'stock_opname:read'
+  | 'stock_opname:manage'
+  | 'stock_opname:approve'
 
 export interface AuthUser {
   id: string

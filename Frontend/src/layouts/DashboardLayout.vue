@@ -39,6 +39,12 @@ const menu: MenuItem[] = [
     icon: 'M3 7h18v13H3zM3 11h18M8 7V4h8v3',
   },
   {
+    label: 'Stok Opname',
+    to: '/stock-opnames',
+    permissions: [PERMISSIONS.STOCK_OPNAME_READ],
+    icon: 'M9 4h6v3H9zM6 7h12v14H6zM9 12h6M9 16h4',
+  },
+  {
     label: 'Transaksi',
     to: '/transactions',
     permissions: [PERMISSIONS.TRANSACTION_READ_ALL, PERMISSIONS.TRANSACTION_READ_OWN],

@@ -72,6 +72,24 @@ export const routes: RouteRecordRaw[] = [
         meta: { permissions: [PERMISSIONS.INVENTORY_READ], title: 'Inventori' },
       },
       {
+        path: 'stock-opnames',
+        name: 'stock-opnames',
+        component: () => import('@/pages/StockOpnamesPage.vue'),
+        meta: { permissions: [PERMISSIONS.STOCK_OPNAME_READ], title: 'Stok Opname' },
+      },
+      {
+        path: 'stock-opnames/new',
+        name: 'stock-opname-create',
+        component: () => import('@/pages/StockOpnameCreatePage.vue'),
+        meta: { permissions: [PERMISSIONS.STOCK_OPNAME_MANAGE], title: 'Sesi Opname Baru' },
+      },
+      {
+        path: 'stock-opnames/:id',
+        name: 'stock-opname-detail',
+        component: () => import('@/pages/StockOpnameDetailPage.vue'),
+        meta: { permissions: [PERMISSIONS.STOCK_OPNAME_READ], title: 'Detail Opname' },
+      },
+      {
         path: 'transactions',
         name: 'transactions',
         component: () => import('@/pages/TransactionsPage.vue'),
