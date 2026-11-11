@@ -40,8 +40,8 @@ export interface SchedulePriceInput {
 export interface BulkPriceInput {
   mode: PriceMode
   value: number
-  product_ids?: string[]
-  category_id?: string
+  product_ids?: string[] | undefined
+  category_id?: string | undefined
 }
 
 export interface BulkPriceItem {

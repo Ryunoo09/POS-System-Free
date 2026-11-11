@@ -10,7 +10,11 @@ import type {
   ListProductsQuery,
   UpdateProductInput,
 } from '../validators/product.validator.js'
-import type { SchedulePriceInput } from '../validators/price.validator.js'
+import type {
+  BulkPriceApplyInput,
+  BulkPricePreviewInput,
+  SchedulePriceInput,
+} from '../validators/price.validator.js'
 
 export interface ProductController {
   list: RequestHandler
@@ -23,6 +27,8 @@ export interface ProductController {
   schedulePrice: RequestHandler
   getScheduledPrice: RequestHandler
   cancelScheduledPrice: RequestHandler
+  bulkPricePreview: RequestHandler
+  bulkPriceApply: RequestHandler
 }
 
 const toActor = (user: AuthUser, req: Request): ProductActor => ({
@@ -114,5 +120,19 @@ export const createProductController = ({
     await priceService.cancelScheduledPrice(id, scheduleId)
 
     return sendSuccess(res, { message: 'Jadwal harga dibatalkan' })
+  },
+
+  bulkPricePreview: async (req, res) => {
+    const input = req.validated?.body as BulkPricePreviewInput
+    const data = await priceService.bulkPreview(input)
+
+    return sendSuccess(res, { data })
+  },
+
+  bulkPriceApply: async (req, res) => {
+    const input = req.validated?.body as BulkPriceApplyInput
+    const data = await priceService.bulkApply(input, toPriceActor(requireActor(req)))
+
+    return sendSuccess(res, { message: 'Harga berhasil diperbarui', data })
   },
 })

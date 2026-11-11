@@ -10,6 +10,8 @@ import {
   updateProductSchema,
 } from '../validators/product.validator.js'
 import {
+  bulkPriceApplySchema,
+  bulkPricePreviewSchema,
   scheduleIdParamSchema,
   schedulePriceSchema,
 } from '../validators/price.validator.js'
@@ -24,6 +26,19 @@ export const createProductRoutes = ({
   const router = Router()
 
   router.use(authenticate)
+
+  router.post(
+    '/bulk-price/preview',
+    authorize(PERMISSIONS.PRODUCT_WRITE),
+    validate({ body: bulkPricePreviewSchema }),
+    productController.bulkPricePreview,
+  )
+  router.post(
+    '/bulk-price',
+    authorize(PERMISSIONS.PRODUCT_WRITE),
+    validate({ body: bulkPriceApplySchema }),
+    productController.bulkPriceApply,
+  )
 
   router.get(
     '/',
