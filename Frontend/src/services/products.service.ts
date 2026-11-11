@@ -18,6 +18,11 @@ export const productsService = {
     return response.data
   },
 
+  async get(id: string): Promise<Product> {
+    const response = await http.get<Product>(`/products/${id}`)
+    return response.data
+  },
+
   async update(id: string, payload: ProductUpdatePayload): Promise<Product> {
     const response = await http.put<Product>(`/products/${id}`, payload)
     return response.data

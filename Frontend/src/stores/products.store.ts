@@ -15,6 +15,7 @@ import { emptyPaginationMeta } from '@/utils/pagination'
 export const useProductsStore = defineStore('products', () => {
   const items = ref<Product[]>([])
   const options = ref<Product[]>([])
+  const detail = ref<Product | null>(null)
   const meta = ref<PaginationMeta>(emptyPaginationMeta())
   const isLoading = ref(false)
   const isSaving = ref(false)
@@ -41,6 +42,19 @@ export const useProductsStore = defineStore('products', () => {
       options.value = result.items
     } catch {
       options.value = []
+    }
+  }
+
+  const fetchProduct = async (id: string): Promise<void> => {
+    isLoading.value = true
+    error.value = ''
+
+    try {
+      detail.value = await productsService.get(id)
+    } catch (err) {
+      error.value = errorMessage(err, 'Gagal memuat produk.')
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -99,12 +113,14 @@ export const useProductsStore = defineStore('products', () => {
   return {
     items,
     options,
+    detail,
     meta,
     isLoading,
     isSaving,
     error,
     fetchProducts,
     fetchProductOptions,
+    fetchProduct,
     findByBarcode,
     createProduct,
     updateProduct,

@@ -212,6 +212,7 @@ const confirmToggle = async () => {
           :show-cost="showCost"
           @edit="openEdit"
           @toggle="toggleTarget = $event"
+          @prices="router.push(`/products/${$event.id}/prices`)"
         />
         <PaginationBar :meta="productsStore.meta" @change="page = $event" />
       </template>

@@ -16,6 +16,7 @@ withDefaults(
 const emit = defineEmits<{
   edit: [product: Product]
   toggle: [product: Product]
+  prices: [product: Product]
 }>()
 </script>
 
@@ -32,7 +33,7 @@ const emit = defineEmits<{
           <th scope="col" class="px-4 py-3 font-medium">Harga Jual</th>
           <th scope="col" class="px-4 py-3 font-medium">Stok</th>
           <th scope="col" class="px-4 py-3 font-medium">Status</th>
-          <th v-if="canWrite" scope="col" class="px-4 py-3 text-right font-medium">Aksi</th>
+          <th scope="col" class="px-4 py-3 text-right font-medium">Aksi</th>
         </tr>
       </thead>
 
@@ -60,18 +61,23 @@ const emit = defineEmits<{
               {{ product.is_active ? 'Aktif' : 'Nonaktif' }}
             </AppBadge>
           </td>
-          <td v-if="canWrite" class="px-4 py-3">
+          <td class="px-4 py-3">
             <div class="flex justify-end gap-2">
-              <AppButton variant="secondary" size="sm" @click="emit('edit', product)">
-                Ubah
+              <AppButton variant="ghost" size="sm" @click="emit('prices', product)">
+                Harga
               </AppButton>
-              <AppButton
-                :variant="product.is_active ? 'danger' : 'ghost'"
-                size="sm"
-                @click="emit('toggle', product)"
-              >
-                {{ product.is_active ? 'Nonaktifkan' : 'Aktifkan' }}
-              </AppButton>
+              <template v-if="canWrite">
+                <AppButton variant="secondary" size="sm" @click="emit('edit', product)">
+                  Ubah
+                </AppButton>
+                <AppButton
+                  :variant="product.is_active ? 'danger' : 'ghost'"
+                  size="sm"
+                  @click="emit('toggle', product)"
+                >
+                  {{ product.is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+                </AppButton>
+              </template>
             </div>
           </td>
         </tr>

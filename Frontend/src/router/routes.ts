@@ -48,6 +48,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { permissions: [PERMISSIONS.PRODUCT_READ], title: 'Cetak Label' },
       },
       {
+        path: 'products/:id/prices',
+        name: 'product-prices',
+        component: () => import('@/pages/ProductPricesPage.vue'),
+        meta: { permissions: [PERMISSIONS.PRODUCT_READ], title: 'Manajemen Harga' },
+      },
+      {
         path: 'categories',
         name: 'categories',
         component: () => import('@/pages/CategoriesPage.vue'),
