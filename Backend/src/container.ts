@@ -125,7 +125,7 @@ export const container: AppContainer = {
   healthController: createHealthController({ healthService }),
   authController: createAuthController({ authService }),
   dashboardController: createDashboardController({ dashboardService }),
-  productController: createProductController({ productService }),
+  productController: createProductController({ productService, priceService }),
   categoryController: createCategoryController({ categoryService }),
   inventoryController: createInventoryController({ inventoryService }),
   reportController: createReportController({ reportService }),

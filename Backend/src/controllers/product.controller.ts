@@ -1,6 +1,7 @@
 import type { Request, RequestHandler } from 'express'
 import { PERMISSIONS } from '../constants/permissions.js'
 import type { ProductActor, ProductService } from '../services/product.service.js'
+import type { PriceActor, PriceService } from '../services/price.service.js'
 import type { AuthUser } from '../types/auth.js'
 import { auditContextFrom, requireActor } from '../utils/request.js'
 import { sendSuccess } from '../utils/response.js'
@@ -9,6 +10,7 @@ import type {
   ListProductsQuery,
   UpdateProductInput,
 } from '../validators/product.validator.js'
+import type { SchedulePriceInput } from '../validators/price.validator.js'
 
 export interface ProductController {
   list: RequestHandler
@@ -17,6 +19,10 @@ export interface ProductController {
   update: RequestHandler
   deactivate: RequestHandler
   generateBarcode: RequestHandler
+  listPriceHistory: RequestHandler
+  schedulePrice: RequestHandler
+  getScheduledPrice: RequestHandler
+  cancelScheduledPrice: RequestHandler
 }
 
 const toActor = (user: AuthUser, req: Request): ProductActor => ({
@@ -26,10 +32,17 @@ const toActor = (user: AuthUser, req: Request): ProductActor => ({
   ...auditContextFrom(req),
 })
 
+const toPriceActor = (user: AuthUser): PriceActor => ({
+  id: user.id,
+  canViewCostPrice: user.permissions.includes(PERMISSIONS.COST_PRICE_READ),
+})
+
 export const createProductController = ({
   productService,
+  priceService,
 }: {
   productService: ProductService
+  priceService: PriceService
 }): ProductController => ({
   list: async (req, res) => {
     const query = req.validated?.query as ListProductsQuery
@@ -72,5 +85,34 @@ export const createProductController = ({
     const data = await productService.generateBarcode(id, toActor(requireActor(req), req))
 
     return sendSuccess(res, { message: 'Barcode berhasil dibuat', data })
+  },
+
+  listPriceHistory: async (req, res) => {
+    const { id } = req.validated?.params as { id: string }
+    const data = await priceService.listHistory(id, toPriceActor(requireActor(req)))
+
+    return sendSuccess(res, { data })
+  },
+
+  schedulePrice: async (req, res) => {
+    const { id } = req.validated?.params as { id: string }
+    const input = req.validated?.body as SchedulePriceInput
+    const data = await priceService.schedulePrice(id, input, toPriceActor(requireActor(req)))
+
+    return sendSuccess(res, { statusCode: 201, message: 'Harga terjadwal dibuat', data })
+  },
+
+  getScheduledPrice: async (req, res) => {
+    const { id } = req.validated?.params as { id: string }
+    const data = await priceService.getScheduledPrice(id)
+
+    return sendSuccess(res, { data })
+  },
+
+  cancelScheduledPrice: async (req, res) => {
+    const { id, scheduleId } = req.validated?.params as { id: string; scheduleId: string }
+    await priceService.cancelScheduledPrice(id, scheduleId)
+
+    return sendSuccess(res, { message: 'Jadwal harga dibatalkan' })
   },
 })

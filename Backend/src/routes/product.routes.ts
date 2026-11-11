@@ -9,6 +9,10 @@ import {
   productIdParamSchema,
   updateProductSchema,
 } from '../validators/product.validator.js'
+import {
+  scheduleIdParamSchema,
+  schedulePriceSchema,
+} from '../validators/price.validator.js'
 
 export const createProductRoutes = ({
   productController,
@@ -56,6 +60,30 @@ export const createProductRoutes = ({
     authorize(PERMISSIONS.PRODUCT_WRITE),
     validate({ params: productIdParamSchema }),
     productController.generateBarcode,
+  )
+  router.get(
+    '/:id/price-history',
+    authorize(PERMISSIONS.PRODUCT_READ),
+    validate({ params: productIdParamSchema }),
+    productController.listPriceHistory,
+  )
+  router.get(
+    '/:id/scheduled-price',
+    authorize(PERMISSIONS.PRODUCT_READ),
+    validate({ params: productIdParamSchema }),
+    productController.getScheduledPrice,
+  )
+  router.post(
+    '/:id/scheduled-price',
+    authorize(PERMISSIONS.PRODUCT_WRITE),
+    validate({ params: productIdParamSchema, body: schedulePriceSchema }),
+    productController.schedulePrice,
+  )
+  router.delete(
+    '/:id/scheduled-price/:scheduleId',
+    authorize(PERMISSIONS.PRODUCT_WRITE),
+    validate({ params: scheduleIdParamSchema }),
+    productController.cancelScheduledPrice,
   )
 
   return router
