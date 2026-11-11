@@ -105,13 +105,15 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  transactions   Transaction[]
-  stockMovements StockMovement[]
-  shifts         Shift[]
-  cashMovements  CashMovement[]
-  returns        ReturnTransaction[]
-  auditLogs      AuditLog[]
-  purchaseOrders PurchaseOrder[]
+  transactions    Transaction[]
+  stockMovements  StockMovement[]
+  shifts          Shift[]
+  cashMovements   CashMovement[]
+  returns         ReturnTransaction[]
+  auditLogs       AuditLog[]
+  purchaseOrders  PurchaseOrder[]
+  priceChanges    ProductPriceHistory[]  @relation("PriceChangedBy")
+  scheduledPrices ScheduledPriceChange[] @relation("ScheduledPriceCreatedBy")
 
   @@index([role, isActive])
   @@map("users")
@@ -167,11 +169,13 @@ model Product {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  category           Category            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category           Category               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   transactionItems   TransactionItem[]
   stockMovements     StockMovement[]
   returnItems        ReturnItem[]
   purchaseOrderItems PurchaseOrderItem[]
+  priceHistory       ProductPriceHistory[]
+  scheduledPrices    ScheduledPriceChange[]
 
   @@index([categoryId])
   @@index([isActive])
@@ -196,8 +200,8 @@ model Transaction {
   shiftId          String?           @map("shift_id") @db.Uuid
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  cashier User              @relation(fields: [cashierId], references: [id], onDelete: Restrict)
-  shift   Shift?            @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  cashier User                @relation(fields: [cashierId], references: [id], onDelete: Restrict)
+  shift   Shift?              @relation(fields: [shiftId], references: [id], onDelete: SetNull)
   items   TransactionItem[]
   returns ReturnTransaction[]
 
@@ -251,19 +255,19 @@ model StockMovement {
 }
 
 model Shift {
-  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  cashierId      String       @map("cashier_id") @db.Uuid
-  status         ShiftStatus  @default(OPEN)
-  startingCash   Decimal      @map("starting_cash") @db.Decimal(12, 2)
-  expectedCash   Decimal?     @map("expected_cash") @db.Decimal(12, 2)
-  actualCash     Decimal?     @map("actual_cash") @db.Decimal(12, 2)
-  cashDifference Decimal?     @map("cash_difference") @db.Decimal(12, 2)
-  differenceNote String?      @map("difference_note") @db.VarChar(255)
-  openedAt       DateTime     @default(now()) @map("opened_at") @db.Timestamptz(6)
-  closedAt       DateTime?    @map("closed_at") @db.Timestamptz(6)
-  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cashierId      String      @map("cashier_id") @db.Uuid
+  status         ShiftStatus @default(OPEN)
+  startingCash   Decimal     @map("starting_cash") @db.Decimal(12, 2)
+  expectedCash   Decimal?    @map("expected_cash") @db.Decimal(12, 2)
+  actualCash     Decimal?    @map("actual_cash") @db.Decimal(12, 2)
+  cashDifference Decimal?    @map("cash_difference") @db.Decimal(12, 2)
+  differenceNote String?     @map("difference_note") @db.VarChar(255)
+  openedAt       DateTime    @default(now()) @map("opened_at") @db.Timestamptz(6)
+  closedAt       DateTime?   @map("closed_at") @db.Timestamptz(6)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  cashier       User           @relation(fields: [cashierId], references: [id], onDelete: Restrict)
+  cashier       User                @relation(fields: [cashierId], references: [id], onDelete: Restrict)
   transactions  Transaction[]
   cashMovements CashMovement[]
   returns       ReturnTransaction[]
@@ -291,16 +295,16 @@ model CashMovement {
 }
 
 model ReturnTransaction {
-  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  returnNumber String        @unique @map("return_number") @db.VarChar(30)
-  transactionId String       @map("transaction_id") @db.Uuid
-  cashierId    String        @map("cashier_id") @db.Uuid
-  shiftId      String?       @map("shift_id") @db.Uuid
-  status       ReturnStatus  @default(COMPLETED)
-  reason       String        @db.VarChar(255)
-  refundAmount Decimal       @map("refund_amount") @db.Decimal(12, 2)
-  refundMethod PaymentMethod @map("refund_method")
-  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  returnNumber  String        @unique @map("return_number") @db.VarChar(30)
+  transactionId String        @map("transaction_id") @db.Uuid
+  cashierId     String        @map("cashier_id") @db.Uuid
+  shiftId       String?       @map("shift_id") @db.Uuid
+  status        ReturnStatus  @default(COMPLETED)
+  reason        String        @db.VarChar(255)
+  refundAmount  Decimal       @map("refund_amount") @db.Decimal(12, 2)
+  refundMethod  PaymentMethod @map("refund_method")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
 
   transaction Transaction  @relation(fields: [transactionId], references: [id], onDelete: Restrict)
   cashier     User         @relation(fields: [cashierId], references: [id], onDelete: Restrict)
@@ -386,4 +390,66 @@ model PurchaseOrderItem {
   @@index([purchaseOrderId])
   @@index([productId])
   @@map("purchase_order_items")
+}
+
+enum PriceField {
+  SELLING_PRICE
+  COST_PRICE
+
+  @@map("price_field")
+}
+
+enum PriceChangeSource {
+  MANUAL
+  SCHEDULED
+  BULK
+
+  @@map("price_change_source")
+}
+
+enum ScheduledPriceStatus {
+  SCHEDULED
+  APPLIED
+  CANCELLED
+
+  @@map("scheduled_price_status")
+}
+
+model ProductPriceHistory {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId   String            @map("product_id") @db.Uuid
+  field       PriceField
+  oldValue    Decimal           @map("old_value") @db.Decimal(12, 2)
+  newValue    Decimal           @map("new_value") @db.Decimal(12, 2)
+  source      PriceChangeSource
+  reason      String?           @db.VarChar(255)
+  changedById String?           @map("changed_by_id") @db.Uuid
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  changedBy User?   @relation("PriceChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([productId, createdAt])
+  @@index([source, createdAt])
+  @@map("product_price_history")
+}
+
+model ScheduledPriceChange {
+  id            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId     String               @map("product_id") @db.Uuid
+  sellingPrice  Decimal              @map("selling_price") @db.Decimal(12, 2)
+  effectiveDate DateTime             @map("effective_date") @db.Timestamptz(6)
+  status        ScheduledPriceStatus @default(SCHEDULED)
+  reason        String               @db.VarChar(255)
+  createdById   String               @map("created_by_id") @db.Uuid
+  appliedAt     DateTime?            @map("applied_at") @db.Timestamptz(6)
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdBy User    @relation("ScheduledPriceCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([status, effectiveDate])
+  @@index([productId, status])
+  @@map("scheduled_price_changes")
 }
