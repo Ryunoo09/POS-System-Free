@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createStockOpnameSchema } from '../../src/validators/stock-opname.validator.js'
+import { createStockOpnameSchema, rejectStockOpnameSchema } from '../../src/validators/stock-opname.validator.js'
 
 const validProductId = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
 const validCategoryId = '3f2504e0-4f89-41d3-9a0c-0305e82c3302'
@@ -57,5 +57,12 @@ describe('createStockOpnameSchema', () => {
         product_ids: [validProductId],
       }).success,
     ).toBe(true)
+  })
+})
+
+describe('rejectStockOpnameSchema', () => {
+  it('requires a reason of at least 3 characters', () => {
+    expect(rejectStockOpnameSchema.safeParse({ reason: 'ab' }).success).toBe(false)
+    expect(rejectStockOpnameSchema.safeParse({ reason: 'Rak A salah hitung' }).success).toBe(true)
   })
 })

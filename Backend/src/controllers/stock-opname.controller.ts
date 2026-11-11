@@ -6,6 +6,7 @@ import { sendSuccess } from '../utils/response.js'
 import type {
   CreateStockOpnameInput,
   ListStockOpnamesQuery,
+  RejectStockOpnameInput,
   UpdateStockOpnameItemInput,
 } from '../validators/stock-opname.validator.js'
 
@@ -17,6 +18,9 @@ export interface StockOpnameController {
   updateItem: RequestHandler
   submit: RequestHandler
   approve: RequestHandler
+  reject: RequestHandler
+  complete: RequestHandler
+  cancel: RequestHandler
 }
 
 const toActor = (user: AuthUser, req: Request): OpnameActor => ({
@@ -80,6 +84,28 @@ export const createStockOpnameController = ({
   approve: async (req, res) => {
     const { id } = req.validated?.params as { id: string }
     const session = await stockOpnameService.approve(id, toActor(requireActor(req), req))
+
+    return sendSuccess(res, { data: session })
+  },
+
+  reject: async (req, res) => {
+    const { id } = req.validated?.params as { id: string }
+    const input = req.validated?.body as RejectStockOpnameInput
+    const session = await stockOpnameService.reject(id, input, toActor(requireActor(req), req))
+
+    return sendSuccess(res, { data: session })
+  },
+
+  complete: async (req, res) => {
+    const { id } = req.validated?.params as { id: string }
+    const session = await stockOpnameService.complete(id, toActor(requireActor(req), req))
+
+    return sendSuccess(res, { data: session })
+  },
+
+  cancel: async (req, res) => {
+    const { id } = req.validated?.params as { id: string }
+    const session = await stockOpnameService.cancel(id, toActor(requireActor(req), req))
 
     return sendSuccess(res, { data: session })
   },

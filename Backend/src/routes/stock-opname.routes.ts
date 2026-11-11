@@ -7,6 +7,7 @@ import {
   createStockOpnameSchema,
   listStockOpnamesQuerySchema,
   opnameItemParamSchema,
+  rejectStockOpnameSchema,
   stockOpnameIdParamSchema,
   updateStockOpnameItemSchema,
 } from '../validators/stock-opname.validator.js'
@@ -63,6 +64,24 @@ export const createStockOpnameRoutes = ({
     authorize(PERMISSIONS.STOCK_OPNAME_APPROVE),
     validate({ params: stockOpnameIdParamSchema }),
     stockOpnameController.approve,
+  )
+  router.post(
+    '/:id/reject',
+    authorize(PERMISSIONS.STOCK_OPNAME_APPROVE),
+    validate({ params: stockOpnameIdParamSchema, body: rejectStockOpnameSchema }),
+    stockOpnameController.reject,
+  )
+  router.post(
+    '/:id/complete',
+    authorize(PERMISSIONS.STOCK_OPNAME_APPROVE),
+    validate({ params: stockOpnameIdParamSchema }),
+    stockOpnameController.complete,
+  )
+  router.post(
+    '/:id/cancel',
+    authorize(PERMISSIONS.STOCK_OPNAME_MANAGE),
+    validate({ params: stockOpnameIdParamSchema }),
+    stockOpnameController.cancel,
   )
 
   return router

@@ -31,6 +31,7 @@ import type { AuditRecorder } from './audit.service.js'
 import type {
   CreateStockOpnameInput,
   ListStockOpnamesQuery,
+  RejectStockOpnameInput,
   UpdateStockOpnameItemInput,
 } from '../validators/stock-opname.validator.js'
 
@@ -56,6 +57,13 @@ export interface StockOpnameService {
   ) => Promise<OpnameItemDto>
   submit: (id: string, actor: OpnameActor) => Promise<OpnameDetailDto>
   approve: (id: string, actor: OpnameActor) => Promise<OpnameDetailDto>
+  reject: (
+    id: string,
+    input: RejectStockOpnameInput,
+    actor: OpnameActor,
+  ) => Promise<OpnameDetailDto>
+  complete: (id: string, actor: OpnameActor) => Promise<OpnameDetailDto>
+  cancel: (id: string, actor: OpnameActor) => Promise<OpnameDetailDto>
 }
 
 export const createStockOpnameService = ({
@@ -99,6 +107,18 @@ export const createStockOpnameService = ({
     if (session.status !== expected) {
       throw new ConflictError(
         `Status sesi harus ${expected} untuk aksi ini (status saat ini ${session.status})`,
+        'INVALID_OPNAME_STATUS',
+      )
+    }
+  }
+
+  const assertStatusIn = (
+    session: OpnameDetailView,
+    allowed: ReadonlyArray<OpnameDetailView['status']>,
+  ): void => {
+    if (!allowed.includes(session.status)) {
+      throw new ConflictError(
+        `Status sesi harus salah satu dari ${allowed.join(', ')} untuk aksi ini (status saat ini ${session.status})`,
         'INVALID_OPNAME_STATUS',
       )
     }
@@ -337,6 +357,61 @@ export const createStockOpnameService = ({
         status: result.updated.status,
         adjustments: result.adjustments,
       })
+
+      return findDetailOrFail(id)
+    },
+
+    reject: async (id, input, actor) => {
+      const updated = await runInTransaction(async (tx) => {
+        const session = await lockSessionOrFail(id, tx)
+        assertStatus(session, 'SUBMITTED')
+
+        return stockOpnameRepository.updateSession(
+          id,
+          {
+            status: 'IN_PROGRESS',
+            rejectionReason: input.reason,
+            rejectedAt: new Date(),
+            submittedAt: null,
+          },
+          tx,
+        )
+      })
+
+      await auditRecord(actor, AUDIT_ACTIONS.UPDATE, updated, {
+        status: updated.status,
+        reason: input.reason,
+      })
+
+      return findDetailOrFail(id)
+    },
+
+    complete: async (id, actor) => {
+      const updated = await runInTransaction(async (tx) => {
+        const session = await lockSessionOrFail(id, tx)
+        assertStatus(session, 'APPROVED')
+
+        return stockOpnameRepository.updateSession(
+          id,
+          { status: 'COMPLETED', completedAt: new Date() },
+          tx,
+        )
+      })
+
+      await auditRecord(actor, AUDIT_ACTIONS.UPDATE, updated, { status: updated.status })
+
+      return findDetailOrFail(id)
+    },
+
+    cancel: async (id, actor) => {
+      const updated = await runInTransaction(async (tx) => {
+        const session = await lockSessionOrFail(id, tx)
+        assertStatusIn(session, ['DRAFT', 'IN_PROGRESS', 'REJECTED'])
+
+        return stockOpnameRepository.updateSession(id, { status: 'CANCELLED' }, tx)
+      })
+
+      await auditRecord(actor, AUDIT_ACTIONS.CANCEL, updated, { status: updated.status })
 
       return findDetailOrFail(id)
     },

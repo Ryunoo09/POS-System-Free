@@ -435,4 +435,68 @@ describe('stock opname service', () => {
     })
     expect(updateStock).not.toHaveBeenCalled()
   })
+
+  it('reject returns the session to IN_PROGRESS with a reason', async () => {
+    const { service, updateSession } = buildRepository({
+      detail: buildDetail({ status: 'SUBMITTED', createdById: 'admin-1' }),
+    })
+
+    await service.reject('session-1', { reason: 'Hitung ulang rak A' }, { id: 'owner-1' })
+
+    expect(updateSession).toHaveBeenCalledWith(
+      'session-1',
+      expect.objectContaining({
+        status: 'IN_PROGRESS',
+        rejectionReason: 'Hitung ulang rak A',
+        rejectedAt: expect.any(Date),
+      }),
+      expect.anything(),
+    )
+  })
+
+  it('rejects reject when session is not SUBMITTED', async () => {
+    const { service } = buildRepository({ detail: buildDetail({ status: 'IN_PROGRESS' }) })
+
+    await expect(
+      service.reject('session-1', { reason: 'Hitung ulang' }, { id: 'owner-1' }),
+    ).rejects.toMatchObject({ code: 'INVALID_OPNAME_STATUS' })
+  })
+
+  it('completes only an APPROVED session', async () => {
+    const { service, updateSession } = buildRepository({
+      detail: buildDetail({ status: 'APPROVED' }),
+    })
+
+    await service.complete('session-1', { id: 'owner-1' })
+
+    expect(updateSession).toHaveBeenCalledWith(
+      'session-1',
+      expect.objectContaining({ status: 'COMPLETED', completedAt: expect.any(Date) }),
+      expect.anything(),
+    )
+
+    const approved = buildRepository({ detail: buildDetail({ status: 'SUBMITTED' }) })
+    await expect(approved.service.complete('session-1', { id: 'owner-1' })).rejects.toMatchObject({
+      code: 'INVALID_OPNAME_STATUS',
+    })
+  })
+
+  it('cancels only sessions that are not submitted', async () => {
+    const { service, updateSession } = buildRepository({
+      detail: buildDetail({ status: 'IN_PROGRESS' }),
+    })
+
+    await service.cancel('session-1', { id: 'admin-1' })
+
+    expect(updateSession).toHaveBeenCalledWith(
+      'session-1',
+      { status: 'CANCELLED' },
+      expect.anything(),
+    )
+
+    const submitted = buildRepository({ detail: buildDetail({ status: 'SUBMITTED' }) })
+    await expect(submitted.service.cancel('session-1', { id: 'admin-1' })).rejects.toMatchObject({
+      code: 'INVALID_OPNAME_STATUS',
+    })
+  })
 })

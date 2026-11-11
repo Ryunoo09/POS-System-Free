@@ -113,3 +113,15 @@ export const updateStockOpnameItemSchema = z
 export type ListStockOpnamesQuery = z.infer<typeof listStockOpnamesQuerySchema>
 export type CreateStockOpnameInput = z.infer<typeof createStockOpnameSchema>
 export type UpdateStockOpnameItemInput = z.infer<typeof updateStockOpnameItemSchema>
+
+export const rejectStockOpnameSchema = z
+  .object({
+    reason: z
+      .string({ error: 'Alasan penolakan wajib diisi' })
+      .trim()
+      .min(3, 'Alasan penolakan minimal 3 karakter')
+      .max(500, 'Alasan penolakan maksimal 500 karakter'),
+  })
+  .strict()
+
+export type RejectStockOpnameInput = z.infer<typeof rejectStockOpnameSchema>
