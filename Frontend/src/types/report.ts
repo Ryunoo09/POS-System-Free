@@ -9,6 +9,7 @@ export interface ReportSummary {
   revenue: string
   cogs: string
   gross_profit: string
+  gross_margin_pct: string
   transaction_count: number
 }
 
@@ -19,6 +20,7 @@ export interface SalesReportRow {
   revenue: string
   cogs: string
   gross_profit: string
+  gross_margin_pct: string
 }
 
 export interface ProductReportRow {
@@ -30,6 +32,7 @@ export interface ProductReportRow {
   revenue: string
   cogs: string
   gross_profit: string
+  gross_margin_pct: string
 }
 
 export interface CashierReportRow {
@@ -67,6 +70,21 @@ export interface InventoryValuationPayload {
 
 export interface ValuationParams {
   category_id?: string | undefined
+}
+
+export interface CategoryCogsRow {
+  category_id: string | null
+  category: string
+  quantity_sold: number
+  revenue: string
+  cogs: string
+  gross_profit: string
+  gross_margin_pct: string
+}
+
+export interface CogsReportPayload {
+  summary: ReportSummary
+  rows: CategoryCogsRow[]
 }
 
 export interface ReportPayload<TRow> {

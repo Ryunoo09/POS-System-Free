@@ -16,6 +16,7 @@ defineProps<{ items: ProductReportRow[] }>()
           <th scope="col" class="px-4 py-3 text-right font-medium">Revenue</th>
           <th scope="col" class="hidden px-4 py-3 text-right font-medium sm:table-cell">COGS</th>
           <th scope="col" class="px-4 py-3 text-right font-medium">Gross Profit</th>
+          <th scope="col" class="px-4 py-3 text-right font-medium">Margin</th>
         </tr>
       </thead>
 
@@ -39,6 +40,9 @@ defineProps<{ items: ProductReportRow[] }>()
           </td>
           <td class="px-4 py-3 text-right tabular-nums text-ink">
             {{ formatRupiah(item.gross_profit) }}
+          </td>
+          <td class="px-4 py-3 text-right tabular-nums text-ink-2">
+            {{ formatNumber(item.gross_margin_pct) }}%
           </td>
         </tr>
       </tbody>

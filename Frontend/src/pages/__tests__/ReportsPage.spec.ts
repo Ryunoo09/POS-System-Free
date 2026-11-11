@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DateRange } from '@/types/dashboard'
 import type {
   CashierReportRow,
+  CogsReportPayload,
   InventoryValuationPayload,
   ProductReportParams,
   ProductReportPayload,
@@ -19,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   getCashiers: vi.fn<(params: DateRange) => Promise<ReportPayload<CashierReportRow>>>(),
   getInventoryValuation:
     vi.fn<(params: ValuationParams) => Promise<InventoryValuationPayload>>(),
+  getCogs: vi.fn<(params: DateRange) => Promise<CogsReportPayload>>(),
   listCategories: vi.fn<() => Promise<unknown>>(),
   getShifts: vi.fn<() => Promise<unknown>>(),
 }))
@@ -29,6 +31,7 @@ vi.mock('@/services/reports.service', () => ({
     getProducts: mocks.getProducts,
     getCashiers: mocks.getCashiers,
     getInventoryValuation: mocks.getInventoryValuation,
+    getCogs: mocks.getCogs,
   },
 }))
 
@@ -50,6 +53,7 @@ const summary = {
   revenue: '140000.00',
   cogs: '80000.00',
   gross_profit: '60000.00',
+  gross_margin_pct: '42.86',
   transaction_count: 2,
 }
 
@@ -90,6 +94,7 @@ describe('ReportsPage', () => {
           revenue: '90000.00',
           cogs: '60000.00',
           gross_profit: '30000.00',
+          gross_margin_pct: '33.33',
         },
       ],
     })
@@ -105,6 +110,7 @@ describe('ReportsPage', () => {
           revenue: '30000.00',
           cogs: '15000.00',
           gross_profit: '15000.00',
+          gross_margin_pct: '50.00',
         },
       ],
       meta: { page: 1, limit: 10, total_items: 1, total_pages: 1 },
@@ -138,6 +144,20 @@ describe('ReportsPage', () => {
       ],
       by_category: [
         { category_id: 'cat-1', category: 'Minuman', quantity: 100, value: '500000.00' },
+      ],
+    })
+    mocks.getCogs.mockResolvedValue({
+      summary,
+      rows: [
+        {
+          category_id: 'cat-1',
+          category: 'Minuman',
+          quantity_sold: 5,
+          revenue: '100000.00',
+          cogs: '60000.00',
+          gross_profit: '40000.00',
+          gross_margin_pct: '40.00',
+        },
       ],
     })
   })
@@ -184,6 +204,19 @@ describe('ReportsPage', () => {
 
     expect(wrapper.text()).toContain('Total Nilai Stok')
     expect(wrapper.text()).toContain('500.000')
+  })
+
+  it('menampilkan tab laba per kategori', async () => {
+    const wrapper = await mountPage()
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Laba')
+      ?.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Laporan Laba per Kategori')
+    expect(wrapper.text()).toContain('40%')
   })
 
   it('mengubah kelompok penjualan memuat ulang laporan', async () => {

@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import type { DateRange } from '@/types/dashboard'
 import type {
   CashierReportRow,
+  CogsReportPayload,
   InventoryValuationPayload,
   ProductReportParams,
   ProductReportPayload,
@@ -18,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   getCashiers: vi.fn<(params: DateRange) => Promise<ReportPayload<CashierReportRow>>>(),
   getInventoryValuation:
     vi.fn<(params: ValuationParams) => Promise<InventoryValuationPayload>>(),
+  getCogs: vi.fn<(params: DateRange) => Promise<CogsReportPayload>>(),
 }))
 
 vi.mock('@/services/reports.service', () => ({
@@ -26,6 +28,7 @@ vi.mock('@/services/reports.service', () => ({
     getProducts: mocks.getProducts,
     getCashiers: mocks.getCashiers,
     getInventoryValuation: mocks.getInventoryValuation,
+    getCogs: mocks.getCogs,
   },
 }))
 
@@ -37,6 +40,7 @@ const summary = {
   revenue: '140000.00',
   cogs: '80000.00',
   gross_profit: '60000.00',
+  gross_margin_pct: '42.86',
   transaction_count: 2,
 }
 
@@ -47,6 +51,7 @@ const salesRow: SalesReportRow = {
   revenue: '90000.00',
   cogs: '60000.00',
   gross_profit: '30000.00',
+  gross_margin_pct: '33.33',
 }
 
 describe('reports.store', () => {
@@ -66,6 +71,7 @@ describe('reports.store', () => {
       items: [],
       by_category: [],
     })
+    mocks.getCogs.mockResolvedValue({ summary, rows: [] })
   })
 
   it('memuat laporan penjualan dan menyimpan ringkasan', async () => {
@@ -92,6 +98,7 @@ describe('reports.store', () => {
           revenue: '30000.00',
           cogs: '15000.00',
           gross_profit: '15000.00',
+          gross_margin_pct: '50.00',
         },
       ],
       meta: { page: 2, limit: 10, total_items: 21, total_pages: 3 },
@@ -164,6 +171,29 @@ describe('reports.store', () => {
     expect(store.valuationLoading).toBe(false)
   })
 
+  it('memuat laporan laba per kategori', async () => {
+    mocks.getCogs.mockResolvedValue({
+      summary,
+      rows: [
+        {
+          category_id: 'cat-1',
+          category: 'Minuman',
+          quantity_sold: 5,
+          revenue: '100000.00',
+          cogs: '60000.00',
+          gross_profit: '40000.00',
+          gross_margin_pct: '40.00',
+        },
+      ],
+    })
+    const store = useReportsStore()
+
+    await store.loadCogs(range)
+
+    expect(store.cogs).toHaveLength(1)
+    expect(store.cogs[0]?.gross_margin_pct).toBe('40.00')
+  })
+
   it('memuat seluruh tab sekaligus', async () => {
     const store = useReportsStore()
 
@@ -180,5 +210,6 @@ describe('reports.store', () => {
     expect(mocks.getProducts).toHaveBeenCalledOnce()
     expect(mocks.getCashiers).toHaveBeenCalledOnce()
     expect(mocks.getInventoryValuation).toHaveBeenCalledOnce()
+    expect(mocks.getCogs).toHaveBeenCalledOnce()
   })
 })

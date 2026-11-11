@@ -8,6 +8,7 @@ import DateRangeFilter from '@/components/dashboard/DateRangeFilter.vue'
 import SummaryCard from '@/components/dashboard/SummaryCard.vue'
 import WidgetCard from '@/components/dashboard/WidgetCard.vue'
 import CashierReportTable from '@/components/reports/CashierReportTable.vue'
+import CogsReportTable from '@/components/reports/CogsReportTable.vue'
 import ProductReportTable from '@/components/reports/ProductReportTable.vue'
 import SalesReportTable from '@/components/reports/SalesReportTable.vue'
 import ShiftReportTable from '@/components/reports/ShiftReportTable.vue'
@@ -20,7 +21,7 @@ import type { ProductReportSort, SalesGroupBy } from '@/types/report'
 import { rangeForPreset } from '@/utils/date-range'
 import { formatNumber, formatRupiah } from '@/utils/format'
 
-type Tab = 'sales' | 'products' | 'valuation' | 'cashiers' | 'shifts'
+type Tab = 'sales' | 'products' | 'cogs' | 'valuation' | 'cashiers' | 'shifts'
 
 const store = useReportsStore()
 const categoriesStore = useCategoriesStore()
@@ -41,6 +42,7 @@ const categories = ref<Array<{ value: string; label: string }>>([
 const tabs = [
   { value: 'sales', label: 'Penjualan' },
   { value: 'products', label: 'Per Produk' },
+  { value: 'cogs', label: 'Laba' },
   { value: 'valuation', label: 'Valuasi' },
   { value: 'cashiers', label: 'Per Kasir' },
   { value: 'shifts', label: 'Shift Kasir' },
@@ -86,12 +88,23 @@ const loadValuation = (): void => {
   void store.loadValuation({})
 }
 
+const loadCogs = (): void => {
+  void store.loadCogs(range.value)
+}
+
 const loadShifts = (): void => {
   void shiftStore.fetchHistory()
 }
 
 const loadAll = (): void => {
-  void Promise.all([loadSales(), loadProducts(), loadCashiers(), loadValuation(), loadShifts()])
+  void Promise.all([
+    loadSales(),
+    loadProducts(),
+    loadCashiers(),
+    loadValuation(),
+    loadCogs(),
+    loadShifts(),
+  ])
 }
 
 const loadCategories = async (): Promise<void> => {
@@ -164,7 +177,7 @@ const changePage = (value: number): void => {
       <SummaryCard
         label="Estimasi Gross Profit"
         :value="formatRupiah(store.summary?.gross_profit ?? 0)"
-        hint="Revenue − COGS"
+        :hint="`Revenue − COGS · margin ${formatNumber(store.summary?.gross_margin_pct ?? 0)}%`"
       />
       <SummaryCard
         label="Transaksi"
@@ -223,6 +236,18 @@ const changePage = (value: number): void => {
     >
       <ProductReportTable :items="store.products" />
       <PaginationBar :meta="store.productsMeta" @change="changePage" />
+    </WidgetCard>
+
+    <WidgetCard
+      v-else-if="tab === 'cogs'"
+      title="Laporan Laba per Kategori"
+      :loading="store.cogsLoading"
+      :error="store.cogsError"
+      :empty="store.cogs.length === 0"
+      :skeleton-rows="5"
+      @retry="loadCogs"
+    >
+      <CogsReportTable :items="store.cogs" />
     </WidgetCard>
 
     <WidgetCard

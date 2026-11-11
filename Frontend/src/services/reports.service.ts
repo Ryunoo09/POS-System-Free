@@ -2,6 +2,7 @@ import { http } from './api'
 import type { DateRange } from '@/types/dashboard'
 import type {
   CashierReportRow,
+  CogsReportPayload,
   InventoryValuationPayload,
   ProductReportParams,
   ProductReportPayload,
@@ -41,6 +42,11 @@ export const reportsService = {
     const response = await http.get<InventoryValuationPayload>('/reports/inventory-valuation', {
       params,
     })
+    return response.data
+  },
+
+  async getCogs(params: DateRange): Promise<CogsReportPayload> {
+    const response = await http.get<CogsReportPayload>('/reports/cogs', { params })
     return response.data
   },
 }
