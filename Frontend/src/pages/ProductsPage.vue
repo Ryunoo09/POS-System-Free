@@ -176,6 +176,13 @@ const confirmToggle = async () => {
         <AppButton variant="secondary" @click="router.push('/products/labels')">
           Cetak Label
         </AppButton>
+        <AppButton
+          v-if="canWrite"
+          variant="secondary"
+          @click="router.push('/products/bulk-price')"
+        >
+          Update Massal
+        </AppButton>
         <AppButton v-if="canWrite" @click="openCreate">Tambah Produk</AppButton>
       </div>
     </header>

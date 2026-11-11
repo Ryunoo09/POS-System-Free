@@ -54,6 +54,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { permissions: [PERMISSIONS.PRODUCT_READ], title: 'Manajemen Harga' },
       },
       {
+        path: 'products/bulk-price',
+        name: 'product-bulk-price',
+        component: () => import('@/pages/ProductBulkPricePage.vue'),
+        meta: { permissions: [PERMISSIONS.PRODUCT_WRITE], title: 'Update Harga Massal' },
+      },
+      {
         path: 'categories',
         name: 'categories',
         component: () => import('@/pages/CategoriesPage.vue'),
