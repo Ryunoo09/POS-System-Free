@@ -77,6 +77,39 @@ export interface ListProductSalesInput {
   sort: ProductReportSort
 }
 
+export interface ValuationItemRow {
+  productId: string
+  sku: string
+  name: string
+  category: string
+  stock: number
+  averageCost: string
+  inventoryValue: string
+}
+
+export interface ValuationCategoryRow {
+  categoryId: string | null
+  category: string
+  quantity: number
+  value: string
+}
+
+export interface InventoryValuation {
+  totalValue: string
+  totalQuantity: number
+  items: ValuationItemRow[]
+  byCategory: ValuationCategoryRow[]
+}
+
+export interface CategoryCogsRow {
+  categoryId: string | null
+  category: string
+  quantitySold: number
+  revenue: string
+  cogs: string
+  grossProfit: string
+}
+
 export interface ReportRepository {
   getSummary: (range: ResolvedDateRange) => Promise<SummaryTotals>
   getDailySales: (range: ResolvedDateRange) => Promise<DailySalesRow[]>
@@ -89,6 +122,11 @@ export interface ReportRepository {
   listCashierSales: (range: ResolvedDateRange) => Promise<CashierSalesRow[]>
   getPaymentMethodSales: (range: ResolvedDateRange) => Promise<PaymentMethodSalesRow[]>
   getCategorySales: (range: ResolvedDateRange) => Promise<CategorySalesRow[]>
+  getInventoryValuation: (input: { categoryId?: string | undefined }) => Promise<InventoryValuation>
+  getCategoryCogs: (
+    range: ResolvedDateRange,
+    categoryId?: string | undefined,
+  ) => Promise<CategoryCogsRow[]>
 }
 
 const toMoney = (value: Prisma.Decimal | string | number | null | undefined): string =>
@@ -425,6 +463,130 @@ export const createReportRepository = (prisma: PrismaClient): ReportRepository =
       category: row.category,
       quantitySold: row.quantity_sold,
       revenue: toMoney(row.revenue),
+    }))
+  },
+
+  getInventoryValuation: async ({ categoryId }) => {
+    const categoryFilter = categoryId
+      ? Prisma.sql`AND p.category_id = ${categoryId}::uuid`
+      : Prisma.empty
+
+    const [itemRows, categoryRows] = await Promise.all([
+      prisma.$queryRaw<
+        Array<{
+          product_id: string
+          sku: string
+          name: string
+          category: string
+          stock: number
+          average_cost: Prisma.Decimal
+          inventory_value: Prisma.Decimal
+        }>
+      >(Prisma.sql`
+        SELECT
+          p.id AS product_id,
+          p.sku,
+          p.name,
+          COALESCE(c.name, 'Tanpa Kategori') AS category,
+          p.stock,
+          p.average_cost,
+          (p.stock * p.average_cost) AS inventory_value
+        FROM products p
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE p.stock > 0
+          ${categoryFilter}
+        ORDER BY inventory_value DESC, p.name ASC
+      `),
+      prisma.$queryRaw<
+        Array<{
+          category_id: string | null
+          category: string
+          quantity: number
+          value: Prisma.Decimal
+        }>
+      >(Prisma.sql`
+        SELECT
+          p.category_id,
+          COALESCE(c.name, 'Tanpa Kategori') AS category,
+          SUM(p.stock)::int AS quantity,
+          COALESCE(SUM(p.stock * p.average_cost), 0) AS value
+        FROM products p
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE p.stock > 0
+          ${categoryFilter}
+        GROUP BY p.category_id, c.name
+        ORDER BY value DESC, category ASC
+      `),
+    ])
+
+    const totalValue = categoryRows.reduce(
+      (total, row) => total.plus(row.value),
+      new Prisma.Decimal(0),
+    )
+    const totalQuantity = categoryRows.reduce((total, row) => total + row.quantity, 0)
+
+    return {
+      totalValue: totalValue.toFixed(2),
+      totalQuantity,
+      items: itemRows.map((row) => ({
+        productId: row.product_id,
+        sku: row.sku,
+        name: row.name,
+        category: row.category,
+        stock: row.stock,
+        averageCost: toMoney(row.average_cost),
+        inventoryValue: toMoney(row.inventory_value),
+      })),
+      byCategory: categoryRows.map((row) => ({
+        categoryId: row.category_id,
+        category: row.category,
+        quantity: row.quantity,
+        value: toMoney(row.value),
+      })),
+    }
+  },
+
+  getCategoryCogs: async ({ startAt, endAt }, categoryId) => {
+    const categoryFilter = categoryId
+      ? Prisma.sql`AND p.category_id = ${categoryId}::uuid`
+      : Prisma.empty
+
+    const rows = await prisma.$queryRaw<
+      Array<{
+        category_id: string | null
+        category: string
+        quantity_sold: number
+        revenue: Prisma.Decimal
+        cogs: Prisma.Decimal
+        gross_profit: Prisma.Decimal
+      }>
+    >(Prisma.sql`
+      SELECT
+        p.category_id,
+        COALESCE(c.name, 'Tanpa Kategori') AS category,
+        SUM(ti.quantity)::int AS quantity_sold,
+        COALESCE(SUM(ti.subtotal), 0) AS revenue,
+        COALESCE(SUM(ti.unit_cost * ti.quantity), 0) AS cogs,
+        COALESCE(SUM(ti.subtotal), 0) - COALESCE(SUM(ti.unit_cost * ti.quantity), 0) AS gross_profit
+      FROM transaction_items ti
+      JOIN transactions t ON t.id = ti.transaction_id
+      LEFT JOIN products p ON p.id = ti.product_id
+      LEFT JOIN categories c ON c.id = p.category_id
+      WHERE t.status = 'COMPLETED'
+        AND t.created_at >= ${startAt}
+        AND t.created_at <= ${endAt}
+        ${categoryFilter}
+      GROUP BY p.category_id, c.name
+      ORDER BY cogs DESC, category ASC
+    `)
+
+    return rows.map((row) => ({
+      categoryId: row.category_id,
+      category: row.category,
+      quantitySold: row.quantity_sold,
+      revenue: toMoney(row.revenue),
+      cogs: toMoney(row.cogs),
+      grossProfit: toMoney(row.gross_profit),
     }))
   },
 })

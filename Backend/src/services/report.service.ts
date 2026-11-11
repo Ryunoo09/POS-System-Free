@@ -6,6 +6,7 @@ import type {
   CashierReportQuery,
   ProductReportQuery,
   SalesReportQuery,
+  ValuationQuery,
 } from '../validators/report.validator.js'
 
 export interface ReportSummaryDto {
@@ -54,6 +55,31 @@ export interface ReportService {
   getCashiers: (
     query: CashierReportQuery,
   ) => Promise<{ summary: ReportSummaryDto; rows: CashierReportRowDto[] }>
+  getInventoryValuation: (query: ValuationQuery) => Promise<InventoryValuationDto>
+}
+
+export interface ValuationItemDto {
+  product_id: string
+  sku: string
+  name: string
+  category: string
+  stock: number
+  average_cost: string
+  inventory_value: string
+}
+
+export interface ValuationCategoryDto {
+  category_id: string | null
+  category: string
+  quantity: number
+  value: string
+}
+
+export interface InventoryValuationDto {
+  total_value: string
+  total_quantity: number
+  items: ValuationItemDto[]
+  by_category: ValuationCategoryDto[]
 }
 
 const SHORT_MONTHS = [
@@ -187,6 +213,32 @@ export const createReportService = ({
           revenue: row.revenue,
           gross_profit: row.grossProfit,
           average_transaction: row.averageTransaction,
+        })),
+      }
+    },
+
+    getInventoryValuation: async (query) => {
+      const valuation = await reportRepository.getInventoryValuation({
+        categoryId: query.category_id,
+      })
+
+      return {
+        total_value: valuation.totalValue,
+        total_quantity: valuation.totalQuantity,
+        items: valuation.items.map((row) => ({
+          product_id: row.productId,
+          sku: row.sku,
+          name: row.name,
+          category: row.category,
+          stock: row.stock,
+          average_cost: row.averageCost,
+          inventory_value: row.inventoryValue,
+        })),
+        by_category: valuation.byCategory.map((row) => ({
+          category_id: row.categoryId,
+          category: row.category,
+          quantity: row.quantity,
+          value: row.value,
         })),
       }
     },

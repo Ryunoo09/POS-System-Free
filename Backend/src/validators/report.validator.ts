@@ -22,6 +22,11 @@ export const productReportQuerySchema = reportRangeSchema
 
 export const cashierReportQuerySchema = reportRangeSchema
 
+export const valuationQuerySchema = z.object({
+  category_id: z.uuid().optional(),
+})
+
 export type SalesReportQuery = z.infer<typeof salesReportQuerySchema>
 export type ProductReportQuery = z.infer<typeof productReportQuerySchema>
 export type CashierReportQuery = z.infer<typeof cashierReportQuerySchema>
+export type ValuationQuery = z.infer<typeof valuationQuerySchema>

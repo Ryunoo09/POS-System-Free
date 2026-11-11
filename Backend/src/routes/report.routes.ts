@@ -7,6 +7,7 @@ import {
   cashierReportQuerySchema,
   productReportQuerySchema,
   salesReportQuerySchema,
+  valuationQuerySchema,
 } from '../validators/report.validator.js'
 
 export const createReportRoutes = ({
@@ -31,6 +32,12 @@ export const createReportRoutes = ({
     '/cashiers',
     validate({ query: cashierReportQuerySchema }),
     reportController.getCashiers,
+  )
+  router.get(
+    '/inventory-valuation',
+    authorize(PERMISSIONS.COST_PRICE_READ),
+    validate({ query: valuationQuerySchema }),
+    reportController.getInventoryValuation,
   )
 
   return router

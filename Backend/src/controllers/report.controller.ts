@@ -5,12 +5,14 @@ import type {
   CashierReportQuery,
   ProductReportQuery,
   SalesReportQuery,
+  ValuationQuery,
 } from '../validators/report.validator.js'
 
 export interface ReportController {
   getSales: RequestHandler
   getProducts: RequestHandler
   getCashiers: RequestHandler
+  getInventoryValuation: RequestHandler
 }
 
 export const createReportController = ({
@@ -35,6 +37,13 @@ export const createReportController = ({
   getCashiers: async (req, res) => {
     const query = req.validated?.query as CashierReportQuery
     const data = await reportService.getCashiers(query)
+
+    return sendSuccess(res, { data })
+  },
+
+  getInventoryValuation: async (req, res) => {
+    const query = req.validated?.query as ValuationQuery
+    const data = await reportService.getInventoryValuation(query)
 
     return sendSuccess(res, { data })
   },

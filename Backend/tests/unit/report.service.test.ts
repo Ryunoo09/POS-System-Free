@@ -21,6 +21,13 @@ const buildRepository = (overrides: Partial<ReportRepository> = {}): ReportRepos
   listCashierSales: async () => [],
   getPaymentMethodSales: async () => [],
   getCategorySales: async () => [],
+  getInventoryValuation: async () => ({
+    totalValue: '0.00',
+    totalQuantity: 0,
+    items: [],
+    byCategory: [],
+  }),
+  getCategoryCogs: async () => [],
   ...overrides,
 })
 
@@ -127,6 +134,50 @@ describe('ReportService.getProducts', () => {
       cogs: '60000.00',
       gross_profit: '40000.00',
     })
+  })
+})
+
+describe('ReportService.getInventoryValuation', () => {
+  it('memetakan total, item, dan agregasi kategori', async () => {
+    const service = createReportService({
+      reportRepository: buildRepository({
+        getInventoryValuation: async () => ({
+          totalValue: '500000.00',
+          totalQuantity: 100,
+          items: [
+            {
+              productId: 'product-a',
+              sku: 'SKU-1',
+              name: 'Produk A',
+              category: 'Makanan',
+              stock: 100,
+              averageCost: '5000.00',
+              inventoryValue: '500000.00',
+            },
+          ],
+          byCategory: [
+            { categoryId: 'cat-1', category: 'Makanan', quantity: 100, value: '500000.00' },
+          ],
+        }),
+      }),
+    })
+
+    const result = await service.getInventoryValuation({})
+
+    expect(result.total_value).toBe('500000.00')
+    expect(result.total_quantity).toBe(100)
+    expect(result.items[0]).toEqual({
+      product_id: 'product-a',
+      sku: 'SKU-1',
+      name: 'Produk A',
+      category: 'Makanan',
+      stock: 100,
+      average_cost: '5000.00',
+      inventory_value: '500000.00',
+    })
+    expect(result.by_category).toEqual([
+      { category_id: 'cat-1', category: 'Makanan', quantity: 100, value: '500000.00' },
+    ])
   })
 })
 
