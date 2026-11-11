@@ -139,6 +139,7 @@ const buildProductRepository = (products: ProductWithCategory[]) => {
     findManyByIdsForUpdate,
     findBySku: async () => null,
     findByBarcode: async () => null,
+    findManyByIds: async () => [],
     create: async () => {
       throw new Error('tidak dipakai')
     },

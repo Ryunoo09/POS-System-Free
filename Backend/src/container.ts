@@ -20,6 +20,7 @@ import { createCategoryRepository } from './repositories/category.repository.js'
 import { createHealthRepository } from './repositories/health.repository.js'
 import { createInventoryRepository } from './repositories/inventory.repository.js'
 import { createProductRepository } from './repositories/product.repository.js'
+import { createPriceRepository } from './repositories/price.repository.js'
 import { createReportRepository } from './repositories/report.repository.js'
 import { createStockMovementRepository } from './repositories/stock-movement.repository.js'
 import { createTransactionRepository } from './repositories/transaction.repository.js'
@@ -35,6 +36,7 @@ import { createDashboardService } from './services/dashboard.service.js'
 import { createHealthService } from './services/health.service.js'
 import { createInventoryService } from './services/inventory.service.js'
 import { createProductService } from './services/product.service.js'
+import { createPriceService } from './services/price.service.js'
 import { createReportService } from './services/report.service.js'
 import { createTransactionService } from './services/transaction.service.js'
 import { createUserService } from './services/user.service.js'
@@ -61,11 +63,14 @@ const categoryService = createCategoryService({ categoryRepository })
 
 const productRepository = createProductRepository(prisma)
 const stockMovementRepository = createStockMovementRepository(prisma)
+const priceRepository = createPriceRepository(prisma)
+const priceService = createPriceService({ priceRepository, productRepository })
 const productService = createProductService({
   productRepository,
   categoryRepository,
   stockMovementRepository,
   audit: auditService,
+  priceService,
 })
 
 const reportRepository = createReportRepository(prisma)

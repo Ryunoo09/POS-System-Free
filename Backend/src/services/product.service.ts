@@ -5,6 +5,7 @@ import type { CategoryRepository } from '../repositories/category.repository.js'
 import type { ProductRepository, UpdateProductData } from '../repositories/product.repository.js'
 import type { StockMovementRepository } from '../repositories/stock-movement.repository.js'
 import type { AuditRecorder } from './audit.service.js'
+import type { PriceService } from './price.service.js'
 import type { PaginationMeta } from '../types/http.js'
 import { buildFieldDiff } from '../utils/audit-diff.js'
 import { generateInternalEan13 } from '../utils/barcode.js'
@@ -46,11 +47,13 @@ export const createProductService = ({
   categoryRepository,
   stockMovementRepository,
   audit,
+  priceService,
 }: {
   productRepository: ProductRepository
   categoryRepository: CategoryRepository
   stockMovementRepository: StockMovementRepository
   audit?: AuditRecorder
+  priceService: PriceService
 }): ProductService => {
   const assertCategoryActive = async (categoryId: string): Promise<void> => {
     const category = await categoryRepository.findById(categoryId)
@@ -202,7 +205,27 @@ export const createProductService = ({
       if (input.min_stock !== undefined) data.minStock = input.min_stock
       if (input.is_active !== undefined) data.isActive = input.is_active
 
-      const updated = await productRepository.update(id, data)
+      const updated = await runInTransaction(async (tx) => {
+        const result = await productRepository.update(id, data, tx)
+
+        await priceService.recordPriceChanges({
+          productId: id,
+          before: {
+            sellingPrice: existing.sellingPrice.toFixed(2),
+            costPrice: existing.costPrice.toFixed(2),
+          },
+          after: {
+            sellingPrice: result.sellingPrice.toFixed(2),
+            costPrice: result.costPrice.toFixed(2),
+          },
+          source: 'MANUAL',
+          reason: null,
+          changedById: actor.id,
+          tx,
+        })
+
+        return result
+      })
 
       const diff = buildFieldDiff(
         {

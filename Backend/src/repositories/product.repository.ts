@@ -54,6 +54,7 @@ export interface ProductRepository {
   ) => Promise<ProductView[]>
   findBySku: (sku: string) => Promise<Product | null>
   findByBarcode: (barcode: string) => Promise<Product | null>
+  findManyByIds: (ids: string[]) => Promise<ProductView[]>
   create: (data: CreateProductData, tx?: Prisma.TransactionClient) => Promise<ProductView>
   update: (
     id: string,
@@ -145,6 +146,15 @@ export const createProductRepository = (prisma: PrismaClient): ProductRepository
   findBySku: (sku) => prisma.product.findUnique({ where: { sku } }),
 
   findByBarcode: (barcode) => prisma.product.findUnique({ where: { barcode } }),
+
+  findManyByIds: (ids) =>
+    ids.length === 0
+      ? Promise.resolve([])
+      : prisma.product.findMany({
+          where: { id: { in: ids } },
+          orderBy: { id: 'asc' },
+          include: categorySelect,
+        }),
 
   create: (data, tx) =>
     (tx ?? prisma).product.create({

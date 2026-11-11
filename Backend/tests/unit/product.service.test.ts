@@ -8,8 +8,13 @@ import type {
 import type { StockMovementRepository } from '../../src/repositories/stock-movement.repository.js'
 import type { ProductWithCategory } from '../../src/mappers/product.mapper.js'
 import { createProductService, type ProductActor } from '../../src/services/product.service.js'
+import type { PriceService } from '../../src/services/price.service.js'
 import type { CreateProductInput } from '../../src/validators/product.validator.js'
 import { isValidEan13 } from '../../src/utils/barcode.js'
+
+vi.mock('../../src/config/database.js', () => ({
+  runInTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> => fn({}),
+}))
 
 const adminActor: ProductActor = { id: 'admin-1', canViewCostPrice: true, isCashier: false }
 const cashierActor: ProductActor = { id: 'cashier-1', canViewCostPrice: false, isCashier: true }
@@ -52,6 +57,7 @@ const buildProductRepository = (
   findManyByIdsForUpdate: async () => [],
   findBySku: async () => null,
   findByBarcode: async () => null,
+  findManyByIds: async () => [],
   create: async () => {
     throw new Error('tidak dipakai pada test ini')
   },
@@ -90,6 +96,20 @@ const buildStockMovementRepository = (): StockMovementRepository => ({
   list: async () => ({ items: [], total: 0 }),
 })
 
+const buildPriceService = (overrides: Partial<PriceService> = {}): PriceService => ({
+  recordPriceChanges: async () => {},
+  listHistory: async () => [],
+  applyDueScheduledPrices: async () => 0,
+  schedulePrice: async () => {
+    throw new Error('tidak dipakai pada test ini')
+  },
+  getScheduledPrice: async () => null,
+  cancelScheduledPrice: async () => {},
+  bulkPreview: async () => [],
+  bulkApply: async () => ({ updated: 0 }),
+  ...overrides,
+})
+
 const validInput = (overrides: Partial<CreateProductInput> = {}): CreateProductInput => ({
   sku: 'SKU-1',
   name: 'Produk Uji',
@@ -105,11 +125,13 @@ const validInput = (overrides: Partial<CreateProductInput> = {}): CreateProductI
 const buildService = (repositories: {
   productRepository?: ProductRepository
   categoryRepository?: CategoryRepository
+  priceService?: PriceService
 } = {}) =>
   createProductService({
     productRepository: repositories.productRepository ?? buildProductRepository(),
     categoryRepository: repositories.categoryRepository ?? buildCategoryRepository(),
     stockMovementRepository: buildStockMovementRepository(),
+    priceService: repositories.priceService ?? buildPriceService(),
   })
 
 describe('ProductService.create', () => {
@@ -208,6 +230,7 @@ describe('ProductService.update audit hook', () => {
       categoryRepository: buildCategoryRepository(),
       stockMovementRepository: buildStockMovementRepository(),
       audit: { record },
+      priceService: buildPriceService(),
     })
 
     await service.update('product-1', { selling_price: 2000 }, adminActor)
@@ -233,11 +256,34 @@ describe('ProductService.update audit hook', () => {
       categoryRepository: buildCategoryRepository(),
       stockMovementRepository: buildStockMovementRepository(),
       audit: { record },
+      priceService: buildPriceService(),
     })
 
     await service.update('product-1', { name: 'Produk Uji' }, adminActor)
 
     expect(record).not.toHaveBeenCalled()
+  })
+
+  it('mencatat riwayat harga saat selling_price berubah', async () => {
+    const recordPriceChanges = vi.fn(async () => {})
+    const service = buildService({
+      productRepository: buildProductRepository({
+        findById: async () => buildProduct(),
+        update: async () => buildProduct({ sellingPrice: new Prisma.Decimal('2000.00') }),
+      }),
+      priceService: buildPriceService({ recordPriceChanges }),
+    })
+
+    await service.update('product-1', { selling_price: 2000 }, adminActor)
+
+    expect(recordPriceChanges).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: 'product-1',
+        source: 'MANUAL',
+        before: { sellingPrice: '1500.00', costPrice: '1000.00' },
+        after: { sellingPrice: '2000.00', costPrice: '1000.00' },
+      }),
+    )
   })
 })
 
@@ -256,6 +302,7 @@ describe('ProductService.generateBarcode', () => {
       categoryRepository: buildCategoryRepository(),
       stockMovementRepository: buildStockMovementRepository(),
       audit: { record },
+      priceService: buildPriceService(),
     })
 
     const result = await service.generateBarcode('product-1', adminActor)

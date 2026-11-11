@@ -6,7 +6,7 @@ import type { PaymentMethod } from '../constants/transactions.js'
  */
 const MINOR_FACTOR = 100
 
-const toMinor = (value: string): number => {
+export const toMinor = (value: string): number => {
   const [whole = '0', fraction = ''] = value.trim().split('.')
   const sign = whole.startsWith('-') ? -1 : 1
   const wholeDigits = whole.replace('-', '')
@@ -15,7 +15,7 @@ const toMinor = (value: string): number => {
   return sign * minor
 }
 
-const fromMinor = (minor: number): string => {
+export const fromMinor = (minor: number): string => {
   const sign = minor < 0 ? '-' : ''
   const absolute = Math.abs(minor)
 
