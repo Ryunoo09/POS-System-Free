@@ -144,6 +144,10 @@ describe('stock opnames store', () => {
     await store.updateItem('session-1', 'item-1', { physical_stock: 8 })
 
     expect(store.detail?.items[0]).toMatchObject({ physical_stock: 8, difference: -2 })
+    expect(store.detail?.counted_items).toBe(1)
+    expect(store.detail?.uncounted_items).toBe(0)
+    expect(store.detail?.negative_differences).toBe(1)
+    expect(store.detail?.total_adjustment_quantity).toBe(-2)
   })
 
   it('mengirim reject dengan alasan', async () => {

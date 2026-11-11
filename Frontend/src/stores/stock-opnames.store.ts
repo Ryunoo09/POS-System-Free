@@ -68,6 +68,35 @@ export const useStockOpnamesStore = defineStore('stock-opnames', () => {
     detail.value = await run(() => stockOpnamesService.start(id))
   }
 
+  const recount = (): void => {
+    const current = detail.value
+    if (!current) return
+
+    let counted = 0
+    let positive = 0
+    let negative = 0
+    let zero = 0
+    let adjustment = 0
+
+    for (const row of current.items) {
+      if (row.physical_stock === null || row.difference === null) continue
+
+      counted += 1
+      adjustment += row.difference
+      if (row.difference > 0) positive += 1
+      else if (row.difference < 0) negative += 1
+      else zero += 1
+    }
+
+    current.total_items = current.items.length
+    current.counted_items = counted
+    current.uncounted_items = current.items.length - counted
+    current.positive_differences = positive
+    current.negative_differences = negative
+    current.zero_differences = zero
+    current.total_adjustment_quantity = adjustment
+  }
+
   const updateItem = async (
     id: string,
     itemId: string,
@@ -78,6 +107,7 @@ export const useStockOpnamesStore = defineStore('stock-opnames', () => {
     if (detail.value) {
       const index = detail.value.items.findIndex((row) => row.id === item.id)
       if (index >= 0) detail.value.items[index] = item
+      recount()
     }
   }
 
