@@ -8,6 +8,10 @@ const mocks = vi.hoisted(() => ({
   get: vi.fn<(id: string) => Promise<StockOpnameDetail>>(),
   start: vi.fn<(id: string) => Promise<StockOpnameDetail>>(),
   submit: vi.fn<(id: string) => Promise<StockOpnameDetail>>(),
+  approve: vi.fn<(id: string) => Promise<StockOpnameDetail>>(),
+  reject: vi.fn<(id: string, reason: string) => Promise<StockOpnameDetail>>(),
+  complete: vi.fn<(id: string) => Promise<StockOpnameDetail>>(),
+  cancel: vi.fn<(id: string) => Promise<StockOpnameDetail>>(),
   updateItem:
     vi.fn<
       (
@@ -31,6 +35,10 @@ vi.mock('@/services/stock-opnames.service', () => ({
     get: mocks.get,
     start: mocks.start,
     submit: mocks.submit,
+    approve: mocks.approve,
+    reject: mocks.reject,
+    complete: mocks.complete,
+    cancel: mocks.cancel,
     updateItem: mocks.updateItem,
   },
 }))
@@ -182,5 +190,108 @@ describe('StockOpnameDetailPage', () => {
     await flushPromises()
 
     expect(wrapper.html()).toContain('bg-accent-soft')
+  })
+
+  it('menonaktifkan approval untuk sesi buatan sendiri', async () => {
+    const wrapper = await mountPage(
+      buildDetail({ status: 'SUBMITTED', created_by: { id: 'admin-1', name: 'Admin' } }),
+    )
+
+    const approveButton = wrapper.findAll('button').find((button) => button.text() === 'Setujui')
+    expect(approveButton).toBeDefined()
+    expect(approveButton?.attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('Anda pembuat sesi ini')
+  })
+
+  it('menyetujui sesi milik pengguna lain', async () => {
+    mocks.approve.mockResolvedValue(buildDetail({ status: 'APPROVED' }))
+    const wrapper = await mountPage(
+      buildDetail({ status: 'SUBMITTED', created_by: { id: 'owner-1', name: 'Rina' } }),
+    )
+
+    const approveButton = wrapper.findAll('button').find((button) => button.text() === 'Setujui')
+    await approveButton?.trigger('click')
+    await flushPromises()
+
+    const approveButtons = wrapper
+      .findAll('button')
+      .filter((button) => button.text() === 'Setujui')
+    const confirmButton = approveButtons[approveButtons.length - 1]
+    await confirmButton?.trigger('click')
+    await flushPromises()
+
+    expect(mocks.approve).toHaveBeenCalledWith('session-1')
+  })
+
+  it('menolak sesi dengan alasan dan mengembalikannya ke IN_PROGRESS', async () => {
+    mocks.reject.mockResolvedValue(buildDetail({ status: 'IN_PROGRESS' }))
+    const wrapper = await mountPage(
+      buildDetail({ status: 'SUBMITTED', created_by: { id: 'owner-1', name: 'Rina' } }),
+    )
+
+    const rejectButton = wrapper.findAll('button').find((button) => button.text() === 'Tolak')
+    await rejectButton?.trigger('click')
+    await flushPromises()
+
+    await wrapper.find('textarea').setValue('Rak A salah hitung')
+
+    const submitReject = wrapper.findAll('button').find((button) => button.text() === 'Tolak Sesi')
+    await submitReject?.trigger('click')
+    await flushPromises()
+
+    expect(mocks.reject).toHaveBeenCalledWith('session-1', 'Rak A salah hitung')
+  })
+
+  it('menolak submit reject dengan alasan terlalu pendek', async () => {
+    const wrapper = await mountPage(
+      buildDetail({ status: 'SUBMITTED', created_by: { id: 'owner-1', name: 'Rina' } }),
+    )
+
+    const rejectButton = wrapper.findAll('button').find((button) => button.text() === 'Tolak')
+    await rejectButton?.trigger('click')
+    await flushPromises()
+
+    await wrapper.find('textarea').setValue('ab')
+    const submitReject = wrapper.findAll('button').find((button) => button.text() === 'Tolak Sesi')
+    await submitReject?.trigger('click')
+    await flushPromises()
+
+    expect(mocks.reject).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Alasan penolakan minimal 3 karakter')
+  })
+
+  it('menyelesaikan sesi APPROVED setelah konfirmasi', async () => {
+    mocks.complete.mockResolvedValue(buildDetail({ status: 'COMPLETED' }))
+    const wrapper = await mountPage(buildDetail({ status: 'APPROVED' }))
+
+    const completeButton = wrapper.findAll('button').find((button) => button.text() === 'Selesaikan')
+    await completeButton?.trigger('click')
+    await flushPromises()
+
+    const completeButtons = wrapper
+      .findAll('button')
+      .filter((button) => button.text() === 'Selesaikan')
+    const confirmButton = completeButtons[completeButtons.length - 1]
+    await confirmButton?.trigger('click')
+    await flushPromises()
+
+    expect(mocks.complete).toHaveBeenCalledWith('session-1')
+  })
+
+  it('membatalkan sesi berjalan setelah konfirmasi', async () => {
+    mocks.cancel.mockResolvedValue(buildDetail({ status: 'CANCELLED' }))
+    const wrapper = await mountPage(buildDetail({ status: 'IN_PROGRESS' }))
+
+    const cancelButton = wrapper.findAll('button').find((button) => button.text() === 'Batalkan')
+    await cancelButton?.trigger('click')
+    await flushPromises()
+
+    const confirmButton = wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Batalkan Sesi')
+    await confirmButton?.trigger('click')
+    await flushPromises()
+
+    expect(mocks.cancel).toHaveBeenCalledWith('session-1')
   })
 })

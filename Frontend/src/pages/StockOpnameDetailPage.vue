@@ -3,6 +3,9 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import AppButton from '@/components/common/AppButton.vue'
 import AppInput from '@/components/common/AppInput.vue'
+import AppModal from '@/components/common/AppModal.vue'
+import AppTextarea from '@/components/common/AppTextarea.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import SkeletonBlock from '@/components/common/SkeletonBlock.vue'
 import OpnameStatusBadge from '@/components/stock-opname/OpnameStatusBadge.vue'
@@ -28,9 +31,18 @@ const store = useStockOpnamesStore()
 const sessionId = computed(() => String(route.params.id ?? ''))
 const session = computed(() => store.detail)
 const canManage = computed(() => auth.hasPermission(PERMISSIONS.STOCK_OPNAME_MANAGE))
+const canApprove = computed(() => auth.hasPermission(PERMISSIONS.STOCK_OPNAME_APPROVE))
+const isOwnSession = computed(() => session.value?.created_by.id === auth.user?.id)
 const canCount = computed(() => canManage.value && session.value?.status === 'IN_PROGRESS')
 const canStart = computed(() => canManage.value && session.value?.status === 'DRAFT')
 const canSubmit = computed(() => canManage.value && session.value?.status === 'IN_PROGRESS')
+const canComplete = computed(() => canApprove.value && session.value?.status === 'APPROVED')
+const canCancel = computed(
+  () =>
+    canManage.value &&
+    session.value !== null &&
+    ['DRAFT', 'IN_PROGRESS'].includes(session.value.status),
+)
 
 const edits = ref<Record<string, { physical: string; reason: string }>>({})
 const savingItemId = ref('')
@@ -140,6 +152,88 @@ const submit = async (): Promise<void> => {
   }
 }
 
+type ConfirmAction = 'approve' | 'complete' | 'cancel'
+
+const confirmAction = ref<ConfirmAction | null>(null)
+const rejectOpen = ref(false)
+const rejectReason = ref('')
+const rejectError = ref('')
+
+const confirmCopy = computed(() => {
+  const adjust = formatNumber(session.value?.total_adjustment_quantity ?? 0)
+
+  switch (confirmAction.value) {
+    case 'approve':
+      return {
+        title: 'Setujui opname',
+        message: `Stok sistem akan disesuaikan mengikuti hasil hitung (total penyesuaian ${adjust} unit). Lanjutkan?`,
+        confirmLabel: 'Setujui',
+        variant: 'primary' as const,
+      }
+    case 'complete':
+      return {
+        title: 'Selesaikan opname',
+        message: 'Sesi yang selesai bersifat final dan tidak dapat diubah lagi.',
+        confirmLabel: 'Selesaikan',
+        variant: 'primary' as const,
+      }
+    case 'cancel':
+      return {
+        title: 'Batalkan sesi opname',
+        message: 'Sesi dibatalkan tanpa mengubah stok. Tindakan ini final.',
+        confirmLabel: 'Batalkan Sesi',
+        variant: 'danger' as const,
+      }
+    default:
+      return { title: '', message: '', confirmLabel: 'Ya', variant: 'primary' as const }
+  }
+})
+
+const runConfirm = async (): Promise<void> => {
+  const action = confirmAction.value
+  if (!action) return
+
+  try {
+    if (action === 'approve') {
+      await store.approve(sessionId.value)
+      notify.success('Opname disetujui, stok telah disesuaikan')
+    } else if (action === 'complete') {
+      await store.complete(sessionId.value)
+      notify.success('Sesi opname selesai')
+    } else {
+      await store.cancel(sessionId.value)
+      notify.success('Sesi opname dibatalkan')
+    }
+  } catch (error) {
+    notify.error(errorMessage(error, 'Aksi opname gagal.'))
+  } finally {
+    confirmAction.value = null
+  }
+}
+
+const openReject = (): void => {
+  rejectReason.value = ''
+  rejectError.value = ''
+  rejectOpen.value = true
+}
+
+const submitReject = async (): Promise<void> => {
+  const reason = rejectReason.value.trim()
+
+  if (reason.length < 3) {
+    rejectError.value = 'Alasan penolakan minimal 3 karakter'
+    return
+  }
+
+  try {
+    await store.reject(sessionId.value, reason)
+    notify.success('Sesi dikembalikan untuk dihitung ulang')
+    rejectOpen.value = false
+  } catch (error) {
+    rejectError.value = errorMessage(error, 'Gagal menolak sesi.')
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -183,8 +277,31 @@ onMounted(load)
           >
             Kirim Approval
           </AppButton>
+          <template v-if="session.status === 'SUBMITTED' && canApprove">
+            <AppButton :disabled="isOwnSession" @click="confirmAction = 'approve'">Setujui</AppButton>
+            <AppButton variant="danger" :disabled="isOwnSession" @click="openReject">Tolak</AppButton>
+          </template>
+          <AppButton v-if="canComplete" :loading="store.isSaving" @click="confirmAction = 'complete'">
+            Selesaikan
+          </AppButton>
+          <AppButton
+            v-if="canCancel"
+            variant="danger"
+            :loading="store.isSaving"
+            @click="confirmAction = 'cancel'"
+          >
+            Batalkan
+          </AppButton>
         </div>
       </header>
+
+      <p
+        v-if="session.status === 'SUBMITTED' && isOwnSession"
+        class="rounded-lg border border-border bg-surface-2 px-4 py-3 text-sm text-ink-2"
+      >
+        Anda pembuat sesi ini. Approval harus dilakukan pengguna lain dengan izin
+        <span class="font-medium">stock_opname:approve</span>.
+      </p>
 
       <p
         v-if="session.rejection_reason"
@@ -313,5 +430,39 @@ onMounted(load)
         </div>
       </div>
     </template>
+
+    <ConfirmDialog
+      :open="confirmAction !== null"
+      :title="confirmCopy.title"
+      :message="confirmCopy.message"
+      :confirm-label="confirmCopy.confirmLabel"
+      :variant="confirmCopy.variant"
+      :loading="store.isSaving"
+      @confirm="runConfirm"
+      @cancel="confirmAction = null"
+    />
+
+    <AppModal :open="rejectOpen" title="Tolak opname" max-width="sm" @close="rejectOpen = false">
+      <div class="space-y-3">
+        <AppTextarea
+          v-model="rejectReason"
+          label="Alasan penolakan"
+          :rows="3"
+          :maxlength="500"
+          required
+          :error="rejectError"
+        />
+        <p class="text-xs text-ink-3">
+          Sesi kembali ke status Berjalan agar dapat dihitung ulang.
+        </p>
+      </div>
+
+      <template #footer>
+        <AppButton variant="secondary" @click="rejectOpen = false">Batal</AppButton>
+        <AppButton variant="danger" :loading="store.isSaving" @click="submitReject">
+          Tolak Sesi
+        </AppButton>
+      </template>
+    </AppModal>
   </section>
 </template>
