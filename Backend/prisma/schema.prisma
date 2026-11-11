@@ -162,6 +162,7 @@ model Product {
   categoryId   String   @map("category_id") @db.Uuid
   unit         String   @db.VarChar(20)
   costPrice    Decimal  @default(0) @map("cost_price") @db.Decimal(12, 2)
+  averageCost  Decimal  @default(0) @map("average_cost") @db.Decimal(12, 2)
   sellingPrice Decimal  @default(0) @map("selling_price") @db.Decimal(12, 2)
   stock        Int      @default(0)
   minStock     Int      @default(0) @map("min_stock")
@@ -365,9 +366,10 @@ model PurchaseOrder {
   createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  supplier  Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
-  createdBy User                @relation(fields: [createdById], references: [id], onDelete: Restrict)
-  items     PurchaseOrderItem[]
+  supplier     Supplier              @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdBy    User                  @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  items        PurchaseOrderItem[]
+  priceHistory ProductPriceHistory[]
 
   @@index([supplierId])
   @@index([status])
@@ -395,6 +397,7 @@ model PurchaseOrderItem {
 enum PriceField {
   SELLING_PRICE
   COST_PRICE
+  AVERAGE_COST
 
   @@map("price_field")
 }
@@ -403,6 +406,7 @@ enum PriceChangeSource {
   MANUAL
   SCHEDULED
   BULK
+  PURCHASE
 
   @@map("price_change_source")
 }
@@ -416,21 +420,24 @@ enum ScheduledPriceStatus {
 }
 
 model ProductPriceHistory {
-  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  productId   String            @map("product_id") @db.Uuid
-  field       PriceField
-  oldValue    Decimal           @map("old_value") @db.Decimal(12, 2)
-  newValue    Decimal           @map("new_value") @db.Decimal(12, 2)
-  source      PriceChangeSource
-  reason      String?           @db.VarChar(255)
-  changedById String?           @map("changed_by_id") @db.Uuid
-  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId       String            @map("product_id") @db.Uuid
+  field           PriceField
+  oldValue        Decimal           @map("old_value") @db.Decimal(12, 2)
+  newValue        Decimal           @map("new_value") @db.Decimal(12, 2)
+  source          PriceChangeSource
+  reason          String?           @db.VarChar(255)
+  changedById     String?           @map("changed_by_id") @db.Uuid
+  purchaseOrderId String?           @map("purchase_order_id") @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  changedBy User?   @relation("PriceChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+  product       Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  changedBy     User?          @relation("PriceChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+  purchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
 
   @@index([productId, createdAt])
   @@index([source, createdAt])
+  @@index([purchaseOrderId])
   @@map("product_price_history")
 }
 
