@@ -6,10 +6,19 @@ import { isRole, type Role } from '../constants/roles.js'
 export interface AccessTokenPayload {
   sub: string
   role: Role
+  tv: number
 }
 
-export const signAccessToken = ({ sub, role }: AccessTokenPayload): string =>
-  jwt.sign({ role }, env.JWT_SECRET, {
+export const signAccessToken = ({
+  sub,
+  role,
+  tokenVersion,
+}: {
+  sub: string
+  role: Role
+  tokenVersion: number
+}): string =>
+  jwt.sign({ role, tv: tokenVersion }, env.JWT_SECRET, {
     subject: sub,
     expiresIn: env.JWT_EXPIRES_IN as NonNullable<SignOptions['expiresIn']>,
     algorithm: 'HS256',
@@ -23,13 +32,13 @@ export const verifyAccessToken = (token: string): AccessTokenPayload | null => {
       return null
     }
 
-    const { sub, role } = decoded as { sub?: unknown; role?: unknown }
+    const { sub, role, tv } = decoded as { sub?: unknown; role?: unknown; tv?: unknown }
 
-    if (typeof sub !== 'string' || !isRole(role)) {
+    if (typeof sub !== 'string' || !isRole(role) || typeof tv !== 'number') {
       return null
     }
 
-    return { sub, role }
+    return { sub, role, tv }
   } catch {
     return null
   }

@@ -35,5 +35,15 @@ export const createAuthController = ({
     return sendSuccess(res, { message: 'Request successful', data: user })
   },
 
-  logout: (_req, res) => sendSuccess(res, { message: 'Logout berhasil', data: null }),
+  logout: async (req, res) => {
+    const userId = req.user?.id
+
+    if (!userId) {
+      throw new UnauthorizedError('Sesi tidak valid', 'TOKEN_INVALID')
+    }
+
+    await authService.logout(userId)
+
+    return sendSuccess(res, { message: 'Logout berhasil', data: null })
+  },
 })

@@ -42,8 +42,8 @@ beforeAll(async () => {
   })
 
   adminId = admin.id
-  adminToken = signAccessToken({ sub: admin.id, role: 'ADMIN' })
-  cashierToken = signAccessToken({ sub: cashier.id, role: 'CASHIER' })
+  adminToken = signAccessToken({ sub: admin.id, role: 'ADMIN', tokenVersion: 0 })
+  cashierToken = signAccessToken({ sub: cashier.id, role: 'CASHIER', tokenVersion: 0 })
 })
 
 afterAll(async () => {

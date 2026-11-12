@@ -116,6 +116,7 @@ export const createUserService = ({
         role: input.role,
         isActive: input.is_active,
         passwordHash: input.password === undefined ? undefined : await hashPassword(input.password),
+        incrementTokenVersion: input.password !== undefined,
       })
 
       const diff = buildFieldDiff(

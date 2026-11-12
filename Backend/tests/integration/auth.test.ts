@@ -9,6 +9,7 @@ const PASSWORD = 'Kasir@12345'
 const mocks = vi.hoisted(() => ({
   findUnique: vi.fn(),
   findFirst: vi.fn(),
+  update: vi.fn(),
   queryRaw: vi.fn(),
 }))
 
@@ -17,6 +18,7 @@ vi.mock('../../src/config/database.js', () => ({
     user: {
       findUnique: mocks.findUnique,
       findFirst: mocks.findFirst,
+      update: mocks.update,
     },
     $queryRaw: mocks.queryRaw,
   },
@@ -64,6 +66,7 @@ const buildUsers = async (): Promise<User[]> => {
   const base = {
     passwordHash,
     isActive: true,
+    tokenVersion: 0,
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
   }
@@ -90,6 +93,22 @@ beforeAll(async () => {
       ) ?? null,
     ),
   )
+
+  mocks.update.mockImplementation(
+    ({ where, data }: { where: { id: string }; data: { tokenVersion?: { increment: number } } }) => {
+      const target = users.find((user) => user.id === where.id)
+
+      if (!target) {
+        return Promise.reject(new Error('user tidak ditemukan'))
+      }
+
+      if (data.tokenVersion?.increment) {
+        target.tokenVersion += data.tokenVersion.increment
+      }
+
+      return Promise.resolve(target)
+    },
+  )
 })
 
 beforeEach(() => {
@@ -97,6 +116,7 @@ beforeEach(() => {
 
   for (const user of users) {
     user.isActive = true
+    user.tokenVersion = 0
   }
 })
 
@@ -207,6 +227,21 @@ describe('POST /api/auth/logout', () => {
 
     expect(response.status).toBe(200)
     expect(response.body).toMatchObject({ success: true, data: null })
+  })
+
+  it('mencabut token lama setelah logout', async () => {
+    const token = await login('kasir1@pos.local')
+
+    const logout = await request(app)
+      .post('/api/auth/logout')
+      .set('Authorization', `Bearer ${token}`)
+
+    expect(logout.status).toBe(200)
+
+    const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`)
+
+    expect(me.status).toBe(401)
+    expect(me.body.code).toBe('TOKEN_INVALID')
   })
 
   it('401 tanpa token', async () => {

@@ -35,8 +35,8 @@ beforeAll(async () => {
     data: { name: 'Kasir Dashboard', email: 'kasir.dash@pos.local', passwordHash, role: 'CASHIER' },
   })
 
-  adminToken = signAccessToken({ sub: admin.id, role: 'ADMIN' })
-  cashierToken = signAccessToken({ sub: cashier.id, role: 'CASHIER' })
+  adminToken = signAccessToken({ sub: admin.id, role: 'ADMIN', tokenVersion: 0 })
+  cashierToken = signAccessToken({ sub: cashier.id, role: 'CASHIER', tokenVersion: 0 })
 
   const category = await prisma.category.create({ data: { name: 'Kategori Dashboard' } })
   categoryId = category.id

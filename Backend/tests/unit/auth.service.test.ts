@@ -1,8 +1,9 @@
 import bcrypt from 'bcrypt'
 import type { User } from '@prisma/client'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { UserRepository } from '../../src/repositories/user.repository.js'
 import { createAuthService } from '../../src/services/auth.service.js'
+import { verifyAccessToken } from '../../src/utils/jwt.js'
 
 const PASSWORD = 'Kasir@12345'
 
@@ -13,6 +14,7 @@ const buildUser = async (overrides: Partial<User> = {}): Promise<User> => ({
   passwordHash: await bcrypt.hash(PASSWORD, 4),
   role: 'CASHIER',
   isActive: true,
+  tokenVersion: 0,
   createdAt: new Date('2026-01-01T00:00:00Z'),
   updatedAt: new Date('2026-01-01T00:00:00Z'),
   ...overrides,
@@ -30,6 +32,7 @@ const buildRepository = (user: User | null): UserRepository => ({
   update: async () => {
     throw new Error('tidak dipakai pada test ini')
   },
+  incrementTokenVersion: async () => undefined,
 })
 
 describe('AuthService.login', () => {
@@ -45,6 +48,7 @@ describe('AuthService.login', () => {
     expect(session.user.permissions).toContain('transaction:create')
     expect(session.user).not.toHaveProperty('passwordHash')
     expect(JSON.stringify(session)).not.toContain(user.passwordHash)
+    expect(verifyAccessToken(session.token)?.tv).toBe(0)
   })
 
   it('menolak email yang tidak terdaftar dengan 401 INVALID_CREDENTIALS', async () => {
@@ -86,5 +90,19 @@ describe('AuthService.me', () => {
       statusCode: 401,
       code: 'TOKEN_INVALID',
     })
+  })
+})
+
+describe('AuthService.logout', () => {
+  it('menaikkan token version user agar token lama tidak berlaku', async () => {
+    const user = await buildUser()
+    const incrementTokenVersion = vi.fn(async () => undefined)
+    const service = createAuthService({
+      userRepository: { ...buildRepository(user), incrementTokenVersion },
+    })
+
+    await service.logout('user-1')
+
+    expect(incrementTokenVersion).toHaveBeenCalledWith('user-1')
   })
 })

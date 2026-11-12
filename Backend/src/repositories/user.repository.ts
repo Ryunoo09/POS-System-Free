@@ -24,6 +24,7 @@ export interface UpdateUserData {
   role?: Role | undefined
   isActive?: boolean | undefined
   passwordHash?: string | undefined
+  incrementTokenVersion?: boolean | undefined
 }
 
 export interface UserRepository {
@@ -34,6 +35,7 @@ export interface UserRepository {
   countActiveAdmins: () => Promise<number>
   create: (data: CreateUserData) => Promise<User>
   update: (id: string, data: UpdateUserData) => Promise<User>
+  incrementTokenVersion: (id: string) => Promise<void>
 }
 
 export const createUserRepository = (prisma: PrismaClient): UserRepository => ({
@@ -86,13 +88,20 @@ export const createUserRepository = (prisma: PrismaClient): UserRepository => ({
       role?: Role
       isActive?: boolean
       passwordHash?: string
+      tokenVersion?: { increment: number }
     } = {}
 
     if (data.name !== undefined) update.name = data.name
     if (data.role !== undefined) update.role = data.role
     if (data.isActive !== undefined) update.isActive = data.isActive
     if (data.passwordHash !== undefined) update.passwordHash = data.passwordHash
+    if (data.incrementTokenVersion) update.tokenVersion = { increment: 1 }
 
     return prisma.user.update({ where: { id }, data: update })
   },
+
+  incrementTokenVersion: (id) =>
+    prisma.user
+      .update({ where: { id }, data: { tokenVersion: { increment: 1 } } })
+      .then(() => undefined),
 })

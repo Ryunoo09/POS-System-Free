@@ -39,10 +39,16 @@ export const useAuthStore = defineStore('auth', () => {
     return currentUser
   }
 
-  const logout = () => {
-    token.value = null
-    user.value = null
-    localStorage.removeItem(TOKEN_STORAGE_KEY)
+  const logout = async () => {
+    try {
+      await authService.logout()
+    } catch {
+      // Token bisa saja sudah tidak valid; pembersihan lokal tetap harus jalan.
+    } finally {
+      token.value = null
+      user.value = null
+      localStorage.removeItem(TOKEN_STORAGE_KEY)
+    }
   }
 
   const can = (permission: string): boolean => hasPermission(permissions.value, permission)

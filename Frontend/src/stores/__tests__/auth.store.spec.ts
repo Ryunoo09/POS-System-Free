@@ -63,15 +63,30 @@ describe('auth.store', () => {
     expect(store.hasAnyPermission(['dashboard:read', 'transaction:create'])).toBe(true)
   })
 
-  it('membersihkan token dan user saat logout', () => {
+  it('membersihkan token dan user saat logout', async () => {
     localStorage.setItem(TOKEN_STORAGE_KEY, 'jwt-token')
+    mocks.logout.mockResolvedValue(undefined)
     const store = useAuthStore()
 
-    store.logout()
+    await store.logout()
 
+    expect(mocks.logout).toHaveBeenCalledTimes(1)
     expect(store.token).toBeNull()
     expect(store.user).toBeNull()
     expect(store.isAuthenticated).toBe(false)
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
+  })
+
+  it('tetap membersihkan state lokal saat logout ke server gagal', async () => {
+    localStorage.setItem(TOKEN_STORAGE_KEY, 'jwt-token')
+    mocks.logout.mockRejectedValue(new Error('token sudah tidak valid'))
+    const store = useAuthStore()
+
+    await store.logout()
+
+    expect(mocks.logout).toHaveBeenCalledTimes(1)
+    expect(store.token).toBeNull()
+    expect(store.user).toBeNull()
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
   })
 })

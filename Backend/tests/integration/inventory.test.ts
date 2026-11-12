@@ -40,9 +40,9 @@ beforeAll(async () => {
   })
 
   adminId = admin.id
-  adminToken = signAccessToken({ sub: admin.id, role: 'ADMIN' })
-  ownerToken = signAccessToken({ sub: owner.id, role: 'OWNER' })
-  cashierToken = signAccessToken({ sub: cashier.id, role: 'CASHIER' })
+  adminToken = signAccessToken({ sub: admin.id, role: 'ADMIN', tokenVersion: 0 })
+  ownerToken = signAccessToken({ sub: owner.id, role: 'OWNER', tokenVersion: 0 })
+  cashierToken = signAccessToken({ sub: cashier.id, role: 'CASHIER', tokenVersion: 0 })
 
   const category = await prisma.category.create({ data: { name: 'Kategori Inven' } })
   const product = await prisma.product.create({

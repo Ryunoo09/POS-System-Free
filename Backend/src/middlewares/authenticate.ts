@@ -31,6 +31,10 @@ export const authenticate = ({
       return next(new UnauthorizedError(TOKEN_INVALID_MESSAGE, 'TOKEN_INVALID'))
     }
 
+    if (payload.tv !== user.tokenVersion) {
+      return next(new UnauthorizedError(TOKEN_INVALID_MESSAGE, 'TOKEN_INVALID'))
+    }
+
     req.user = toAuthUser(user)
 
     return next()

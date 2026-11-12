@@ -16,6 +16,7 @@ export interface AuthSession {
 export interface AuthService {
   login: (email: string, password: string) => Promise<AuthSession>
   me: (userId: string) => Promise<AuthUser>
+  logout: (userId: string) => Promise<void>
 }
 
 export const createAuthService = ({
@@ -41,7 +42,11 @@ export const createAuthService = ({
       }
 
       return {
-        token: signAccessToken({ sub: user.id, role: user.role }),
+        token: signAccessToken({
+          sub: user.id,
+          role: user.role,
+          tokenVersion: user.tokenVersion,
+        }),
         token_type: 'Bearer',
         expires_in: env.JWT_EXPIRES_IN,
         user: toAuthUser(user),
@@ -56,6 +61,10 @@ export const createAuthService = ({
       }
 
       return toAuthUser(user)
+    },
+
+    logout: async (userId) => {
+      await userRepository.incrementTokenVersion(userId)
     },
   }
 }
