@@ -228,7 +228,11 @@ export const createPriceService = ({
       const rows = await priceRepository.listHistory(productId, HISTORY_LIMIT)
 
       return rows
-        .filter((row) => actor.canViewCostPrice || row.field !== 'COST_PRICE')
+        .filter(
+          (row) =>
+            actor.canViewCostPrice ||
+            (row.field !== 'COST_PRICE' && row.field !== 'AVERAGE_COST'),
+        )
         .map(toPriceHistoryDto)
     },
 

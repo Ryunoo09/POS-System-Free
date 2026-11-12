@@ -163,6 +163,7 @@ describe('PriceService.listHistory', () => {
         listHistory: async () => [
           buildHistoryRow({ id: 'h1', field: 'SELLING_PRICE' }),
           buildHistoryRow({ id: 'h2', field: 'COST_PRICE' }),
+          buildHistoryRow({ id: 'h3', field: 'AVERAGE_COST' }),
         ],
       }),
       productRepository: buildProductRepository(),
@@ -179,6 +180,7 @@ describe('PriceService.listHistory', () => {
         listHistory: async () => [
           buildHistoryRow({ id: 'h1' }),
           buildHistoryRow({ id: 'h2', field: 'COST_PRICE' }),
+          buildHistoryRow({ id: 'h3', field: 'AVERAGE_COST' }),
         ],
       }),
       productRepository: buildProductRepository(),
@@ -186,7 +188,11 @@ describe('PriceService.listHistory', () => {
 
     const rows = await service.listHistory('product-1', adminActor)
 
-    expect(rows).toHaveLength(2)
+    expect(rows.map((row) => row.field)).toEqual([
+      'SELLING_PRICE',
+      'COST_PRICE',
+      'AVERAGE_COST',
+    ])
     expect(rows[0]?.old_value).toBe('1500.00')
   })
 })
