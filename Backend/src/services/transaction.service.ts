@@ -132,6 +132,11 @@ export const createTransactionService = ({
     const existing = await transactionRepository.findByIdempotencyKey(idempotencyKey)
     if (existing) return replayOrConflict(existing, actor)
 
+    // Nomor invoice & shift aktif diambil sebelum transaksi agar antrean lock produk tetap singkat.
+    const invoiceNumber = formatInvoiceNumber(await transactionRepository.nextInvoiceSequence())
+    const activeShift = shiftRepository ? await shiftRepository.findActiveByCashierId(actor.id) : null
+    const activeShiftId = activeShift ? activeShift.id : null
+
     try {
       const created = await runInTransaction(async (tx) => {
         const productIds = [...new Set(input.items.map((item) => item.product_id))].sort()
@@ -231,14 +236,8 @@ export const createTransactionService = ({
           )
         }
 
-        let activeShiftId: string | null = null
-        if (shiftRepository) {
-          const activeShift = await shiftRepository.findActiveByCashierId(actor.id)
-          activeShiftId = activeShift ? activeShift.id : null
-        }
-
         const checkoutData: CreateCheckoutData = {
-          invoiceNumber: formatInvoiceNumber(await transactionRepository.nextInvoiceSequence(tx)),
+          invoiceNumber,
           idempotencyKey,
           cashierId: actor.id,
           shiftId: activeShiftId,

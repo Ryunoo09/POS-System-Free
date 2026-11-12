@@ -75,7 +75,7 @@ export interface TransactionRepository {
     data: CreateCheckoutData,
     tx: Prisma.TransactionClient,
   ) => Promise<TransactionDetailView>
-  nextInvoiceSequence: (tx: Prisma.TransactionClient) => Promise<number>
+  nextInvoiceSequence: () => Promise<number>
 }
 
 const listInclude = {
@@ -172,8 +172,10 @@ export const createTransactionRepository = (prisma: PrismaClient): TransactionRe
       include: detailInclude,
     }),
 
-  nextInvoiceSequence: async (tx) => {
-    const rows = await tx.$queryRaw<Array<{ nextval: bigint }>>(
+  nextInvoiceSequence: async () => {
+    // `nextval` tidak transaksional: bisa dipanggil di luar transaksi interaktif
+    // agar lock baris produk tidak ditahan lebih lama dari perlu.
+    const rows = await prisma.$queryRaw<Array<{ nextval: bigint }>>(
       Prisma.sql`SELECT nextval('invoice_number_seq') AS nextval`,
     )
     const value = rows[0]?.nextval
