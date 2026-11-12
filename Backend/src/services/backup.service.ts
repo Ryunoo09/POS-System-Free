@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdir, readdir, stat } from 'node:fs/promises'
+import { appendFile, mkdir, readdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import bcrypt from 'bcrypt'
@@ -7,7 +7,11 @@ import { env } from '../config/env.js'
 import { BusinessRuleError, NotFoundError, UnauthorizedError } from '../errors/app-errors.js'
 import type { UserRepository } from '../repositories/user.repository.js'
 import type { AuditRecorder } from './audit.service.js'
-import { formatBackupFilename, isSafeBackupFilename } from '../utils/backup-file.js'
+import {
+  formatAuditExportFilename,
+  formatBackupFilename,
+  isSafeBackupFilename,
+} from '../utils/backup-file.js'
 import type { RestoreBackupInput } from '../validators/backup.validator.js'
 
 export interface BackupFileDto {
@@ -134,6 +138,13 @@ export const createBackupService = ({
     connection.database,
   ]
 
+  const appendRestoreAudit = (entry: Record<string, unknown>): Promise<void> =>
+    appendFile(
+      join(backupDir, 'restore-audit.jsonl'),
+      `${JSON.stringify(entry)}\n`,
+      'utf8',
+    )
+
   return {
     create: (actor) =>
       withBusy(async () => {
@@ -217,18 +228,94 @@ export const createBackupService = ({
 
         const connection = parseConnection(env.DATABASE_URL)
 
-        await runCommand(
-          'pg_restore',
-          [
-            '--clean',
-            '--if-exists',
-            '--no-owner',
-            '--no-privileges',
-            ...connectionArgs(connection),
-            filePath,
-          ],
-          { ...process.env, PGPASSWORD: connection.password },
-        )
+        await mkdir(backupDir, { recursive: true })
+
+        const auditExportPath = join(backupDir, formatAuditExportFilename())
+        const connectionEnv = { ...process.env, PGPASSWORD: connection.password }
+
+        await appendRestoreAudit({
+          status: 'STARTED',
+          actorId: actor.id,
+          filename: input.filename,
+          audit_export: auditExportPath,
+          ip_address: actor.ipAddress ?? null,
+          user_agent: actor.userAgent ?? null,
+          at: new Date().toISOString(),
+        })
+
+        try {
+          await runCommand(
+            'pg_dump',
+            [
+              '--data-only',
+              '--table=audit_logs',
+              '--no-owner',
+              '--no-privileges',
+              ...connectionArgs(connection),
+              '-f',
+              auditExportPath,
+            ],
+            connectionEnv,
+          )
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : 'unknown error'
+
+          await appendRestoreAudit({
+            status: 'FAILED',
+            actorId: actor.id,
+            filename: input.filename,
+            audit_export: auditExportPath,
+            ip_address: actor.ipAddress ?? null,
+            user_agent: actor.userAgent ?? null,
+            error: `Gagal mengekspor audit sebelum restore: ${detail}`,
+            at: new Date().toISOString(),
+          })
+
+          throw new BusinessRuleError(
+            `Gagal mengekspor audit sebelum restore: ${detail}`,
+            'BACKUP_AUDIT_EXPORT_FAILED',
+          )
+        }
+
+        try {
+          await runCommand(
+            'pg_restore',
+            [
+              '--clean',
+              '--if-exists',
+              '--no-owner',
+              '--no-privileges',
+              ...connectionArgs(connection),
+              filePath,
+            ],
+            connectionEnv,
+          )
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : 'unknown error'
+
+          await appendRestoreAudit({
+            status: 'FAILED',
+            actorId: actor.id,
+            filename: input.filename,
+            audit_export: auditExportPath,
+            ip_address: actor.ipAddress ?? null,
+            user_agent: actor.userAgent ?? null,
+            error: detail,
+            at: new Date().toISOString(),
+          })
+
+          throw error
+        }
+
+        await appendRestoreAudit({
+          status: 'COMPLETED',
+          actorId: actor.id,
+          filename: input.filename,
+          audit_export: auditExportPath,
+          ip_address: actor.ipAddress ?? null,
+          user_agent: actor.userAgent ?? null,
+          at: new Date().toISOString(),
+        })
 
         await audit?.record({
           userId: actor.id,

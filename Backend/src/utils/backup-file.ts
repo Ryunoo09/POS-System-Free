@@ -25,5 +25,8 @@ export const formatBackupFilename = (date: Date = new Date()): string => {
   return `pos-${p.year}${p.month}${p.day}-${p.hour}${p.minute}${p.second}.dump`
 }
 
+export const formatAuditExportFilename = (date: Date = new Date()): string =>
+  formatBackupFilename(date).replace(/\.dump$/, '.audit.sql')
+
 export const isSafeBackupFilename = (filename: string): boolean =>
   BACKUP_FILE_PATTERN.test(filename)

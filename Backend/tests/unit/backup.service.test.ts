@@ -1,4 +1,4 @@
-import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import bcrypt from 'bcrypt'
@@ -8,7 +8,11 @@ import {
   createBackupService,
   type BackupCommandRunner,
 } from '../../src/services/backup.service.js'
-import { formatBackupFilename, isSafeBackupFilename } from '../../src/utils/backup-file.js'
+import {
+  formatAuditExportFilename,
+  formatBackupFilename,
+  isSafeBackupFilename,
+} from '../../src/utils/backup-file.js'
 
 let backupDir: string
 
@@ -30,6 +34,13 @@ describe('backup filename', () => {
     expect(formatBackupFilename(new Date('2026-11-10T02:05:09Z'))).toMatch(
       /^pos-\d{8}-\d{6}\.dump$/,
     )
+  })
+
+  it('memformat nama file ekspor audit sesuai pola', () => {
+    const filename = formatAuditExportFilename(new Date('2026-11-10T02:05:09Z'))
+
+    expect(filename).toMatch(/^pos-\d{8}-\d{6}\.audit\.sql$/)
+    expect(isSafeBackupFilename(filename)).toBe(false)
   })
 
   it('menolak nama file yang tidak aman', () => {
@@ -122,7 +133,7 @@ describe('backup.service restore', () => {
     ).rejects.toThrow('Password salah')
   })
 
-  it('menjalankan pg_restore dan mencatat audit dengan password benar', async () => {
+  it('mengekspor audit lalu menjalankan pg_restore dan mencatat audit', async () => {
     const filename = 'pos-20261110-020000.dump'
     await writeFile(join(backupDir, filename), 'dump')
     const hash = await bcrypt.hash('rahasia', 4)
@@ -138,8 +149,18 @@ describe('backup.service restore', () => {
 
     await service.restore(
       { filename, password: 'rahasia', confirmation: 'RESTORE' },
-      { id: 'admin-1' },
+      { id: 'admin-1', ipAddress: '127.0.0.1', userAgent: 'vitest' },
     )
+
+    expect(runCommand).toHaveBeenCalledTimes(2)
+
+    const [dumpCommand, dumpArgs] = runCommand.mock.calls[0]!
+    expect(dumpCommand).toBe('pg_dump')
+    expect(dumpArgs).toEqual(
+      expect.arrayContaining(['--data-only', '--table=audit_logs', '-f']),
+    )
+    const auditExportPath = dumpArgs[dumpArgs.indexOf('-f') + 1]!
+    expect(auditExportPath).toMatch(/pos-\d{8}-\d{6}\.audit\.sql$/)
 
     expect(runCommand).toHaveBeenCalledWith(
       'pg_restore',
@@ -149,6 +170,61 @@ describe('backup.service restore', () => {
     expect(record).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'RESTORE', entity: 'BACKUP', entityId: filename }),
     )
+
+    const entries = (await readFile(join(backupDir, 'restore-audit.jsonl'), 'utf8'))
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line) as Record<string, unknown>)
+
+    expect(entries.map((entry) => entry.status)).toEqual(['STARTED', 'COMPLETED'])
+    expect(entries[0]).toMatchObject({
+      status: 'STARTED',
+      actorId: 'admin-1',
+      filename,
+      audit_export: auditExportPath,
+      ip_address: '127.0.0.1',
+      user_agent: 'vitest',
+    })
+    expect(entries[1]).toMatchObject({ status: 'COMPLETED', filename })
+
     await stat(join(backupDir, filename))
+  })
+
+  it('membatalkan restore dan mencatat FAILED bila ekspor audit gagal', async () => {
+    const filename = 'pos-20261110-020000.dump'
+    await writeFile(join(backupDir, filename), 'dump')
+    const hash = await bcrypt.hash('rahasia', 4)
+
+    const runCommand = vi.fn<BackupCommandRunner>(async (command) => {
+      if (command === 'pg_dump') {
+        throw new Error('pg_dump tidak tersedia')
+      }
+    })
+    const service = createBackupService({
+      userRepository: buildUserRepository(hash),
+      backupDir,
+      runCommand,
+    })
+
+    await expect(
+      service.restore(
+        { filename, password: 'rahasia', confirmation: 'RESTORE' },
+        { id: 'admin-1' },
+      ),
+    ).rejects.toMatchObject({ code: 'BACKUP_AUDIT_EXPORT_FAILED' })
+
+    expect(runCommand).toHaveBeenCalledTimes(1)
+    expect(runCommand).not.toHaveBeenCalledWith('pg_restore', expect.anything(), expect.anything())
+
+    const entries = (await readFile(join(backupDir, 'restore-audit.jsonl'), 'utf8'))
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line) as Record<string, unknown>)
+
+    expect(entries.map((entry) => entry.status)).toEqual(['STARTED', 'FAILED'])
+    expect(entries[1]).toMatchObject({
+      status: 'FAILED',
+      error: expect.stringContaining('pg_dump tidak tersedia'),
+    })
   })
 })
