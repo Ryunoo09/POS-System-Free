@@ -50,6 +50,10 @@ export interface ReturnRepository {
     transactionId: string,
     tx?: Prisma.TransactionClient,
   ) => Promise<Map<string, number>>
+  sumRefundedAmount: (
+    transactionId: string,
+    tx?: Prisma.TransactionClient,
+  ) => Promise<number>
 }
 
 const returnInclude = {
@@ -132,5 +136,14 @@ export const createReturnRepository = (prisma: PrismaClient): ReturnRepository =
     }
 
     return totals
+  },
+
+  sumRefundedAmount: async (transactionId, tx) => {
+    const result = await (tx ?? prisma).returnTransaction.aggregate({
+      where: { transactionId, status: 'COMPLETED' },
+      _sum: { refundAmount: true },
+    })
+
+    return Number(result._sum.refundAmount ?? 0)
   },
 })

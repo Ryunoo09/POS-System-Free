@@ -66,6 +66,10 @@ export interface TransactionRepository {
   list: (input: ListTransactionsInput) => Promise<{ items: TransactionView[]; total: number }>
   listCashiers: () => Promise<CashierOption[]>
   findDetailById: (id: string) => Promise<TransactionDetailView | null>
+  findDetailByIdForUpdate: (
+    id: string,
+    tx: Prisma.TransactionClient,
+  ) => Promise<TransactionDetailView | null>
   findByIdempotencyKey: (key: string) => Promise<TransactionDetailView | null>
   createCheckout: (
     data: CreateCheckoutData,
@@ -123,6 +127,16 @@ export const createTransactionRepository = (prisma: PrismaClient): TransactionRe
 
   findDetailById: (id) =>
     prisma.transaction.findUnique({ where: { id }, include: detailInclude }),
+
+  findDetailByIdForUpdate: async (id, tx) => {
+    const locked = await tx.$queryRaw<Array<{ id: string }>>(
+      Prisma.sql`SELECT id FROM transactions WHERE id = ${id}::uuid FOR UPDATE`,
+    )
+
+    if (locked.length === 0) return null
+
+    return tx.transaction.findUnique({ where: { id }, include: detailInclude })
+  },
 
   findByIdempotencyKey: (key) =>
     prisma.transaction.findUnique({ where: { idempotencyKey: key }, include: detailInclude }),

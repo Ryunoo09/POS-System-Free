@@ -118,6 +118,7 @@ const buildDependencies = (
   options: {
     transaction?: TransactionDetailView | null
     returnedQuantities?: Record<string, number>
+    refundedAmount?: number
     returnView?: ReturnView
     shiftId?: string | null
   } = {},
@@ -132,13 +133,18 @@ const buildDependencies = (
     list: async () => ({ items: [], total: 0 }),
     sumReturnedQuantities: async () =>
       new Map(Object.entries(returnedQuantities)),
+    sumRefundedAmount: async () => options.refundedAmount ?? 0,
   }
 
   const findDetailById = vi.fn(
     async () => (options.transaction === undefined ? buildTransaction() : options.transaction),
   )
+  const findDetailByIdForUpdate = vi.fn(
+    async () => (options.transaction === undefined ? buildTransaction() : options.transaction),
+  )
   const transactionRepository = {
     findDetailById,
+    findDetailByIdForUpdate,
     list: async () => ({ items: [], total: 0 }),
     listCashiers: async () => [],
     findByIdempotencyKey: async () => null,
@@ -191,7 +197,7 @@ const buildDependencies = (
   return {
     service,
     createReturn,
-    findDetailById,
+    findDetailByIdForUpdate,
     updateStock,
     createMovement,
     createCashMovement,
@@ -213,6 +219,7 @@ describe('ReturnService.create', () => {
 
     const result = await deps.service.create(baseInput(), cashierActor)
 
+    expect(deps.findDetailByIdForUpdate).toHaveBeenCalledWith('tx-1', expect.anything())
     expect(deps.createReturn).toHaveBeenCalledWith(
       expect.objectContaining({
         transactionId: 'tx-1',
@@ -256,6 +263,116 @@ describe('ReturnService.create', () => {
     expect(result.transaction.invoice_number).toBe('INV-20261106-000001')
   })
 
+  it('tidak mengembalikan uang untuk transaksi yang didiskon penuh', async () => {
+    const deps = buildDependencies({
+      transaction: buildTransaction({
+        subtotal: new Prisma.Decimal('100.00'),
+        discountAmount: new Prisma.Decimal('100.00'),
+        taxAmount: new Prisma.Decimal('0.00'),
+        totalAmount: new Prisma.Decimal('0.00'),
+        amountPaid: new Prisma.Decimal('0.00'),
+        changeAmount: new Prisma.Decimal('0.00'),
+        items: [
+          buildTransactionItem({
+            quantity: 1,
+            unitPrice: new Prisma.Decimal('100.00'),
+            discountAmount: new Prisma.Decimal('0.00'),
+            subtotal: new Prisma.Decimal('100.00'),
+          }),
+        ],
+      }),
+    })
+
+    await deps.service.create(baseInput(), cashierActor)
+
+    expect(deps.createReturn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        refundAmount: '0.00',
+        items: [expect.objectContaining({ subtotal: '0.00' })],
+      }),
+      expect.anything(),
+    )
+    expect(deps.createCashMovement).not.toHaveBeenCalled()
+  })
+
+  it('memprorata diskon transaksi ke nilai refund', async () => {
+    const deps = buildDependencies({
+      transaction: buildTransaction({
+        subtotal: new Prisma.Decimal('100.00'),
+        discountAmount: new Prisma.Decimal('30.00'),
+        taxAmount: new Prisma.Decimal('0.00'),
+        totalAmount: new Prisma.Decimal('70.00'),
+        amountPaid: new Prisma.Decimal('70.00'),
+        changeAmount: new Prisma.Decimal('0.00'),
+        items: [
+          buildTransactionItem({
+            quantity: 1,
+            unitPrice: new Prisma.Decimal('100.00'),
+            discountAmount: new Prisma.Decimal('0.00'),
+            subtotal: new Prisma.Decimal('100.00'),
+          }),
+        ],
+      }),
+    })
+
+    await deps.service.create(baseInput(), cashierActor)
+
+    expect(deps.createReturn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        refundAmount: '70.00',
+        items: [expect.objectContaining({ subtotal: '70.00' })],
+      }),
+      expect.anything(),
+    )
+  })
+
+  it('membatasi refund pada sisa nilai transaksi', async () => {
+    const deps = buildDependencies({
+      refundedAmount: 80,
+      transaction: buildTransaction({
+        subtotal: new Prisma.Decimal('100.00'),
+        discountAmount: new Prisma.Decimal('0.00'),
+        taxAmount: new Prisma.Decimal('0.00'),
+        totalAmount: new Prisma.Decimal('100.00'),
+        amountPaid: new Prisma.Decimal('100.00'),
+        changeAmount: new Prisma.Decimal('0.00'),
+        items: [
+          buildTransactionItem({
+            quantity: 1,
+            unitPrice: new Prisma.Decimal('100.00'),
+            discountAmount: new Prisma.Decimal('0.00'),
+            subtotal: new Prisma.Decimal('100.00'),
+          }),
+        ],
+      }),
+    })
+
+    await deps.service.create(baseInput(), cashierActor)
+
+    expect(deps.createReturn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        refundAmount: '20.00',
+        items: [expect.objectContaining({ subtotal: '20.00' })],
+      }),
+      expect.anything(),
+    )
+  })
+
+  it('menolak metode refund berbeda dari pembayaran awal', async () => {
+    const deps = buildDependencies({
+      transaction: buildTransaction({ paymentMethod: 'CASH' }),
+    })
+
+    await expect(
+      deps.service.create(baseInput({ refund_method: 'QRIS' }), cashierActor),
+    ).rejects.toMatchObject({
+      statusCode: 422,
+      code: 'REFUND_METHOD_MISMATCH',
+    })
+
+    expect(deps.createReturn).not.toHaveBeenCalled()
+  })
+
   it('menolak kuantitas retur melebihi pembelian', async () => {
     const deps = buildDependencies()
 
@@ -293,7 +410,12 @@ describe('ReturnService.create', () => {
   })
 
   it('tidak memotong kas untuk refund non-tunai', async () => {
-    const deps = buildDependencies()
+    const deps = buildDependencies({
+      transaction: buildTransaction({
+        paymentMethod: 'QRIS',
+        amountPaid: new Prisma.Decimal('7000.00'),
+      }),
+    })
 
     await deps.service.create(baseInput({ refund_method: 'QRIS' }), cashierActor)
 
@@ -347,6 +469,7 @@ describe('ReturnService.list', () => {
         return { items: [buildReturnView()], total: 1 }
       },
       sumReturnedQuantities: async () => new Map(),
+      sumRefundedAmount: async () => 0,
     }
 
     const service = createReturnService({

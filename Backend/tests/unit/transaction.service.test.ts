@@ -200,6 +200,7 @@ const buildTransactionRepository = (existing: TransactionDetailView | null = nul
     list: async () => ({ items: [], total: 0 }),
     listCashiers: async () => [],
     findDetailById: async () => null,
+    findDetailByIdForUpdate: async () => null,
     findByIdempotencyKey,
     createCheckout,
     nextInvoiceSequence,
@@ -481,6 +482,7 @@ const buildReadService = ({
     list,
     listCashiers,
     findDetailById,
+    findDetailByIdForUpdate: findDetailById,
     findByIdempotencyKey: async () => null,
     createCheckout: async () => {
       throw new Error('tidak dipakai')
