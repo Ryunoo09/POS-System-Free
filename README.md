@@ -350,7 +350,7 @@ Dibuat oleh `Backend/prisma/seed.ts`:
 | `kasir1@pos.local` | `Kasir@12345` | `CASHIER` |
 | `kasir2@pos.local` | `Kasir@12345` | `CASHIER` |
 
-> Akun ini hanya untuk pengembangan. Ganti password dan secret sebelum deployment.
+> Akun ini hanya untuk pengembangan. Jangan dipakai di produksi; ganti password dan secret sebelum deployment.
 
 ## Peran dan Hak Akses
 
@@ -815,24 +815,31 @@ pnpm test
 ## Keamanan dan Operasional
 
 - **Autentikasi:** JWT bearer; default berlaku `8h` (`JWT_EXPIRES_IN`).
+- **Revokasi token:** logout dan perubahan password menaikkan `users.token_version`, sehingga JWT lama langsung ditolak (`401 TOKEN_INVALID`). Setelah deploy fitur ini, semua sesi lama perlu login ulang.
+- **Rate limit login:** maksimal 20 percobaan per kombinasi IP + email dalam 15 menit; kelebihan dibalas `429 TOO_MANY_REQUESTS` dengan header `Retry-After`. Limiter disimpan di memori proses (single instance); gunakan Redis bila backend di-scale horizontal.
 - **Password:** bcrypt dengan `BCRYPT_SALT_ROUNDS=12` secara default.
 - **Otorisasi:** permission berbasis peran di backend; UI hanya menyembunyikan aksi, validasi tetap di API.
-- **Data sensitif:** `cost_price` dan `unit_cost` tidak dikirim ke peran tanpa `cost-price:read`.
+- **Data sensitif:** `cost_price` dan `unit_cost` tidak dikirim ke peran tanpa `cost-price:read`. Riwayat harga umum juga menyembunyikan `COST_PRICE` dan `AVERAGE_COST` dari peran tersebut.
 - **CORS:** batasi `CORS_ORIGIN` ke origin frontend yang benar.
 - **Idempotensi checkout:** wajib `Idempotency-Key` UUID v4 untuk mencegah transaksi ganda.
+- **Retur:** refund diprorata dari nilai yang benar-benar dibayar (setelah diskon/pajak), dibatasi sisa nilai transaksi setelah refund sebelumnya, dan wajib memakai metode pembayaran awal. Transaksi dikunci (`SELECT ... FOR UPDATE`) agar dua retur paralel tidak bisa mengembalikan kuantitas yang sama. Refund `0.00` tidak membuat mutasi kas keluar.
+- **Pembelian & shift:** transisi status PO dikunci per baris sehingga penerimaan paralel hanya menambah stok sekali. Database hanya mengizinkan satu shift `OPEN` per kasir, dan penutupan shift kedua dibalas `409 SHIFT_ALREADY_CLOSED`.
 - **Audit:** perubahan penting tercatat di audit log dan dapat dibaca ADMIN/OWNER.
-- **Backup:** memerlukan `pg_dump`; restore memerlukan `pg_restore`, nama file, password akun, dan konfirmasi `RESTORE`.
+- **Backup:** memerlukan `pg_dump`; restore memerlukan `pg_restore`, nama file, password akun, dan konfirmasi `RESTORE`. Sebelum restore, tabel `audit_logs` diekspor ke `Backend/backups/pos-YYYYMMDD-HHmmss.audit.sql`; jika ekspor gagal, restore dibatalkan (`BACKUP_AUDIT_EXPORT_FAILED`). Setiap percobaan restore menulis `Backend/backups/restore-audit.jsonl` (`STARTED` / `COMPLETED` / `FAILED`).
 - **Scheduler:** backup harian berjalan pukul **02.00 waktu lokal server**.
 - **Pajak:** atur `TAX_RATE`/`VITE_TAX_RATE`; nilai `0` berarti tanpa pajak.
 
 Checklist produksi:
 
-- Ganti seluruh password akun seed.
+- Ganti seluruh password akun seed. Akun seed (`admin@pos.local`, `owner@pos.local`, `kasir1@pos.local`, `kasir2@pos.local`) hanya untuk pengembangan dan tidak boleh dipakai di produksi.
 - Gunakan `JWT_SECRET` acak minimal 32 karakter dan simpan di secret manager.
+- Set `DATABASE_URL` ke database produksi dan `JWT_EXPIRES_IN` sesuai kebijakan sesi.
+- Set `CORS_ORIGIN` persis ke origin frontend produksi (termasuk protokol dan port).
 - Aktifkan HTTPS dan batasi akses database.
-- Gunakan `prisma migrate deploy`, bukan `migrate dev`.
-- Uji restore backup secara berkala, bukan hanya membuat backup.
-- Jangan mengekspos file backup melalui web server.
+- Jalankan `pnpm --dir Backend exec prisma migrate deploy` lalu `prisma migrate status`; pastikan seluruh migrasi (termasuk `add_user_token_version` dan `unique_open_shift`) sudah diterapkan.
+- Sebelum migrasi `unique_open_shift`, cek shift `OPEN` ganda per kasir dan rapikan datanya.
+- Uji restore backup secara berkala, bukan hanya membuat backup. Pastikan direktori `Backend/backups/` tidak dapat diakses dari web server dan file `*.audit.sql` / `restore-audit.jsonl` ikut dibackup.
+- Jika backend berjalan lebih dari satu instance, ganti limiter login in-memory dengan penyimpanan bersama (mis. Redis).
 
 ## Troubleshooting
 
@@ -845,6 +852,8 @@ Checklist produksi:
 | Frontend gagal memanggil API | `VITE_API_URL` salah | Set `VITE_API_URL=http://localhost:3000/api`, restart Vite. |
 | Error CORS | `CORS_ORIGIN` tidak sama dengan origin frontend | Samakan origin, termasuk protokol dan port. |
 | `401 Unauthorized` | Token tidak ada, kedaluwarsa, atau invalid | Login ulang dan kirim header `Authorization`. |
+| `401` tepat setelah logout/ganti password | Token lama dicabut lewat `token_version` | Login ulang untuk mendapat token baru. |
+| `429 TOO_MANY_REQUESTS` | Lebih dari 20 percobaan login per IP + email dalam 15 menit | Tunggu sampai `Retry-After` habis atau gunakan akun lain. |
 | `403 Forbidden` | Peran tidak memiliki permission | Cek matriks peran; contoh: ADMIN tidak bisa checkout. |
 | Port 3000/5173 dipakai | Proses lain berjalan | Hentikan proses atau ubah port dan sesuaikan env. |
 | Backup gagal | `pg_dump`/`pg_restore` tidak ada di `PATH` | Install PostgreSQL client tools dan pastikan dapat dipanggil dari terminal. |
