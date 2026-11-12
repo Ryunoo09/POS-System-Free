@@ -7,6 +7,7 @@ import type {
   OpenShiftInput,
   CloseShiftInput,
   CashMovementInput,
+  ShiftHistoryQuery,
 } from '../validators/shift.validator.js'
 
 export interface ShiftController {
@@ -62,27 +63,20 @@ export const createShiftController = ({
 
   getHistory: async (req, res) => {
     const actor = requireActor(req)
-    const query = req.query as {
-      cashier_id?: string
-      status?: 'OPEN' | 'CLOSED'
-      page?: string
-      limit?: string
-    }
+    const query = req.validated?.query as ShiftHistoryQuery
 
     const cashierId = actor.role === 'CASHIER' ? actor.id : query.cashier_id
-    const page = query.page ? Number(query.page) : 1
-    const limit = query.limit ? Number(query.limit) : 10
 
     const { items, total } = await shiftService.getHistory({
       cashierId,
       status: query.status,
-      page,
-      limit,
+      page: query.page,
+      limit: query.limit,
     })
 
     return sendSuccess(res, {
       data: items,
-      meta: buildPaginationMeta(page, limit, total),
+      meta: buildPaginationMeta(query.page, query.limit, total),
     })
   },
 })

@@ -7,6 +7,7 @@ import {
   openShiftSchema,
   closeShiftSchema,
   cashMovementSchema,
+  shiftHistoryQuerySchema,
 } from '../validators/shift.validator.js'
 
 export const createShiftRoutes = ({
@@ -35,6 +36,7 @@ export const createShiftRoutes = ({
   router.get(
     '/history',
     authorize([PERMISSIONS.SHIFT_READ]),
+    validate({ query: shiftHistoryQuerySchema }),
     shiftController.getHistory,
   )
 

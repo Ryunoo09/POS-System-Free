@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { paginationSchema, uuidSchema } from './common.validator.js'
 
 export const openShiftSchema = z.object({
   starting_cash: z
@@ -36,3 +37,10 @@ export const cashMovementSchema = z.object({
 })
 
 export type CashMovementInput = z.infer<typeof cashMovementSchema>
+
+export const shiftHistoryQuerySchema = paginationSchema.extend({
+  cashier_id: uuidSchema.optional(),
+  status: z.enum(['OPEN', 'CLOSED']).optional(),
+})
+
+export type ShiftHistoryQuery = z.infer<typeof shiftHistoryQuerySchema>
