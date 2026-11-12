@@ -26,6 +26,11 @@ export const createLoginRateLimiter = ({
 }: LoginRateLimiterOptions = {}): RequestHandler => {
   const attempts = new Map<string, AttemptBucket>()
 
+  // maxAttempts = 0 mematikan limiter (dipakai saat E2E lokal).
+  if (maxAttempts <= 0) {
+    return (_req, _res, next) => next()
+  }
+
   return (req, res, next) => {
     const nowMs = now()
 

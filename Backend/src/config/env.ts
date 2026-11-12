@@ -12,6 +12,9 @@ const envSchema = z.object({
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),
   TAX_RATE: z.coerce.number().min(0).max(1).default(0),
+  // 0 berarti limiter login dimatikan (mis. saat menjalankan E2E lokal).
+  LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().min(0).default(20),
+  LOGIN_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
 })
 
 export type Env = z.infer<typeof envSchema>

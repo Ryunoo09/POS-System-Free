@@ -73,4 +73,14 @@ describe('createLoginRateLimiter', () => {
     expect(first.status).toBe(200)
     expect(blocked.status).toBe(429)
   })
+
+  it('melewati semua percobaan saat maxAttempts 0 (limiter dimatikan)', async () => {
+    const app = buildApp({ maxAttempts: 0 })
+
+    const responses = await Promise.all(
+      Array.from({ length: 5 }, () => login(app, 'kasir@pos.local')),
+    )
+
+    expect(responses.every((response) => response.status === 200)).toBe(true)
+  })
 })

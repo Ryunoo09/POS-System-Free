@@ -153,5 +153,8 @@ export const container: AppContainer = {
   backupController: createBackupController({ backupService }),
   stockOpnameController: createStockOpnameController({ stockOpnameService }),
   authenticate: authenticate({ userRepository }),
-  loginRateLimiter: createLoginRateLimiter(),
+  loginRateLimiter: createLoginRateLimiter({
+    maxAttempts: env.LOGIN_RATE_LIMIT_MAX,
+    windowMs: env.LOGIN_RATE_LIMIT_WINDOW_MS,
+  }),
 }
