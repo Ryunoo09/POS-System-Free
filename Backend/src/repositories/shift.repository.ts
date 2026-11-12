@@ -27,7 +27,7 @@ export interface ShiftRepository {
       differenceNote?: string | undefined
       closedAt: Date
     },
-  ): Promise<ShiftWithRelations>
+  ): Promise<ShiftWithRelations | null>
   createCashMovement(
     data: {
       shiftId: string
@@ -93,8 +93,8 @@ export const createShiftRepository = (prisma: PrismaClient): ShiftRepository => 
   },
 
   async close(id, { expectedCash, actualCash, cashDifference, differenceNote, closedAt }) {
-    return prisma.shift.update({
-      where: { id },
+    const result = await prisma.shift.updateMany({
+      where: { id, status: 'OPEN' },
       data: {
         status: 'CLOSED',
         expectedCash: new Prisma.Decimal(expectedCash),
@@ -103,8 +103,11 @@ export const createShiftRepository = (prisma: PrismaClient): ShiftRepository => 
         differenceNote: differenceNote ?? null,
         closedAt,
       },
-      include: shiftInclude,
     })
+
+    if (result.count === 0) return null
+
+    return prisma.shift.findUniqueOrThrow({ where: { id }, include: shiftInclude })
   },
 
   async createCashMovement({ shiftId, type, amount, reason, createdById }, tx) {

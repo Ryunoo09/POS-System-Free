@@ -81,6 +81,18 @@ describe('shift.service', () => {
     ).rejects.toThrow(ConflictError)
   })
 
+  it('mengubah unique violation P2002 menjadi OPEN_SHIFT_EXISTS', async () => {
+    vi.mocked(mockRepo.findActiveByCashierId).mockResolvedValue(null)
+    vi.mocked(mockRepo.create).mockRejectedValue(
+      Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
+    )
+    const service = createShiftService(mockRepo)
+
+    await expect(
+      service.openShift(cashierId, { starting_cash: 50000 }),
+    ).rejects.toMatchObject({ statusCode: 409, code: 'OPEN_SHIFT_EXISTS' })
+  })
+
   it('menutup shift dan menghitung selisih kas', async () => {
     vi.mocked(mockRepo.findActiveByCashierId).mockResolvedValue(dummyShift)
     vi.mocked(mockRepo.calculateShiftCashSummary).mockResolvedValue({
@@ -127,8 +139,28 @@ describe('shift.service', () => {
     expect(result.cash_difference).toBe('-5000.00')
   })
 
-  it('mencatat mutasi kas masuk/keluar', async () => {
+  it('menolak penutupan bila shift sudah ditutup lebih dulu', async () => {
     vi.mocked(mockRepo.findActiveByCashierId).mockResolvedValue(dummyShift)
+    vi.mocked(mockRepo.calculateShiftCashSummary).mockResolvedValue({
+      startingCash: 100000,
+      cashSales: 0,
+      nonCashSales: 0,
+      totalSales: 0,
+      cashIn: 0,
+      cashOut: 0,
+      expectedCash: 100000,
+      paymentBreakdown: [],
+    })
+    vi.mocked(mockRepo.close).mockResolvedValue(null)
+
+    const service = createShiftService(mockRepo)
+
+    await expect(
+      service.closeShift(cashierId, { actual_cash: 100000 }),
+    ).rejects.toMatchObject({ statusCode: 409, code: 'SHIFT_ALREADY_CLOSED' })
+  })
+
+  it('mencatat mutasi kas masuk/keluar', async () => {    vi.mocked(mockRepo.findActiveByCashierId).mockResolvedValue(dummyShift)
     vi.mocked(mockRepo.createCashMovement).mockResolvedValue({
       id: 'mov-1',
       shiftId: dummyShift.id,

@@ -1,6 +1,7 @@
 import { ConflictError, NotFoundError } from '../errors/app-errors.js'
 import type { ShiftRepository } from '../repositories/shift.repository.js'
 import { toShiftDto, type ShiftDto } from '../mappers/shift.mapper.js'
+import { isUniqueViolation } from '../utils/idempotency.js'
 import type { OpenShiftInput, CloseShiftInput, CashMovementInput } from '../validators/shift.validator.js'
 
 export interface ShiftSummaryDto {
@@ -41,14 +42,23 @@ export const createShiftService = (shiftRepository: ShiftRepository): ShiftServi
   async openShift(cashierId: string, input: OpenShiftInput) {
     const existing = await shiftRepository.findActiveByCashierId(cashierId)
     if (existing) {
-      throw new ConflictError('Kasir sudah memiliki shift yang sedang aktif')
+      throw new ConflictError('Kasir sudah memiliki shift yang sedang aktif', 'OPEN_SHIFT_EXISTS')
     }
 
-    const created = await shiftRepository.create({
-      cashierId,
-      startingCash: input.starting_cash,
-    })
-    return toShiftDto(created)
+    try {
+      const created = await shiftRepository.create({
+        cashierId,
+        startingCash: input.starting_cash,
+      })
+      return toShiftDto(created)
+    } catch (error) {
+      // Partial unique index: satu shift OPEN per kasir.
+      if (isUniqueViolation(error)) {
+        throw new ConflictError('Kasir sudah memiliki shift aktif', 'OPEN_SHIFT_EXISTS')
+      }
+
+      throw error
+    }
   },
 
   async closeShift(cashierId: string, input: CloseShiftInput) {
@@ -69,6 +79,10 @@ export const createShiftService = (shiftRepository: ShiftRepository): ShiftServi
       differenceNote: input.difference_note,
       closedAt: new Date(),
     })
+
+    if (!closed) {
+      throw new ConflictError('Shift sudah ditutup', 'SHIFT_ALREADY_CLOSED')
+    }
 
     return toShiftDto(closed)
   },
