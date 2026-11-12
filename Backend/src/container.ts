@@ -17,6 +17,7 @@ import { createPurchaseController } from './controllers/purchase.controller.js'
 import { createBackupController } from './controllers/backup.controller.js'
 import { createStockOpnameController } from './controllers/stock-opname.controller.js'
 import { authenticate } from './middlewares/authenticate.js'
+import { createLoginRateLimiter } from './middlewares/login-rate-limit.js'
 import { createCategoryRepository } from './repositories/category.repository.js'
 import { createHealthRepository } from './repositories/health.repository.js'
 import { createInventoryRepository } from './repositories/inventory.repository.js'
@@ -152,4 +153,5 @@ export const container: AppContainer = {
   backupController: createBackupController({ backupService }),
   stockOpnameController: createStockOpnameController({ stockOpnameService }),
   authenticate: authenticate({ userRepository }),
+  loginRateLimiter: createLoginRateLimiter(),
 }

@@ -58,3 +58,9 @@ export class BusinessRuleError extends AppError {
     super(message, { statusCode: 422, code, errors })
   }
 }
+
+export class TooManyRequestsError extends AppError {
+  constructor(message = 'Terlalu banyak percobaan login', code = 'TOO_MANY_REQUESTS') {
+    super(message, { statusCode: 429, code })
+  }
+}

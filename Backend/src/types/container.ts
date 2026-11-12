@@ -34,4 +34,5 @@ export interface AppContainer {
   backupController: BackupController
   stockOpnameController: StockOpnameController
   authenticate: RequestHandler
+  loginRateLimiter: RequestHandler
 }
