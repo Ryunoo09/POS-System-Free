@@ -55,6 +55,7 @@ describe('DashboardService.getSummary', () => {
       revenue: '140000.00',
       cogs: '80000.00',
       gross_profit: '60000.00',
+      gross_margin_pct: '42.86',
       transaction_count: 2,
       total_products: 2,
       total_stock: 12,

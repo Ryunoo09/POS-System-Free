@@ -369,12 +369,14 @@ describe('reports API', () => {
       cogs: dashboard.body.data.cogs,
       gross_profit: dashboard.body.data.gross_profit,
       transaction_count: dashboard.body.data.transaction_count,
+      gross_margin_pct: dashboard.body.data.gross_margin_pct,
     })
     expect(report.body.data.summary).toEqual({
       revenue: '140000.00',
       cogs: '80000.00',
       gross_profit: '60000.00',
       transaction_count: 2,
+      gross_margin_pct: '42.86',
     })
   })
 
@@ -393,6 +395,7 @@ describe('reports API', () => {
         revenue: '90000.00',
         cogs: '60000.00',
         gross_profit: '30000.00',
+        gross_margin_pct: '33.33',
       },
       {
         period: '2026-11-02',
@@ -401,6 +404,7 @@ describe('reports API', () => {
         revenue: '50000.00',
         cogs: '20000.00',
         gross_profit: '30000.00',
+        gross_margin_pct: '60.00',
       },
     ])
   })
@@ -420,6 +424,7 @@ describe('reports API', () => {
         revenue: '140000.00',
         cogs: '80000.00',
         gross_profit: '60000.00',
+        gross_margin_pct: '42.86',
       },
     ])
   })
@@ -442,6 +447,7 @@ describe('reports API', () => {
         revenue: '100000.00',
         cogs: '60000.00',
         gross_profit: '40000.00',
+        gross_margin_pct: '40.00',
       },
     ])
   })

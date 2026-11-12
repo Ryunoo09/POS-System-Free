@@ -19,6 +19,7 @@ export interface DashboardSummaryDto {
   revenue: string
   cogs: string
   gross_profit: string
+  gross_margin_pct: string
   transaction_count: number
   total_products: number
   total_stock: number
@@ -69,7 +70,15 @@ export const createDashboardService = ({
   reportRepository,
 }: {
   reportRepository: ReportRepository
-}): DashboardService => ({
+}): DashboardService => {
+  const marginPct = (revenue: string, grossProfit: string): string => {
+    const revenueValue = Number(revenue)
+    if (!revenueValue) return '0.00'
+
+    return ((Number(grossProfit) / revenueValue) * 100).toFixed(2)
+  }
+
+  return {
   getSummary: async (input) => {
     const range = resolveDateRange(input)
     const previousRange = previousDateRange(range)
@@ -84,6 +93,7 @@ export const createDashboardService = ({
       revenue: totals.revenue,
       cogs: totals.cogs,
       gross_profit: totals.grossProfit,
+      gross_margin_pct: marginPct(totals.revenue, totals.grossProfit),
       transaction_count: totals.transactionCount,
       total_products: totals.totalProducts,
       total_stock: totals.totalStock,
@@ -149,4 +159,5 @@ export const createDashboardService = ({
       })),
     }
   },
-})
+  }
+}
