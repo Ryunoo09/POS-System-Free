@@ -15,6 +15,8 @@ export type PurchaseOrderView = PurchaseOrder & {
   items: Array<PurchaseOrderItem & { product: Pick<Product, 'id' | 'sku' | 'name'> }>
 }
 
+export type PurchaseTransaction = Prisma.TransactionClient
+
 export interface PurchaseOrderFilters {
   status?: PurchaseOrderStatus | undefined
   supplierId?: string | undefined
@@ -55,6 +57,10 @@ export interface PurchaseOrderRepository {
     tx?: Prisma.TransactionClient,
   ) => Promise<PurchaseOrderView>
   findById: (id: string) => Promise<PurchaseOrderView | null>
+  findByIdForUpdate: (
+    id: string,
+    tx: PurchaseTransaction,
+  ) => Promise<PurchaseOrderView | null>
   list: (input: ListPurchaseOrdersInput) => Promise<{ items: PurchaseOrderView[]; total: number }>
   updateStatus: (
     id: string,
@@ -99,6 +105,16 @@ export const createPurchaseOrderRepository = (
 
   findById: (id) =>
     prisma.purchaseOrder.findUnique({ where: { id }, include: purchaseInclude }),
+
+  findByIdForUpdate: async (id, tx) => {
+    const locked = await tx.$queryRaw<Array<{ id: string }>>(
+      Prisma.sql`SELECT id FROM purchase_orders WHERE id = ${id}::uuid FOR UPDATE`,
+    )
+
+    if (locked.length === 0) return null
+
+    return tx.purchaseOrder.findUnique({ where: { id }, include: purchaseInclude })
+  },
 
   list: async ({ skip, take, status, supplierId, search }) => {
     const where: Prisma.PurchaseOrderWhereInput = {}

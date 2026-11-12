@@ -78,6 +78,7 @@ const buildDependencies = (options: {
   const priceService = { recordPriceChanges } as unknown as PriceService
 
   const createOrder = vi.fn(async () => buildOrder())
+  const findByIdForUpdate = vi.fn(async () => options.order ?? buildOrder())
   const updateStatus = vi.fn(async (_id: string, data: { status: string }) =>
     buildOrder({
       status: data.status as PurchaseOrderView['status'],
@@ -88,6 +89,7 @@ const buildDependencies = (options: {
   const purchaseOrderRepository = {
     create: createOrder,
     findById: async () => options.order ?? buildOrder(),
+    findByIdForUpdate,
     list: async () => ({ items: [], total: 0 }),
     updateStatus,
   } as unknown as PurchaseOrderRepository
@@ -125,6 +127,7 @@ const buildDependencies = (options: {
   return {
     service,
     createOrder,
+    findByIdForUpdate,
     updateStatus,
     updateStock,
     updateProduct,
@@ -185,6 +188,7 @@ describe('PurchaseService.receive', () => {
 
     const result = await deps.service.receive('po-1', actor)
 
+    expect(deps.findByIdForUpdate).toHaveBeenCalledWith('po-1', expect.anything())
     expect(deps.updateStock).toHaveBeenCalledWith('product-1', 30, expect.anything())
     expect(deps.updateProduct).toHaveBeenCalledWith(
       'product-1',
@@ -247,6 +251,40 @@ describe('PurchaseService.receive', () => {
     })
     expect(deps.updateStock).not.toHaveBeenCalled()
   })
+
+  it('menolak penerimaan PO yang sudah diterima', async () => {
+    const deps = buildDependencies({ order: buildOrder({ status: 'RECEIVED' }) })
+
+    await expect(deps.service.receive('po-1', actor)).rejects.toMatchObject({
+      code: 'INVALID_PO_STATUS',
+    })
+    expect(deps.updateStock).not.toHaveBeenCalled()
+  })
+})
+
+describe('PurchaseService.order', () => {
+  it('memproses PO DRAFT menjadi ORDERED', async () => {
+    const deps = buildDependencies()
+
+    const result = await deps.service.order('po-1', actor)
+
+    expect(deps.findByIdForUpdate).toHaveBeenCalledWith('po-1', expect.anything())
+    expect(deps.updateStatus).toHaveBeenCalledWith(
+      'po-1',
+      expect.objectContaining({ status: 'ORDERED', orderedAt: expect.any(Date) }),
+      expect.anything(),
+    )
+    expect(result.status).toBe('ORDERED')
+  })
+
+  it('menolak PO yang sudah ORDERED', async () => {
+    const deps = buildDependencies({ order: buildOrder({ status: 'ORDERED' }) })
+
+    await expect(deps.service.order('po-1', actor)).rejects.toMatchObject({
+      code: 'INVALID_PO_STATUS',
+    })
+    expect(deps.updateStatus).not.toHaveBeenCalled()
+  })
 })
 
 describe('PurchaseService.cancel', () => {
@@ -255,7 +293,21 @@ describe('PurchaseService.cancel', () => {
 
     const result = await deps.service.cancel('po-1', actor)
 
-    expect(deps.updateStatus).toHaveBeenCalledWith('po-1', { status: 'CANCELLED' })
+    expect(deps.findByIdForUpdate).toHaveBeenCalledWith('po-1', expect.anything())
+    expect(deps.updateStatus).toHaveBeenCalledWith(
+      'po-1',
+      { status: 'CANCELLED' },
+      expect.anything(),
+    )
     expect(result.status).toBe('CANCELLED')
+  })
+
+  it('menolak pembatalan PO yang sudah diterima', async () => {
+    const deps = buildDependencies({ order: buildOrder({ status: 'RECEIVED' }) })
+
+    await expect(deps.service.cancel('po-1', actor)).rejects.toMatchObject({
+      code: 'INVALID_PO_STATUS',
+    })
+    expect(deps.updateStatus).not.toHaveBeenCalled()
   })
 })

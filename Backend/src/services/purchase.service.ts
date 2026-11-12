@@ -6,6 +6,7 @@ import type { ProductRepository } from '../repositories/product.repository.js'
 import type {
   CreatePurchaseOrderItemData,
   PurchaseOrderRepository,
+  PurchaseTransaction,
 } from '../repositories/purchase.repository.js'
 import type { SupplierRepository } from '../repositories/supplier.repository.js'
 import type { StockMovementRepository } from '../repositories/stock-movement.repository.js'
@@ -69,6 +70,16 @@ export const createPurchaseService = ({
 }): PurchaseService => {
   const findOrFail = async (id: string) => {
     const order = await purchaseOrderRepository.findById(id)
+
+    if (!order) {
+      throw new NotFoundError('Purchase order tidak ditemukan', 'NOT_FOUND')
+    }
+
+    return order
+  }
+
+  const findForUpdateOrFail = async (id: string, tx: PurchaseTransaction) => {
+    const order = await purchaseOrderRepository.findByIdForUpdate(id, tx)
 
     if (!order) {
       throw new NotFoundError('Purchase order tidak ditemukan', 'NOT_FOUND')
@@ -186,24 +197,34 @@ export const createPurchaseService = ({
     },
 
     order: async (id, actor) => {
-      const existing = await findOrFail(id)
-      assertStatus(existing.status, ['DRAFT'], 'diproses')
+      const result = await runInTransaction(async (tx) => {
+        const existing = await findForUpdateOrFail(id, tx)
+        assertStatus(existing.status, ['DRAFT'], 'diproses')
 
-      const updated = await purchaseOrderRepository.updateStatus(id, {
-        status: 'ORDERED',
-        orderedAt: new Date(),
+        const updated = await purchaseOrderRepository.updateStatus(
+          id,
+          { status: 'ORDERED', orderedAt: new Date() },
+          tx,
+        )
+
+        return { existing, updated }
       })
 
-      await recordAudit(actor, id, { status: existing.status }, { status: updated.status })
+      await recordAudit(
+        actor,
+        id,
+        { status: result.existing.status },
+        { status: result.updated.status },
+      )
 
-      return toPurchaseOrderDto(updated)
+      return toPurchaseOrderDto(result.updated)
     },
 
     receive: async (id, actor) => {
-      const existing = await findOrFail(id)
-      assertStatus(existing.status, ['DRAFT', 'ORDERED'], 'diterima')
+      const result = await runInTransaction(async (tx) => {
+        const existing = await findForUpdateOrFail(id, tx)
+        assertStatus(existing.status, ['DRAFT', 'ORDERED'], 'diterima')
 
-      const received = await runInTransaction(async (tx) => {
         const productIds = [...new Set(existing.items.map((item) => item.productId))].sort()
         const products = await productRepository.findManyByIdsForUpdate(productIds, tx)
         const productById = new Map(products.map((product) => [product.id, product]))
@@ -271,38 +292,53 @@ export const createPurchaseService = ({
           )
         }
 
-        return purchaseOrderRepository.updateStatus(
+        const received = await purchaseOrderRepository.updateStatus(
           existing.id,
           { status: 'RECEIVED', receivedAt: new Date() },
           tx,
         )
+
+        return { existing, received }
       })
 
       await recordAudit(
         actor,
         id,
-        { status: existing.status },
+        { status: result.existing.status },
         {
-          status: received.status,
-          items: received.items.map((item) => ({
+          status: result.received.status,
+          items: result.received.items.map((item) => ({
             product_id: item.productId,
             quantity: item.quantity,
           })),
         },
       )
 
-      return toPurchaseOrderDto(received)
+      return toPurchaseOrderDto(result.received)
     },
 
     cancel: async (id, actor) => {
-      const existing = await findOrFail(id)
-      assertStatus(existing.status, ['DRAFT', 'ORDERED'], 'dibatalkan')
+      const result = await runInTransaction(async (tx) => {
+        const existing = await findForUpdateOrFail(id, tx)
+        assertStatus(existing.status, ['DRAFT', 'ORDERED'], 'dibatalkan')
 
-      const updated = await purchaseOrderRepository.updateStatus(id, { status: 'CANCELLED' })
+        const updated = await purchaseOrderRepository.updateStatus(
+          id,
+          { status: 'CANCELLED' },
+          tx,
+        )
 
-      await recordAudit(actor, id, { status: existing.status }, { status: updated.status })
+        return { existing, updated }
+      })
 
-      return toPurchaseOrderDto(updated)
+      await recordAudit(
+        actor,
+        id,
+        { status: result.existing.status },
+        { status: result.updated.status },
+      )
+
+      return toPurchaseOrderDto(result.updated)
     },
   }
 }
