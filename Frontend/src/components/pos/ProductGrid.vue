@@ -26,8 +26,9 @@ const emit = defineEmits<{ add: [product: Product]; retry: [] }>()
 
 <template>
   <div>
+    <!-- Tinggi skeleton dibuat sama dengan kartu produk agar tidak ada layout shift saat data dimuat. -->
     <div v-if="loading" class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-      <SkeletonBlock v-for="index in 8" :key="index" height="9.5rem" />
+      <SkeletonBlock v-for="index in 8" :key="index" height="10.5rem" />
     </div>
 
     <ErrorState v-else-if="error" :message="error" @retry="emit('retry')" />

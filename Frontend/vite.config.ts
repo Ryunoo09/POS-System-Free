@@ -10,7 +10,8 @@ export default defineConfig({
   plugins: [
     vue(),
     tailwindcss(),
-    vueDevTools(),
+    // DevTools overlay mengganggu klik di E2E (khususnya Firefox), jadi dimatikan saat E2E.
+    ...(process.env.E2E === '1' ? [] : [vueDevTools()]),
   ],
   resolve: {
     alias: {

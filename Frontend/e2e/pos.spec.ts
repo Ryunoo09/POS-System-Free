@@ -14,6 +14,26 @@ const login = async (page: Page, email: string, password: string) => {
   await page.getByRole('button', { name: 'Masuk' }).click()
 }
 
+/**
+ * Kasir wajib membuka shift sebelum bisa berjualan. Modal "Buka Shift Kasir"
+ * menutupi seluruh layar, jadi harus diselesaikan dulu agar elemen lain bisa diklik.
+ */
+const openShiftIfNeeded = async (page: Page) => {
+  const openShiftModal = page.getByRole('dialog', { name: 'Buka Shift Kasir' })
+
+  // Modal bisa muncul terlambat (menunggu fetchCurrentShift), jadi tunggu sebentar.
+  const appeared = await openShiftModal
+    .waitFor({ state: 'visible', timeout: 5000 })
+    .then(() => true)
+    .catch(() => false)
+
+  if (!appeared) return
+
+  await openShiftModal.getByLabel('Modal Awal (Rp)').fill('50000')
+  await openShiftModal.getByRole('button', { name: 'Buka Shift Sekarang' }).click()
+  await expect(openShiftModal).toBeHidden()
+}
+
 const uniqueSuffix = () =>
   `${Date.now()}${Math.floor(Math.random() * 1000)
     .toString()
@@ -108,6 +128,7 @@ test.describe('pos', () => {
     const product = await createProduct(request, adminToken, suffix, { stock: 5 })
 
     await login(page, 'kasir1@pos.local', 'Kasir@12345')
+    await openShiftIfNeeded(page)
     await expect(page).toHaveURL(/\/pos$/)
 
     await page.getByLabel('Cari produk').fill(product.sku)
@@ -148,6 +169,7 @@ test.describe('pos', () => {
     })
 
     await login(page, 'kasir1@pos.local', 'Kasir@12345')
+    await openShiftIfNeeded(page)
     await expect(page).toHaveURL(/\/pos$/)
 
     await page.getByLabel('Barcode').fill(barcode)
@@ -166,6 +188,7 @@ test.describe('pos', () => {
     const product = await createProduct(request, adminToken, suffix, { stock: 1 })
 
     await login(page, 'kasir1@pos.local', 'Kasir@12345')
+    await openShiftIfNeeded(page)
     await expect(page).toHaveURL(/\/pos$/)
 
     await page.getByLabel('Cari produk').fill(product.sku)
