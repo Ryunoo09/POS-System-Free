@@ -73,7 +73,7 @@ Hanya untuk development lokal — jangan dipakai di production.
 
 ## Test
 
-Integration test memakai database PostgreSQL terpisah (`pos_test`) pada port `5433`.
+Integration test memakai database PostgreSQL terpisah (`pos_test`) pada port `5432`.
 
 ```bash
 pnpm --dir Backend test          # semua test

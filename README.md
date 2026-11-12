@@ -782,17 +782,17 @@ pnpm --dir Backend test
 Konfigurasi Vitest backend memakai database terpisah:
 
 ```
-postgresql://postgres@localhost:5433/pos_test?schema=public
+postgresql://postgres:postgres@localhost:5432/pos_test?schema=public
 ```
 
-- Pastikan PostgreSQL berjalan di port `5433` dan database `pos_test` tersedia.
+- Pastikan PostgreSQL berjalan di port `5432` dan database `pos_test` tersedia.
 - `fileParallelism: false` agar test tidak saling mengganggu.
 - Test membersihkan tabel; **jangan arahkan ke database development**.
 
 Contoh menyiapkan database test:
 
 ```bash
-createdb -p 5433 pos_test
+createdb -p 5432 pos_test
 ```
 
 ### Frontend
@@ -857,7 +857,7 @@ Checklist produksi:
 | `403 Forbidden` | Peran tidak memiliki permission | Cek matriks peran; contoh: ADMIN tidak bisa checkout. |
 | Port 3000/5173 dipakai | Proses lain berjalan | Hentikan proses atau ubah port dan sesuaikan env. |
 | Backup gagal | `pg_dump`/`pg_restore` tidak ada di `PATH` | Install PostgreSQL client tools dan pastikan dapat dipanggil dari terminal. |
-| Test backend gagal konek | Database `pos_test` di port 5433 belum ada | `createdb -p 5433 pos_test`. |
+| Test backend gagal konek | Database `pos_test` di port 5432 belum ada | `createdb -p 5432 pos_test`. |
 | E2E gagal | API/UI belum berjalan atau seed belum dijalankan | Jalankan `pnpm dev`, migrasi, dan seed. |
 | Data seed bentrok | Seed dijalankan berulang pada data yang sama | Reset database development dengan `pnpm db:reset`, lalu seed ulang. |
 
