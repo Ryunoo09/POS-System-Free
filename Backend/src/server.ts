@@ -2,6 +2,7 @@ import { createServer } from 'node:http'
 import { app } from './app.js'
 import { prisma } from './config/database.js'
 import { env } from './config/env.js'
+import { closeRedis } from './config/redis.js'
 import { backupService } from './container.js'
 import { startBackupScheduler, stopBackupScheduler } from './scheduler/backup.scheduler.js'
 import { logger } from './utils/logger.js'
@@ -29,6 +30,7 @@ const shutdown = (signal: NodeJS.Signals): void => {
   stopBackupScheduler()
 
   server.close(async () => {
+    await closeRedis()
     await prisma.$disconnect()
     process.exit(0)
   })
