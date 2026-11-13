@@ -1,5 +1,5 @@
 import { runInTransaction } from '../config/database.js'
-import type { CacheService } from '../cache/cache.service.js'
+import { noopCache, type CacheService } from '../cache/cache.service.js'
 import { BusinessRuleError, ConflictError, NotFoundError } from '../errors/app-errors.js'
 import {
   toTransactionDetailDto,
@@ -84,7 +84,7 @@ export const createTransactionService = ({
   shiftRepository,
   priceService,
   taxRate,
-  cache,
+  cache = noopCache,
 }: {
   transactionRepository: TransactionRepository
   productRepository: ProductRepository
@@ -301,7 +301,7 @@ export const createTransactionService = ({
 
       // Harga terjadwal yang diterapkan di dalam checkout hanya mengubah cache
       // setelah transaksi commit; stok ditangani pada fase inventory.
-      if (appliedScheduledPrices > 0) await cache?.bumpVersion('products')
+      if (appliedScheduledPrices > 0) await cache.bumpVersion('products')
 
       return {
         transaction: toTransactionDetailDto(created, {

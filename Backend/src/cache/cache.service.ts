@@ -202,3 +202,17 @@ export const createCacheService = (
     },
   }
 }
+
+/**
+ * Implementasi tanpa Redis: loader selalu dipanggil. Dipakai sebagai default agar
+ * service tetap satu jalur kode saat cache tidak di-inject (mis. unit test).
+ */
+export const noopCache: CacheService = {
+  enabled: false,
+  getOrSet: (_key, _ttlSeconds, loader) => loader(),
+  getOrSetVersioned: (_namespace, _buildKey, _ttlSeconds, loader) => loader(),
+  del: async () => undefined,
+  bumpVersion: async () => undefined,
+  currentVersion: async () => '0',
+  ping: async () => 'disabled',
+}

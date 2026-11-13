@@ -1,5 +1,5 @@
 import { runInTransaction } from '../config/database.js'
-import type { CacheService } from '../cache/cache.service.js'
+import { noopCache, type CacheService } from '../cache/cache.service.js'
 import { BusinessRuleError, ConflictError, NotFoundError } from '../errors/app-errors.js'
 import { toProductDto, type ProductDto } from '../mappers/product.mapper.js'
 import type { CategoryRepository } from '../repositories/category.repository.js'
@@ -49,7 +49,7 @@ export const createProductService = ({
   stockMovementRepository,
   audit,
   priceService,
-  cache,
+  cache = noopCache,
 }: {
   productRepository: ProductRepository
   categoryRepository: CategoryRepository
@@ -178,7 +178,7 @@ export const createProductService = ({
       })
 
       // Invalidasi setelah commit, bukan di dalam transaksi (plan §9.1).
-      await cache?.bumpVersion('products')
+      await cache.bumpVersion('products')
 
       return toProductDto(created, { canViewCostPrice: actor.canViewCostPrice })
     },
@@ -239,7 +239,7 @@ export const createProductService = ({
         return result
       })
 
-      await cache?.bumpVersion('products')
+      await cache.bumpVersion('products')
 
       const diff = buildFieldDiff(
         {
@@ -287,7 +287,7 @@ export const createProductService = ({
 
       const updated = await productRepository.update(id, { isActive: false })
 
-      await cache?.bumpVersion('products')
+      await cache.bumpVersion('products')
 
       return toProductDto(updated, { canViewCostPrice: actor.canViewCostPrice })
     },
@@ -311,7 +311,7 @@ export const createProductService = ({
         if (await productRepository.findByBarcode(candidate)) continue
 
         await productRepository.update(id, { barcode: candidate })
-        await cache?.bumpVersion('products')
+        await cache.bumpVersion('products')
 
         await audit?.record({
           userId: actor.id,

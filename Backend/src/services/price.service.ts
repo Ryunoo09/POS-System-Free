@@ -1,5 +1,5 @@
 import { runInTransaction } from '../config/database.js'
-import type { CacheService } from '../cache/cache.service.js'
+import { noopCache, type CacheService } from '../cache/cache.service.js'
 import { BusinessRuleError, ForbiddenError, NotFoundError } from '../errors/app-errors.js'
 import {
   toPriceHistoryDto,
@@ -101,7 +101,7 @@ const nextPrice = (current: string, input: BulkPriceInput): string => {
 export const createPriceService = ({
   priceRepository,
   productRepository,
-  cache,
+  cache = noopCache,
 }: {
   priceRepository: PriceRepository
   productRepository: ProductRepository
@@ -259,7 +259,7 @@ export const createPriceService = ({
 
       const applied = await runInTransaction((client) => applyDue(now, client, productIds))
 
-      if (applied > 0) await cache?.bumpVersion('products')
+      if (applied > 0) await cache.bumpVersion('products')
 
       return applied
     },
@@ -354,7 +354,7 @@ export const createPriceService = ({
         return { updated }
       })
 
-      if (result.updated > 0) await cache?.bumpVersion('products')
+      if (result.updated > 0) await cache.bumpVersion('products')
 
       return result
     },

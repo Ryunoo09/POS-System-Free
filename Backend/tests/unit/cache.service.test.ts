@@ -1,54 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { cacheKeys, filterHash, namespaceVersionKey } from '../../src/cache/cache-keys.js'
 import { createCacheService } from '../../src/cache/cache.service.js'
-import type { RedisClient } from '../../src/config/redis.js'
-
-interface FakeRedis {
-  status: string
-  store: Map<string, string>
-  ttls: number[]
-  set: (key: string, value: string, mode: string, ttlSeconds: number) => Promise<'OK'>
-  get: (key: string) => Promise<string | null>
-  incr: (key: string) => Promise<number>
-  del: (...keys: string[]) => Promise<number>
-  ping: () => Promise<string>
-  off: () => void
-  once: () => void
-}
-
-const createFakeRedis = (options: { status?: string } = {}): FakeRedis => {
-  const store = new Map<string, string>()
-  const ttls: number[] = []
-
-  return {
-    status: options.status ?? 'ready',
-    store,
-    ttls,
-    set: async (key, value, _mode, ttlSeconds) => {
-      ttls.push(ttlSeconds)
-      store.set(key, value)
-      return 'OK'
-    },
-    get: async (key) => store.get(key) ?? null,
-    incr: async (key) => {
-      const next = Number(store.get(key) ?? 0) + 1
-      store.set(key, String(next))
-      return next
-    },
-    del: async (...keys) => {
-      let removed = 0
-      for (const key of keys) {
-        if (store.delete(key)) removed += 1
-      }
-      return removed
-    },
-    ping: async () => 'PONG',
-    off: () => undefined,
-    once: () => undefined,
-  }
-}
-
-const asClient = (fake: FakeRedis): RedisClient => fake as unknown as RedisClient
+import { asRedisClient, createFakeRedis } from '../helpers/fake-redis.js'
 
 describe('CacheService tanpa Redis', () => {
   const service = createCacheService(null)
@@ -75,7 +28,7 @@ describe('CacheService tanpa Redis', () => {
 describe('CacheService dengan Redis', () => {
   it('cache miss memanggil loader lalu menyimpan dengan TTL ber-jitter', async () => {
     const fake = createFakeRedis()
-    const service = createCacheService(asClient(fake))
+    const service = createCacheService(asRedisClient(fake))
     const loader = vi.fn(async () => ({ id: 'produk-1' }))
 
     await expect(service.getOrSet('kunci', 100, loader)).resolves.toEqual({ id: 'produk-1' })
@@ -90,7 +43,7 @@ describe('CacheService dengan Redis', () => {
 
   it('cache hit tidak memanggil loader', async () => {
     const fake = createFakeRedis()
-    const service = createCacheService(asClient(fake))
+    const service = createCacheService(asRedisClient(fake))
     const loader = vi.fn(async () => 'pertama')
 
     await service.getOrSet('kunci', 60, loader)
@@ -100,7 +53,7 @@ describe('CacheService dengan Redis', () => {
 
   it('hasil null tetap tersimpan (negative cache)', async () => {
     const fake = createFakeRedis()
-    const service = createCacheService(asClient(fake))
+    const service = createCacheService(asRedisClient(fake))
     const loader = vi.fn(async () => null)
 
     await expect(service.getOrSet('barcode:tidak-ada', 15, loader)).resolves.toBeNull()
@@ -111,7 +64,7 @@ describe('CacheService dengan Redis', () => {
   it('payload rusak dianggap cache miss', async () => {
     const fake = createFakeRedis()
     fake.store.set('kunci', '{bukan json')
-    const service = createCacheService(asClient(fake))
+    const service = createCacheService(asRedisClient(fake))
     const loader = vi.fn(async () => 'dari-db')
 
     await expect(service.getOrSet('kunci', 60, loader)).resolves.toBe('dari-db')
@@ -123,7 +76,7 @@ describe('CacheService dengan Redis', () => {
     fake.get = async () => {
       throw new Error('connection reset')
     }
-    const service = createCacheService(asClient(fake))
+    const service = createCacheService(asRedisClient(fake))
     const loader = vi.fn(async () => 'dari-db')
 
     await expect(service.getOrSet('kunci', 60, loader)).resolves.toBe('dari-db')
@@ -135,14 +88,14 @@ describe('CacheService dengan Redis', () => {
     fake.set = async () => {
       throw new Error('oom')
     }
-    const service = createCacheService(asClient(fake))
+    const service = createCacheService(asRedisClient(fake))
 
     await expect(service.getOrSet('kunci', 60, async () => 'dari-db')).resolves.toBe('dari-db')
   })
 
   it('melewati cache saat koneksi belum ready', async () => {
     const fake = createFakeRedis({ status: 'connecting' })
-    const service = createCacheService(asClient(fake))
+    const service = createCacheService(asRedisClient(fake))
     const loader = vi.fn(async () => 'dari-db')
 
     await service.getOrSet('kunci', 60, loader)
@@ -155,7 +108,7 @@ describe('CacheService dengan Redis', () => {
 
   it('single-flight: request paralel memakai satu loader', async () => {
     const fake = createFakeRedis()
-    const service = createCacheService(asClient(fake))
+    const service = createCacheService(asRedisClient(fake))
     let release = (): void => undefined
     const gate = new Promise<void>((resolve) => {
       release = resolve
@@ -174,7 +127,7 @@ describe('CacheService dengan Redis', () => {
 
   it('bumpVersion membuat key versi lama ditinggalkan', async () => {
     const fake = createFakeRedis()
-    const service = createCacheService(asClient(fake))
+    const service = createCacheService(asRedisClient(fake))
     const first = vi.fn(async () => 'versi-0')
     const second = vi.fn(async () => 'versi-1')
 
@@ -192,7 +145,7 @@ describe('CacheService dengan Redis', () => {
   })
 
   it('ping mengembalikan ok saat terhubung', async () => {
-    const service = createCacheService(asClient(createFakeRedis()))
+    const service = createCacheService(asRedisClient(createFakeRedis()))
 
     await expect(service.ping()).resolves.toBe('ok')
   })

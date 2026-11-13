@@ -30,7 +30,7 @@ export const filterHash = (input: Record<string, unknown>): string => {
 }
 
 export interface CategoryListKeyInput {
-  scope: 'all' | 'active'
+  scope: 'all' | 'active' | 'inactive'
   page: number
   limit: number
   search?: string | undefined
