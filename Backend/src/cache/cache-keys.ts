@@ -82,6 +82,9 @@ export const cacheKeys = {
   inventoryLowStock: (version: string, page: number, limit: number): string =>
     `${P}:inv:lowstock:v${version}:p${page}:l${limit}`,
 
+  reportValuation: (version: string, categoryId?: string | undefined): string =>
+    `${P}:rep:valuation:v${version}:${categoryId ?? 'all'}`,
+
   loginRateLimit: (ip: string, emailHash: string): string =>
     `${P}:rl:login:${ip}:${emailHash}`,
 } as const

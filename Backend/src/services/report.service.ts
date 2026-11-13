@@ -1,6 +1,13 @@
+import { cacheKeys } from '../cache/cache-keys.js'
+import { CACHE_TTL, noopCache, type CacheService } from '../cache/cache.service.js'
 import type { ReportRepository, SalesGroupBy } from '../repositories/report.repository.js'
 import type { PaginationMeta } from '../types/http.js'
-import { resolveDateRange, type DateRangeInput } from '../utils/date-range.js'
+import {
+  resolveDateRange,
+  todayInJakarta,
+  type DateRangeInput,
+  type ResolvedDateRange,
+} from '../utils/date-range.js'
 import { buildPaginationMeta, toSkip } from '../utils/pagination.js'
 import type {
   CashierReportQuery,
@@ -153,10 +160,16 @@ const periodLabel = (period: string, groupBy: SalesGroupBy): string => {
 
 export const createReportService = ({
   reportRepository,
+  cache = noopCache,
 }: {
   reportRepository: ReportRepository
+  cache?: CacheService
 }): ReportService => {
   const resolve = (query: DateRangeInput) => resolveDateRange(query)
+
+  // Rentang yang sudah lewat praktis immutable, jadi cache boleh berumur lebih panjang.
+  const ttlFor = (range: ResolvedDateRange): number =>
+    range.endDate >= todayInJakarta() ? CACHE_TTL.report : CACHE_TTL.reportPast
 
   const marginPct = (revenue: string, grossProfit: string): string => {
     const revenueValue = Number(revenue)
@@ -176,119 +189,165 @@ export const createReportService = ({
   return {
     getSales: async (query) => {
       const range = resolve(query)
-      const [totals, rows] = await Promise.all([
-        reportRepository.getSummary(range),
-        reportRepository.getPeriodSales(range, query.group_by),
-      ])
 
-      return {
-        summary: toSummary(totals),
-        rows: rows.map((row) => ({
-          period: row.period,
-          period_label: periodLabel(row.period, query.group_by),
-          transaction_count: row.transactionCount,
-          revenue: row.revenue,
-          cogs: row.cogs,
-          gross_profit: row.grossProfit,
-          gross_margin_pct: marginPct(row.revenue, row.grossProfit),
-        })),
-      }
+      return cache.getOrSet(
+        cacheKeys.reportSales(range.startDate, range.endDate, query.group_by),
+        ttlFor(range),
+        async () => {
+          const [totals, rows] = await Promise.all([
+            reportRepository.getSummary(range),
+            reportRepository.getPeriodSales(range, query.group_by),
+          ])
+
+          return {
+            summary: toSummary(totals),
+            rows: rows.map((row) => ({
+              period: row.period,
+              period_label: periodLabel(row.period, query.group_by),
+              transaction_count: row.transactionCount,
+              revenue: row.revenue,
+              cogs: row.cogs,
+              gross_profit: row.grossProfit,
+              gross_margin_pct: marginPct(row.revenue, row.grossProfit),
+            })),
+          }
+        },
+      )
     },
 
     getProducts: async (query) => {
       const range = resolve(query)
-      const [totals, result] = await Promise.all([
-        reportRepository.getSummary(range),
-        reportRepository.listProductSales(range, {
-          skip: toSkip(query.page, query.limit),
-          take: query.limit,
-          categoryId: query.category_id,
-          sort: query.sort,
-        }),
-      ])
 
-      return {
-        summary: toSummary(totals),
-        rows: result.items.map((row) => ({
-          product_id: row.productId,
-          sku: row.sku,
-          name: row.name,
-          category: row.category,
-          quantity_sold: row.quantitySold,
-          revenue: row.revenue,
-          cogs: row.cogs,
-          gross_profit: row.grossProfit,
-          gross_margin_pct: marginPct(row.revenue, row.grossProfit),
-        })),
-        meta: buildPaginationMeta(query.page, query.limit, result.total),
-      }
+      return cache.getOrSetVersioned(
+        'products',
+        (version) =>
+          cacheKeys.reportProducts(version, {
+            start: range.startDate,
+            end: range.endDate,
+            categoryId: query.category_id,
+            sort: query.sort,
+            page: query.page,
+            limit: query.limit,
+          }),
+        ttlFor(range),
+        async () => {
+          const [totals, result] = await Promise.all([
+            reportRepository.getSummary(range),
+            reportRepository.listProductSales(range, {
+              skip: toSkip(query.page, query.limit),
+              take: query.limit,
+              categoryId: query.category_id,
+              sort: query.sort,
+            }),
+          ])
+
+          return {
+            summary: toSummary(totals),
+            rows: result.items.map((row) => ({
+              product_id: row.productId,
+              sku: row.sku,
+              name: row.name,
+              category: row.category,
+              quantity_sold: row.quantitySold,
+              revenue: row.revenue,
+              cogs: row.cogs,
+              gross_profit: row.grossProfit,
+              gross_margin_pct: marginPct(row.revenue, row.grossProfit),
+            })),
+            meta: buildPaginationMeta(query.page, query.limit, result.total),
+          }
+        },
+      )
     },
 
     getCashiers: async (query) => {
       const range = resolve(query)
-      const [totals, rows] = await Promise.all([
-        reportRepository.getSummary(range),
-        reportRepository.listCashierSales(range),
-      ])
 
-      return {
-        summary: toSummary(totals),
-        rows: rows.map((row) => ({
-          cashier_id: row.cashierId,
-          cashier_name: row.cashierName,
-          transaction_count: row.transactionCount,
-          revenue: row.revenue,
-          gross_profit: row.grossProfit,
-          average_transaction: row.averageTransaction,
-        })),
-      }
+      return cache.getOrSet(cacheKeys.reportCashiers(range.startDate, range.endDate), ttlFor(range), async () => {
+        const [totals, rows] = await Promise.all([
+          reportRepository.getSummary(range),
+          reportRepository.listCashierSales(range),
+        ])
+
+        return {
+          summary: toSummary(totals),
+          rows: rows.map((row) => ({
+            cashier_id: row.cashierId,
+            cashier_name: row.cashierName,
+            transaction_count: row.transactionCount,
+            revenue: row.revenue,
+            gross_profit: row.grossProfit,
+            average_transaction: row.averageTransaction,
+          })),
+        }
+      })
     },
 
     getInventoryValuation: async (query) => {
-      const valuation = await reportRepository.getInventoryValuation({
-        categoryId: query.category_id,
-      })
+      return cache.getOrSetVersioned(
+        'inventory',
+        (version) => cacheKeys.reportValuation(version, query.category_id),
+        CACHE_TTL.inventory,
+        async () => {
+          const valuation = await reportRepository.getInventoryValuation({
+            categoryId: query.category_id,
+          })
 
-      return {
-        total_value: valuation.totalValue,
-        total_quantity: valuation.totalQuantity,
-        items: valuation.items.map((row) => ({
-          product_id: row.productId,
-          sku: row.sku,
-          name: row.name,
-          category: row.category,
-          stock: row.stock,
-          average_cost: row.averageCost,
-          inventory_value: row.inventoryValue,
-        })),
-        by_category: valuation.byCategory.map((row) => ({
-          category_id: row.categoryId,
-          category: row.category,
-          quantity: row.quantity,
-          value: row.value,
-        })),
-      }
+          return {
+            total_value: valuation.totalValue,
+            total_quantity: valuation.totalQuantity,
+            items: valuation.items.map((row) => ({
+              product_id: row.productId,
+              sku: row.sku,
+              name: row.name,
+              category: row.category,
+              stock: row.stock,
+              average_cost: row.averageCost,
+              inventory_value: row.inventoryValue,
+            })),
+            by_category: valuation.byCategory.map((row) => ({
+              category_id: row.categoryId,
+              category: row.category,
+              quantity: row.quantity,
+              value: row.value,
+            })),
+          }
+        },
+      )
     },
 
     getCogs: async (query) => {
       const range = resolve(query)
-      const [totals, rows] = await Promise.all([
-        reportRepository.getSummary(range),
-        reportRepository.getCategoryCogs(range, query.category_id),
-      ])
 
-      return {
-        summary: toSummary(totals),
-        rows: rows.map((row) => ({
-          category_id: row.categoryId,
-          category: row.category,
-          quantity_sold: row.quantitySold,
-          revenue: row.revenue,
-          cogs: row.cogs,
-          gross_profit: row.grossProfit,
-          gross_margin_pct: marginPct(row.revenue, row.grossProfit),
-        })),
-      }
+      return cache.getOrSetVersioned(
+        'products',
+        (version) =>
+          cacheKeys.reportCogs(version, {
+            start: range.startDate,
+            end: range.endDate,
+            categoryId: query.category_id,
+          }),
+        ttlFor(range),
+        async () => {
+          const [totals, rows] = await Promise.all([
+            reportRepository.getSummary(range),
+            reportRepository.getCategoryCogs(range, query.category_id),
+          ])
+
+          return {
+            summary: toSummary(totals),
+            rows: rows.map((row) => ({
+              category_id: row.categoryId,
+              category: row.category,
+              quantity_sold: row.quantitySold,
+              revenue: row.revenue,
+              cogs: row.cogs,
+              gross_profit: row.grossProfit,
+              gross_margin_pct: marginPct(row.revenue, row.grossProfit),
+            })),
+          }
+        },
+      )
     },
   }
 }
