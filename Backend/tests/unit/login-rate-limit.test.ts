@@ -1,11 +1,18 @@
 import express from 'express'
 import request from 'supertest'
 import { describe, expect, it } from 'vitest'
+import { createCacheService, type CacheService } from '../../src/cache/cache.service.js'
 import { errorHandler } from '../../src/middlewares/error-handler.js'
 import { createLoginRateLimiter } from '../../src/middlewares/login-rate-limit.js'
 import { notFound } from '../../src/middlewares/not-found.js'
+import { asRedisClient, createFakeRedis } from '../helpers/fake-redis.js'
 
-const buildApp = (options: { maxAttempts?: number; windowMs?: number; now?: () => number }) => {
+const buildApp = (options: {
+  maxAttempts?: number
+  windowMs?: number
+  now?: () => number
+  cache?: CacheService
+}) => {
   const app = express()
   app.use(express.json())
   app.use(createLoginRateLimiter(options))
@@ -82,5 +89,28 @@ describe('createLoginRateLimiter', () => {
     )
 
     expect(responses.every((response) => response.status === 200)).toBe(true)
+  })
+
+  it('berbagi hitungan lintas instance saat Redis siap', async () => {
+    const cache = createCacheService(asRedisClient(createFakeRedis()))
+    const instanceA = buildApp({ maxAttempts: 2, cache })
+    const instanceB = buildApp({ maxAttempts: 2, cache })
+
+    await login(instanceA, 'kasir@pos.local')
+    await login(instanceB, 'kasir@pos.local')
+    const blocked = await login(instanceA, 'kasir@pos.local')
+
+    expect(blocked.status).toBe(429)
+    expect(Number(blocked.headers['retry-after'])).toBeGreaterThan(0)
+  })
+
+  it('jatuh ke in-memory saat Redis tidak siap', async () => {
+    const cache = createCacheService(asRedisClient(createFakeRedis({ status: 'down' })))
+    const app = buildApp({ maxAttempts: 1, cache })
+
+    await login(app, 'kasir@pos.local')
+    const blocked = await login(app, 'kasir@pos.local')
+
+    expect(blocked.status).toBe(429)
   })
 })

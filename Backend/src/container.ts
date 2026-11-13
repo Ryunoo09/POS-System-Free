@@ -164,5 +164,6 @@ export const container: AppContainer = {
   loginRateLimiter: createLoginRateLimiter({
     maxAttempts: env.LOGIN_RATE_LIMIT_MAX,
     windowMs: env.LOGIN_RATE_LIMIT_WINDOW_MS,
+    cache: cacheService,
   }),
 }

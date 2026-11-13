@@ -34,6 +34,8 @@ export interface CacheService {
   del: (...keys: string[]) => Promise<void>
   bumpVersion: (namespace: CacheNamespace) => Promise<void>
   currentVersion: (namespace: CacheNamespace) => Promise<string>
+  /** Counter dengan TTL, atomik satu arah. `null` bila cache tidak siap. */
+  incrWithTtl: (key: string, ttlSeconds: number) => Promise<number | null>
   ping: () => Promise<CachePing>
 }
 
@@ -190,6 +192,20 @@ export const createCacheService = (
 
     currentVersion,
 
+    incrWithTtl: async (key, ttlSeconds) => {
+      const current = readyClient()
+      if (!current) return null
+
+      try {
+        const count = await current.incr(key)
+        if (count === 1) await current.expire(key, ttlSeconds)
+        return count
+      } catch (error) {
+        warn('Gagal menaikkan counter cache', error)
+        return null
+      }
+    },
+
     ping: async () => {
       if (!client) return 'disabled'
       if (!(await waitUntilReady(READY_TIMEOUT_MS))) return 'down'
@@ -214,5 +230,6 @@ export const noopCache: CacheService = {
   del: async () => undefined,
   bumpVersion: async () => undefined,
   currentVersion: async () => '0',
+  incrWithTtl: async () => null,
   ping: async () => 'disabled',
 }

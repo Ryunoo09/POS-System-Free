@@ -7,6 +7,7 @@ export interface FakeRedis {
   set: (key: string, value: string, mode: string, ttlSeconds: number) => Promise<'OK'>
   get: (key: string) => Promise<string | null>
   incr: (key: string) => Promise<number>
+  expire: (key: string, ttlSeconds: number) => Promise<number>
   del: (...keys: string[]) => Promise<number>
   ping: () => Promise<string>
   off: () => void
@@ -31,6 +32,10 @@ export const createFakeRedis = (options: { status?: string } = {}): FakeRedis =>
       const next = Number(store.get(key) ?? 0) + 1
       store.set(key, String(next))
       return next
+    },
+    expire: async (_key, ttlSeconds) => {
+      ttls.push(ttlSeconds)
+      return 1
     },
     del: async (...keys) => {
       let removed = 0
