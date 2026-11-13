@@ -299,9 +299,10 @@ export const createTransactionService = ({
         return transaction
       })
 
-      // Harga terjadwal yang diterapkan di dalam checkout hanya mengubah cache
-      // setelah transaksi commit; stok ditangani pada fase inventory.
+      // Harga terjadwal di dalam checkout hanya mengubah cache setelah transaksi
+      // commit; stok juga berubah sehingga namespace inventory ikut di-invalidasi.
       if (appliedScheduledPrices > 0) await cache.bumpVersion('products')
+      await cache.bumpVersion('inventory')
 
       return {
         transaction: toTransactionDetailDto(created, {

@@ -1,3 +1,4 @@
+import { noopCache, type CacheService } from '../cache/cache.service.js'
 import { runInTransaction } from '../config/database.js'
 import { BusinessRuleError, NotFoundError } from '../errors/app-errors.js'
 import { toReturnDto, type ReturnDto } from '../mappers/return.mapper.js'
@@ -62,6 +63,7 @@ export const createReturnService = ({
   stockMovementRepository,
   shiftRepository,
   audit,
+  cache = noopCache,
 }: {
   returnRepository: ReturnRepository
   transactionRepository: TransactionRepository
@@ -69,6 +71,7 @@ export const createReturnService = ({
   stockMovementRepository: StockMovementRepository
   shiftRepository?: ShiftRepository
   audit?: AuditRecorder
+  cache?: CacheService
 }): ReturnService => ({
   list: async (query, actor) => {
     const range =
@@ -294,6 +297,11 @@ export const createReturnService = ({
       ipAddress: actor.ipAddress,
       userAgent: actor.userAgent,
     })
+
+    // Hanya item RESTOCK yang menambah stok kembali.
+    if (created.items.some((item) => item.action === 'RESTOCK')) {
+      await cache.bumpVersion('inventory')
+    }
 
     return toReturnDto(created)
   },

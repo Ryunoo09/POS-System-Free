@@ -90,6 +90,7 @@ const inventoryService = createInventoryService({
   productRepository,
   stockMovementRepository,
   audit: auditService,
+  cache: cacheService,
 })
 
 const shiftRepository = createShiftRepository(prisma)
@@ -114,6 +115,7 @@ const returnService = createReturnService({
   stockMovementRepository,
   shiftRepository,
   audit: auditService,
+  cache: cacheService,
 })
 
 const supplierRepository = createSupplierRepository(prisma)
@@ -127,6 +129,7 @@ const purchaseService = createPurchaseService({
   stockMovementRepository,
   priceService,
   audit: auditService,
+  cache: cacheService,
 })
 
 export const backupService = createBackupService({ userRepository, audit: auditService })
@@ -137,6 +140,7 @@ const stockOpnameService = createStockOpnameService({
   productRepository,
   stockMovementRepository,
   audit: auditService,
+  cache: cacheService,
 })
 
 export const container: AppContainer = {
