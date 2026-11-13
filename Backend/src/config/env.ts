@@ -15,6 +15,11 @@ const envSchema = z.object({
   // 0 berarti limiter login dimatikan (mis. saat menjalankan E2E lokal).
   LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().min(0).default(20),
   LOGIN_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+  // Cache Redis bersifat opsional: bila Redis mati, aplikasi tetap jalan lewat PostgreSQL.
+  REDIS_ENABLED: z.enum(['true', 'false']).default('true').transform((value) => value === 'true'),
+  // Pakai 127.0.0.1, bukan localhost: di Windows `localhost` bisa resolve ke IPv6 (::1) saat Redis hanya bind IPv4.
+  REDIS_URL: z.string().url().default('redis://127.0.0.1:6379'),
+  REDIS_KEY_PREFIX: z.string().min(1).default('pos:v1'),
 })
 
 export type Env = z.infer<typeof envSchema>

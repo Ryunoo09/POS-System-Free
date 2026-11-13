@@ -1,3 +1,4 @@
+import { createCacheService } from './cache/cache.service.js'
 import { prisma } from './config/database.js'
 import { env } from './config/env.js'
 import { createAuthController } from './controllers/auth.controller.js'
@@ -53,7 +54,8 @@ import { createStockOpnameService } from './services/stock-opname.service.js'
 import type { AppContainer } from './types/container.js'
 
 const healthRepository = createHealthRepository(prisma)
-const healthService = createHealthService({ healthRepository })
+const cacheService = createCacheService()
+const healthService = createHealthService({ healthRepository, cache: cacheService })
 
 const auditRepository = createAuditRepository(prisma)
 const auditService = createAuditService(auditRepository)
@@ -63,23 +65,24 @@ const authService = createAuthService({ userRepository })
 const userService = createUserService({ userRepository, audit: auditService })
 
 const categoryRepository = createCategoryRepository(prisma)
-const categoryService = createCategoryService({ categoryRepository })
+const categoryService = createCategoryService({ categoryRepository, cache: cacheService })
 
 const productRepository = createProductRepository(prisma)
 const stockMovementRepository = createStockMovementRepository(prisma)
 const priceRepository = createPriceRepository(prisma)
-const priceService = createPriceService({ priceRepository, productRepository })
+const priceService = createPriceService({ priceRepository, productRepository, cache: cacheService })
 const productService = createProductService({
   productRepository,
   categoryRepository,
   stockMovementRepository,
   audit: auditService,
   priceService,
+  cache: cacheService,
 })
 
 const reportRepository = createReportRepository(prisma)
-const dashboardService = createDashboardService({ reportRepository })
-const reportService = createReportService({ reportRepository })
+const dashboardService = createDashboardService({ reportRepository, cache: cacheService })
+const reportService = createReportService({ reportRepository, cache: cacheService })
 
 const inventoryRepository = createInventoryRepository(prisma)
 const inventoryService = createInventoryService({
@@ -87,6 +90,7 @@ const inventoryService = createInventoryService({
   productRepository,
   stockMovementRepository,
   audit: auditService,
+  cache: cacheService,
 })
 
 const shiftRepository = createShiftRepository(prisma)
@@ -100,6 +104,7 @@ const transactionService = createTransactionService({
   shiftRepository,
   priceService,
   taxRate: env.TAX_RATE,
+  cache: cacheService,
 })
 
 const returnRepository = createReturnRepository(prisma)
@@ -110,6 +115,7 @@ const returnService = createReturnService({
   stockMovementRepository,
   shiftRepository,
   audit: auditService,
+  cache: cacheService,
 })
 
 const supplierRepository = createSupplierRepository(prisma)
@@ -123,6 +129,7 @@ const purchaseService = createPurchaseService({
   stockMovementRepository,
   priceService,
   audit: auditService,
+  cache: cacheService,
 })
 
 export const backupService = createBackupService({ userRepository, audit: auditService })
@@ -133,6 +140,7 @@ const stockOpnameService = createStockOpnameService({
   productRepository,
   stockMovementRepository,
   audit: auditService,
+  cache: cacheService,
 })
 
 export const container: AppContainer = {
@@ -156,5 +164,6 @@ export const container: AppContainer = {
   loginRateLimiter: createLoginRateLimiter({
     maxAttempts: env.LOGIN_RATE_LIMIT_MAX,
     windowMs: env.LOGIN_RATE_LIMIT_WINDOW_MS,
+    cache: cacheService,
   }),
 }

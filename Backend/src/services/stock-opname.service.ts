@@ -1,6 +1,7 @@
 import { MAX_OPNAME_ITEMS } from '../constants/opname.js'
 import { STOCK_MOVEMENT_TYPES, STOCK_REFERENCE_TYPES } from '../constants/stock.js'
 import { AUDIT_ACTIONS, AUDIT_ENTITIES } from '../constants/audit.js'
+import { noopCache, type CacheService } from '../cache/cache.service.js'
 import { runInTransaction } from '../config/database.js'
 import {
   BusinessRuleError,
@@ -71,11 +72,13 @@ export const createStockOpnameService = ({
   productRepository,
   stockMovementRepository,
   audit,
+  cache = noopCache,
 }: {
   stockOpnameRepository: StockOpnameRepository
   productRepository: ProductRepository
   stockMovementRepository: StockMovementRepository
   audit?: AuditRecorder
+  cache?: CacheService
 }): StockOpnameService => {
   const findDetailOrFail = async (id: string): Promise<OpnameDetailDto> => {
     const session = await stockOpnameRepository.findById(id)
@@ -357,6 +360,9 @@ export const createStockOpnameService = ({
         status: result.updated.status,
         adjustments: result.adjustments,
       })
+
+      // Opname yang menyetujui selisih stok mengubah inventory.
+      if (result.adjustments > 0) await cache.bumpVersion('inventory')
 
       return findDetailOrFail(id)
     },

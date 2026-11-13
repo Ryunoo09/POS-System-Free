@@ -33,6 +33,8 @@ describe('GET /api/health', () => {
       data: {
         status: 'ok',
         database: 'ok',
+        // Redis dimatikan di test (vitest.config.ts) agar hermetik.
+        redis: 'disabled',
       },
     })
     expect(response.body.data.timestamp).toEqual(expect.any(String))

@@ -1,3 +1,4 @@
+import { noopCache, type CacheService } from '../cache/cache.service.js'
 import { runInTransaction } from '../config/database.js'
 import { BusinessRuleError, NotFoundError } from '../errors/app-errors.js'
 import { toInventoryProductDto, type InventoryProductDto } from '../mappers/inventory.mapper.js'
@@ -49,11 +50,13 @@ export const createInventoryService = ({
   productRepository,
   stockMovementRepository,
   audit,
+  cache = noopCache,
 }: {
   inventoryRepository: InventoryRepository
   productRepository: ProductRepository
   stockMovementRepository: StockMovementRepository
   audit?: AuditRecorder
+  cache?: CacheService
 }): InventoryService => ({
   list: async (query) => {
     const { items, total } = await productRepository.list({
@@ -180,6 +183,9 @@ export const createInventoryService = ({
       ipAddress: actor.ipAddress,
       userAgent: actor.userAgent,
     })
+
+    // Stok berubah -> cache inventory (list low stock, valuation, dashboard) basi.
+    await cache.bumpVersion('inventory')
 
     return { movement: outcome.movement, product: outcome.product }
   },

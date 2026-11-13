@@ -1,4 +1,5 @@
 import { runInTransaction } from '../config/database.js'
+import { noopCache, type CacheService } from '../cache/cache.service.js'
 import { BusinessRuleError, ConflictError, NotFoundError } from '../errors/app-errors.js'
 import {
   toTransactionDetailDto,
@@ -83,6 +84,7 @@ export const createTransactionService = ({
   shiftRepository,
   priceService,
   taxRate,
+  cache = noopCache,
 }: {
   transactionRepository: TransactionRepository
   productRepository: ProductRepository
@@ -90,6 +92,7 @@ export const createTransactionService = ({
   shiftRepository?: ShiftRepository
   priceService: PriceService
   taxRate: number
+  cache?: CacheService
 }): TransactionService => ({
   list: async (query, actor) => {
     const range =
@@ -138,9 +141,11 @@ export const createTransactionService = ({
     const activeShiftId = activeShift ? activeShift.id : null
 
     try {
+      let appliedScheduledPrices = 0
+
       const created = await runInTransaction(async (tx) => {
         const productIds = [...new Set(input.items.map((item) => item.product_id))].sort()
-        await priceService.applyDueScheduledPrices(tx, productIds)
+        appliedScheduledPrices = await priceService.applyDueScheduledPrices(tx, productIds)
         const products = await productRepository.findManyByIdsForUpdate(productIds, tx)
         const productById = new Map(products.map((product) => [product.id, product]))
 
@@ -293,6 +298,11 @@ export const createTransactionService = ({
 
         return transaction
       })
+
+      // Harga terjadwal di dalam checkout hanya mengubah cache setelah transaksi
+      // commit; stok juga berubah sehingga namespace inventory ikut di-invalidasi.
+      if (appliedScheduledPrices > 0) await cache.bumpVersion('products')
+      await cache.bumpVersion('inventory')
 
       return {
         transaction: toTransactionDetailDto(created, {

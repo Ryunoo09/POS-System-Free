@@ -1,3 +1,4 @@
+import { noopCache, type CacheService } from '../cache/cache.service.js'
 import { runInTransaction } from '../config/database.js'
 import type { PurchaseOrderStatus } from '../constants/purchasing.js'
 import { BusinessRuleError, NotFoundError } from '../errors/app-errors.js'
@@ -60,6 +61,7 @@ export const createPurchaseService = ({
   stockMovementRepository,
   priceService,
   audit,
+  cache = noopCache,
 }: {
   purchaseOrderRepository: PurchaseOrderRepository
   supplierRepository: SupplierRepository
@@ -67,6 +69,7 @@ export const createPurchaseService = ({
   stockMovementRepository: StockMovementRepository
   priceService?: PriceService
   audit?: AuditRecorder
+  cache?: CacheService
 }): PurchaseService => {
   const findOrFail = async (id: string) => {
     const order = await purchaseOrderRepository.findById(id)
@@ -313,6 +316,10 @@ export const createPurchaseService = ({
           })),
         },
       )
+
+      // Penerimaan mengubah stok sekaligus average cost -> invalidasi keduanya.
+      await cache.bumpVersion('inventory')
+      await cache.bumpVersion('products')
 
       return toPurchaseOrderDto(result.received)
     },
