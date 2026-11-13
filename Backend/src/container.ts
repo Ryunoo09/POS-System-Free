@@ -1,3 +1,4 @@
+import { createCacheService } from './cache/cache.service.js'
 import { prisma } from './config/database.js'
 import { env } from './config/env.js'
 import { createAuthController } from './controllers/auth.controller.js'
@@ -53,7 +54,8 @@ import { createStockOpnameService } from './services/stock-opname.service.js'
 import type { AppContainer } from './types/container.js'
 
 const healthRepository = createHealthRepository(prisma)
-const healthService = createHealthService({ healthRepository })
+const cacheService = createCacheService()
+const healthService = createHealthService({ healthRepository, cache: cacheService })
 
 const auditRepository = createAuditRepository(prisma)
 const auditService = createAuditService(auditRepository)

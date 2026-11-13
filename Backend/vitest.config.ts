@@ -17,6 +17,8 @@ export default defineConfig({
       BCRYPT_SALT_ROUNDS: '4',
       CORS_ORIGIN: 'http://localhost:5173',
       TAX_RATE: '0',
+      // Test wajib hermetik: tanpa Redis, CacheService jadi no-op.
+      REDIS_ENABLED: 'false',
     },
   },
 })

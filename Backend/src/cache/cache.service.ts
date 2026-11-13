@@ -20,6 +20,7 @@ export const CACHE_TTL = {
 const ENVELOPE_VERSION = 1
 const JITTER_RATIO = 0.1
 const WARN_INTERVAL_MS = 60_000
+const READY_TIMEOUT_MS = 500
 
 export interface CacheService {
   readonly enabled: boolean
@@ -69,11 +70,37 @@ export const createCacheService = (
     logger.warn(message, error instanceof Error ? error.message : error)
   }
 
+  /**
+   * `enableOfflineQueue: false` membuat perintah saat belum terhubung langsung gagal,
+   * jadi cache dilewati (fallback PostgreSQL) alih-alih menambah latensi request.
+   */
+  const readyClient = (): RedisClient | null =>
+    client && client.status === 'ready' ? client : null
+
+  const waitUntilReady = (timeoutMs: number): Promise<boolean> => {
+    if (!client) return Promise.resolve(false)
+    if (client.status === 'ready') return Promise.resolve(true)
+
+    return new Promise((resolve) => {
+      const onReady = (): void => {
+        clearTimeout(timer)
+        resolve(true)
+      }
+      const timer = setTimeout(() => {
+        client.off('ready', onReady)
+        resolve(false)
+      }, timeoutMs)
+
+      client.once('ready', onReady)
+    })
+  }
+
   const read = async <T>(key: string): Promise<{ hit: boolean; value: T | null }> => {
-    if (!client) return { hit: false, value: null }
+    const current = readyClient()
+    if (!current) return { hit: false, value: null }
 
     try {
-      const raw = await client.get(key)
+      const raw = await current.get(key)
       if (raw === null) return { hit: false, value: null }
 
       const parsed = deserialize(raw)
@@ -85,10 +112,11 @@ export const createCacheService = (
   }
 
   const write = async (key: string, value: unknown, ttlSeconds: number): Promise<void> => {
-    if (!client) return
+    const current = readyClient()
+    if (!current) return
 
     try {
-      await client.set(key, serialize(value), 'EX', jitteredTtl(ttlSeconds))
+      await current.set(key, serialize(value), 'EX', jitteredTtl(ttlSeconds))
     } catch (error) {
       warn('Gagal menulis cache', error)
     }
@@ -120,10 +148,11 @@ export const createCacheService = (
   }
 
   const currentVersion = async (namespace: CacheNamespace): Promise<string> => {
-    if (!client) return '0'
+    const current = readyClient()
+    if (!current) return '0'
 
     try {
-      return (await client.get(namespaceVersionKey(namespace))) ?? '0'
+      return (await current.get(namespaceVersionKey(namespace))) ?? '0'
     } catch (error) {
       warn('Gagal membaca versi cache', error)
       return '0'
@@ -138,20 +167,22 @@ export const createCacheService = (
       getOrSet(buildKey(await currentVersion(namespace)), ttlSeconds, loader),
 
     del: async (...keys) => {
-      if (!client || keys.length === 0) return
+      const current = readyClient()
+      if (!current || keys.length === 0) return
 
       try {
-        await client.del(...keys)
+        await current.del(...keys)
       } catch (error) {
         warn('Gagal menghapus cache', error)
       }
     },
 
     bumpVersion: async (namespace) => {
-      if (!client) return
+      const current = readyClient()
+      if (!current) return
 
       try {
-        await client.incr(namespaceVersionKey(namespace))
+        await current.incr(namespaceVersionKey(namespace))
       } catch (error) {
         warn('Gagal menaikkan versi cache', error)
       }
@@ -161,6 +192,7 @@ export const createCacheService = (
 
     ping: async () => {
       if (!client) return 'disabled'
+      if (!(await waitUntilReady(READY_TIMEOUT_MS))) return 'down'
 
       try {
         return (await client.ping()) === 'PONG' ? 'ok' : 'down'
