@@ -1,4 +1,5 @@
 import { runInTransaction } from '../config/database.js'
+import type { CacheService } from '../cache/cache.service.js'
 import { BusinessRuleError, ForbiddenError, NotFoundError } from '../errors/app-errors.js'
 import {
   toPriceHistoryDto,
@@ -100,9 +101,11 @@ const nextPrice = (current: string, input: BulkPriceInput): string => {
 export const createPriceService = ({
   priceRepository,
   productRepository,
+  cache,
 }: {
   priceRepository: PriceRepository
   productRepository: ProductRepository
+  cache?: CacheService
 }): PriceService => {
   const assertProduct = async (productId: string): Promise<void> => {
     if (!(await productRepository.findById(productId))) {
@@ -247,12 +250,18 @@ export const createPriceService = ({
       return rows.map(toPriceHistoryDto)
     },
 
-    applyDueScheduledPrices: (tx, productIds) => {
+    applyDueScheduledPrices: async (tx, productIds) => {
       const now = new Date()
 
-      return tx
-        ? applyDue(now, tx, productIds)
-        : runInTransaction((client) => applyDue(now, client, productIds))
+      // Dipanggil dengan `tx` berarti pemanggil punya transaksi sendiri: invalidasi
+      // dilakukan pemanggil setelah commit (lihat transaction.service.ts).
+      if (tx) return applyDue(now, tx, productIds)
+
+      const applied = await runInTransaction((client) => applyDue(now, client, productIds))
+
+      if (applied > 0) await cache?.bumpVersion('products')
+
+      return applied
     },
 
     schedulePrice: async (productId, input, actor) => {
@@ -314,7 +323,7 @@ export const createPriceService = ({
     bulkApply: async (input, actor) => {
       const products = await resolveProducts(input)
 
-      return runInTransaction(async (tx) => {
+      const result = await runInTransaction(async (tx) => {
         const locked = await productRepository.findManyByIdsForUpdate(
           products.map((product) => product.id),
           tx,
@@ -344,6 +353,10 @@ export const createPriceService = ({
 
         return { updated }
       })
+
+      if (result.updated > 0) await cache?.bumpVersion('products')
+
+      return result
     },
   }
 }

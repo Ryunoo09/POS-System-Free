@@ -65,18 +65,19 @@ const authService = createAuthService({ userRepository })
 const userService = createUserService({ userRepository, audit: auditService })
 
 const categoryRepository = createCategoryRepository(prisma)
-const categoryService = createCategoryService({ categoryRepository })
+const categoryService = createCategoryService({ categoryRepository, cache: cacheService })
 
 const productRepository = createProductRepository(prisma)
 const stockMovementRepository = createStockMovementRepository(prisma)
 const priceRepository = createPriceRepository(prisma)
-const priceService = createPriceService({ priceRepository, productRepository })
+const priceService = createPriceService({ priceRepository, productRepository, cache: cacheService })
 const productService = createProductService({
   productRepository,
   categoryRepository,
   stockMovementRepository,
   audit: auditService,
   priceService,
+  cache: cacheService,
 })
 
 const reportRepository = createReportRepository(prisma)
@@ -102,6 +103,7 @@ const transactionService = createTransactionService({
   shiftRepository,
   priceService,
   taxRate: env.TAX_RATE,
+  cache: cacheService,
 })
 
 const returnRepository = createReturnRepository(prisma)

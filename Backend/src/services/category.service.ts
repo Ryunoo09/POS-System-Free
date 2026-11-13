@@ -1,4 +1,5 @@
 import { ConflictError, NotFoundError } from '../errors/app-errors.js'
+import type { CacheService } from '../cache/cache.service.js'
 import { toCategoryDto, type CategoryDto } from '../mappers/category.mapper.js'
 import type { CategoryRepository } from '../repositories/category.repository.js'
 import type { PaginationMeta } from '../types/http.js'
@@ -27,8 +28,10 @@ export interface CategoryService {
 
 export const createCategoryService = ({
   categoryRepository,
+  cache,
 }: {
   categoryRepository: CategoryRepository
+  cache?: CacheService
 }): CategoryService => {
   const assertNameAvailable = async (name: string, excludeId?: string): Promise<void> => {
     const existing = await categoryRepository.findByName(name, excludeId)
@@ -75,6 +78,8 @@ export const createCategoryService = ({
         description: input.description ?? null,
       })
 
+      await cache?.bumpVersion('categories')
+
       return toCategoryDto(created)
     },
 
@@ -90,6 +95,10 @@ export const createCategoryService = ({
         description: input.description,
         isActive: input.is_active,
       })
+
+      // Nama kategori ikut tersimpan di DTO produk, jadi cache produk juga diinvalidasi.
+      await cache?.bumpVersion('categories')
+      await cache?.bumpVersion('products')
 
       return toCategoryDto(updated)
     },
@@ -108,6 +117,8 @@ export const createCategoryService = ({
       }
 
       const deleted = await categoryRepository.delete(id)
+
+      await cache?.bumpVersion('categories')
 
       return toCategoryDto({ ...deleted, _count: { products: 0 } })
     },
