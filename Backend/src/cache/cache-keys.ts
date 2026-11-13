@@ -37,7 +37,7 @@ export interface CategoryListKeyInput {
 }
 
 export interface ProductListKeyInput extends Record<string, unknown> {
-  scope: 'all' | 'active'
+  scope: 'all' | 'active' | 'inactive'
   page: number
   limit: number
   search?: string | undefined
@@ -59,11 +59,8 @@ export const cacheKeys = {
   categoryList: (version: string, input: CategoryListKeyInput): string =>
     `${P}:cat:list:v${version}:${input.scope}:p${input.page}:l${input.limit}:s${filterHash({ search: input.search })}`,
 
-  productDetail: (productId: string, costView: boolean): string =>
-    `${P}:prod:detail:${productId}:${scopeOf(costView)}`,
-
-  productBarcode: (barcode: string, costView: boolean): string =>
-    `${P}:prod:barcode:${barcode}:${scopeOf(costView)}`,
+  productDetail: (version: string, productId: string, costView: boolean): string =>
+    `${P}:prod:detail:v${version}:${productId}:${scopeOf(costView)}`,
 
   productList: (version: string, input: ProductListKeyInput): string =>
     `${P}:prod:list:v${version}:${filterHash(input)}`,

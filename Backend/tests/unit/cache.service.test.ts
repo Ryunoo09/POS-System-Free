@@ -159,8 +159,9 @@ describe('cacheKeys', () => {
   })
 
   it('membedakan scope harga modal agar data tidak bocor antar-role', () => {
-    expect(cacheKeys.productDetail('p1', true)).not.toBe(cacheKeys.productDetail('p1', false))
-    expect(cacheKeys.productBarcode('899', true)).not.toBe(cacheKeys.productBarcode('899', false))
+    expect(cacheKeys.productDetail('0', 'p1', true)).not.toBe(
+      cacheKeys.productDetail('0', 'p1', false),
+    )
   })
 
   it('memakai prefix env dan namespace versi', () => {

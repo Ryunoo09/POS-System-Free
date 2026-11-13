@@ -1,5 +1,6 @@
 import { runInTransaction } from '../config/database.js'
-import { noopCache, type CacheService } from '../cache/cache.service.js'
+import { CACHE_TTL, noopCache, type CacheService } from '../cache/cache.service.js'
+import { cacheKeys } from '../cache/cache-keys.js'
 import { BusinessRuleError, ConflictError, NotFoundError } from '../errors/app-errors.js'
 import { toProductDto, type ProductDto } from '../mappers/product.mapper.js'
 import type { CategoryRepository } from '../repositories/category.repository.js'
@@ -104,31 +105,62 @@ export const createProductService = ({
 
       await priceService.applyDueScheduledPrices()
 
-      const { items, total } = await productRepository.list({
-        skip: toSkip(query.page, query.limit),
-        take: query.limit,
-        search: query.search,
-        barcode: query.barcode,
-        categoryId: query.category_id,
-        isActive,
-      })
+      const load = async (): Promise<{ items: ProductDto[]; meta: PaginationMeta }> => {
+        const { items, total } = await productRepository.list({
+          skip: toSkip(query.page, query.limit),
+          take: query.limit,
+          search: query.search,
+          barcode: query.barcode,
+          categoryId: query.category_id,
+          isActive,
+        })
 
-      return {
-        items: items.map((product) => toProductDto(product, { canViewCostPrice })),
-        meta: buildPaginationMeta(query.page, query.limit, total),
+        return {
+          items: items.map((product) => toProductDto(product, { canViewCostPrice })),
+          meta: buildPaginationMeta(query.page, query.limit, total),
+        }
       }
+
+      // Hanya lookup barcode (exact match) yang di-cache. Pencarian bebas tidak,
+      // karena kardinalitas key tak terbatas (plan §7).
+      if (!query.barcode) return load()
+
+      const scope = isActive === true ? 'active' : isActive === false ? 'inactive' : 'all'
+
+      return cache.getOrSetVersioned(
+        'products',
+        (version) =>
+          cacheKeys.productList(version, {
+            scope,
+            page: query.page,
+            limit: query.limit,
+            search: query.search,
+            barcode: query.barcode,
+            categoryId: query.category_id,
+            costView: canViewCostPrice,
+          }),
+        CACHE_TTL.productBarcode,
+        load,
+      )
     },
 
     getById: async (id, actor) => {
       await priceService.applyDueScheduledPrices(undefined, [id])
 
-      const product = await productRepository.findById(id)
+      return cache.getOrSetVersioned(
+        'products',
+        (version) => cacheKeys.productDetail(version, id, actor.canViewCostPrice),
+        CACHE_TTL.productDetail,
+        async () => {
+          const product = await productRepository.findById(id)
 
-      if (!product) {
-        throw new NotFoundError('Produk tidak ditemukan', 'NOT_FOUND')
-      }
+          if (!product) {
+            throw new NotFoundError('Produk tidak ditemukan', 'NOT_FOUND')
+          }
 
-      return toProductDto(product, { canViewCostPrice: actor.canViewCostPrice })
+          return toProductDto(product, { canViewCostPrice: actor.canViewCostPrice })
+        },
+      )
     },
 
     create: async (input, actor) => {
