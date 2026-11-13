@@ -81,7 +81,7 @@ const productService = createProductService({
 })
 
 const reportRepository = createReportRepository(prisma)
-const dashboardService = createDashboardService({ reportRepository })
+const dashboardService = createDashboardService({ reportRepository, cache: cacheService })
 const reportService = createReportService({ reportRepository })
 
 const inventoryRepository = createInventoryRepository(prisma)

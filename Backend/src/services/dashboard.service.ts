@@ -1,9 +1,13 @@
+import { cacheKeys } from '../cache/cache-keys.js'
+import { CACHE_TTL, noopCache, type CacheService } from '../cache/cache.service.js'
 import type { ReportRepository } from '../repositories/report.repository.js'
 import {
   eachDateInRange,
   previousDateRange,
   resolveDateRange,
+  todayInJakarta,
   type DateRangeInput,
+  type ResolvedDateRange,
 } from '../utils/date-range.js'
 
 export interface DashboardSummaryPreviousDto {
@@ -66,10 +70,16 @@ export interface DashboardService {
   getBreakdown: (input: DateRangeInput) => Promise<DashboardBreakdownDto>
 }
 
+/** Rentang yang sudah lewat praktis immutable, jadi boleh berumur lebih panjang. */
+const ttlFor = (range: ResolvedDateRange): number =>
+  range.endDate >= todayInJakarta() ? CACHE_TTL.dashboard : CACHE_TTL.dashboardPast
+
 export const createDashboardService = ({
   reportRepository,
+  cache = noopCache,
 }: {
   reportRepository: ReportRepository
+  cache?: CacheService
 }): DashboardService => {
   const marginPct = (revenue: string, grossProfit: string): string => {
     const revenueValue = Number(revenue)
@@ -79,85 +89,112 @@ export const createDashboardService = ({
   }
 
   return {
-  getSummary: async (input) => {
-    const range = resolveDateRange(input)
-    const previousRange = previousDateRange(range)
+    getSummary: async (input) => {
+      const range = resolveDateRange(input)
 
-    const [totals, previousTotals] = await Promise.all([
-      reportRepository.getSummary(range),
-      reportRepository.getSummary(previousRange),
-    ])
+      return cache.getOrSet(
+        cacheKeys.dashboardSummary(range.startDate, range.endDate),
+        ttlFor(range),
+        async (): Promise<DashboardSummaryDto> => {
+          const previousRange = previousDateRange(range)
 
-    return {
-      period: { start_date: range.startDate, end_date: range.endDate },
-      revenue: totals.revenue,
-      cogs: totals.cogs,
-      gross_profit: totals.grossProfit,
-      gross_margin_pct: marginPct(totals.revenue, totals.grossProfit),
-      transaction_count: totals.transactionCount,
-      total_products: totals.totalProducts,
-      total_stock: totals.totalStock,
-      low_stock_count: totals.lowStockCount,
-      previous: {
-        period: { start_date: previousRange.startDate, end_date: previousRange.endDate },
-        revenue: previousTotals.revenue,
-        cogs: previousTotals.cogs,
-        gross_profit: previousTotals.grossProfit,
-        transaction_count: previousTotals.transactionCount,
-      },
-    }
-  },
+          const [totals, previousTotals] = await Promise.all([
+            reportRepository.getSummary(range),
+            reportRepository.getSummary(previousRange),
+          ])
 
-  getSales: async (input) => {
-    const range = resolveDateRange(input)
-    const rows = await reportRepository.getDailySales(range)
-    const byDate = new Map(rows.map((row) => [row.date, row]))
+          return {
+            period: { start_date: range.startDate, end_date: range.endDate },
+            revenue: totals.revenue,
+            cogs: totals.cogs,
+            gross_profit: totals.grossProfit,
+            gross_margin_pct: marginPct(totals.revenue, totals.grossProfit),
+            transaction_count: totals.transactionCount,
+            total_products: totals.totalProducts,
+            total_stock: totals.totalStock,
+            low_stock_count: totals.lowStockCount,
+            previous: {
+              period: { start_date: previousRange.startDate, end_date: previousRange.endDate },
+              revenue: previousTotals.revenue,
+              cogs: previousTotals.cogs,
+              gross_profit: previousTotals.grossProfit,
+              transaction_count: previousTotals.transactionCount,
+            },
+          }
+        },
+      )
+    },
 
-    return eachDateInRange(range.startDate, range.endDate).map((date) => {
-      const row = byDate.get(date)
+    getSales: async (input) => {
+      const range = resolveDateRange(input)
 
-      return {
-        date,
-        revenue: row?.revenue ?? '0.00',
-        transaction_count: row?.transactionCount ?? 0,
-      }
-    })
-  },
+      return cache.getOrSet(
+        cacheKeys.dashboardSales(range.startDate, range.endDate),
+        ttlFor(range),
+        async (): Promise<DailySalesDto[]> => {
+          const rows = await reportRepository.getDailySales(range)
+          const byDate = new Map(rows.map((row) => [row.date, row]))
 
-  getTopProducts: async (input, limit) => {
-    const range = resolveDateRange(input)
-    const rows = await reportRepository.getTopProducts(range, limit)
+          return eachDateInRange(range.startDate, range.endDate).map((date) => {
+            const row = byDate.get(date)
 
-    return rows.map((row) => ({
-      product_id: row.productId,
-      sku: row.sku,
-      name: row.name,
-      quantity_sold: row.quantitySold,
-      revenue: row.revenue,
-    }))
-  },
+            return {
+              date,
+              revenue: row?.revenue ?? '0.00',
+              transaction_count: row?.transactionCount ?? 0,
+            }
+          })
+        },
+      )
+    },
 
-  getBreakdown: async (input) => {
-    const range = resolveDateRange(input)
+    getTopProducts: async (input, limit) => {
+      const range = resolveDateRange(input)
 
-    const [paymentMethods, categories] = await Promise.all([
-      reportRepository.getPaymentMethodSales(range),
-      reportRepository.getCategorySales(range),
-    ])
+      return cache.getOrSet(
+        cacheKeys.dashboardTopProducts(range.startDate, range.endDate, limit),
+        ttlFor(range),
+        async (): Promise<TopProductDto[]> => {
+          const rows = await reportRepository.getTopProducts(range, limit)
 
-    return {
-      payment_methods: paymentMethods.map((row) => ({
-        payment_method: row.paymentMethod,
-        transaction_count: row.transactionCount,
-        revenue: row.revenue,
-      })),
-      categories: categories.map((row) => ({
-        category_id: row.categoryId,
-        category: row.category,
-        quantity_sold: row.quantitySold,
-        revenue: row.revenue,
-      })),
-    }
-  },
+          return rows.map((row) => ({
+            product_id: row.productId,
+            sku: row.sku,
+            name: row.name,
+            quantity_sold: row.quantitySold,
+            revenue: row.revenue,
+          }))
+        },
+      )
+    },
+
+    getBreakdown: async (input) => {
+      const range = resolveDateRange(input)
+
+      return cache.getOrSet(
+        cacheKeys.dashboardBreakdown(range.startDate, range.endDate),
+        ttlFor(range),
+        async (): Promise<DashboardBreakdownDto> => {
+          const [paymentMethods, categories] = await Promise.all([
+            reportRepository.getPaymentMethodSales(range),
+            reportRepository.getCategorySales(range),
+          ])
+
+          return {
+            payment_methods: paymentMethods.map((row) => ({
+              payment_method: row.paymentMethod,
+              transaction_count: row.transactionCount,
+              revenue: row.revenue,
+            })),
+            categories: categories.map((row) => ({
+              category_id: row.categoryId,
+              category: row.category,
+              quantity_sold: row.quantitySold,
+              revenue: row.revenue,
+            })),
+          }
+        },
+      )
+    },
   }
 }
