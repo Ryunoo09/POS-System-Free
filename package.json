@@ -29,5 +29,9 @@
     "db:deploy": "pnpm --filter @pos/backend prisma:deploy",
     "db:reset": "pnpm --filter @pos/backend prisma:reset",
     "db:seed": "pnpm --filter @pos/backend prisma:seed"
+  },
+  "dependencies": {
+    "@neon/config": "^1.14.2",
+    "@neon/env": "^2.1.5"
   }
 }
