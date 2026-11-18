@@ -1,0 +1,27 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "backend": {
+      "root": "Backend",
+      "framework": "express",
+      "entrypoint": "src/server.ts",
+      "buildCommand": "pnpm --dir .. --filter @pos/backend exec prisma generate && pnpm --dir .. --filter @pos/backend build",
+      "outputDirectory": "dist"
+    },
+    "frontend": {
+      "root": "Frontend",
+      "framework": "vite",
+      "buildCommand": "pnpm --dir .. --filter @pos/frontend build-only"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": { "service": "backend" }
+    },
+    {
+      "source": "/(.*)",
+      "destination": { "service": "frontend" }
+    }
+  ]
+}

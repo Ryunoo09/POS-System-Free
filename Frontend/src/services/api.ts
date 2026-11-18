@@ -3,7 +3,11 @@ import type { ApiEnvelope, ApiErrorPayload, ListResult, PaginationMeta } from '@
 import { ApiError } from '@/utils/api-error'
 import { TOKEN_STORAGE_KEY } from '@/utils/constants'
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+// Vercel multi-service: set VITE_API_URL="/api" in the Vercel dashboard (same-origin relative path).
+// Local dev: VITE_API_URL=http://localhost:3000/api from .env.
+// Unset: fallback to localhost for local dev without .env.
+const rawApiUrl = import.meta.env.VITE_API_URL
+const baseURL = rawApiUrl === undefined ? 'http://localhost:3000/api' : rawApiUrl
 
 export const api = axios.create({
   baseURL,
